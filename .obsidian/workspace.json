@@ -1,0 +1,213 @@
+{
+  "main": {
+    "id": "09117bfc00e7b806",
+    "type": "split",
+    "children": [
+      {
+        "id": "2c8753efc01603a1",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2f15103574c9f094",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "docs/02-архитектура/потоки-данных/регистрация-и-триал.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "регистрация-и-триал"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "3b5686e1f8f1d3e4",
+    "type": "split",
+    "children": [
+      {
+        "id": "039789f2bc8f101f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e2b435c5809bbe16",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Файловый менеджер"
+            }
+          },
+          {
+            "id": "8f9980cb71be1cad",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Поиск"
+            }
+          },
+          {
+            "id": "aeeba1f4b12ba1ca",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Закладки"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "d8c333bebea2d669",
+    "type": "split",
+    "children": [
+      {
+        "id": "439a323e394d4fc7",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c176db3ed967b11e",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Обратные ссылки"
+            }
+          },
+          {
+            "id": "81e247a95a06b6f0",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Исходящие ссылки"
+            }
+          },
+          {
+            "id": "7bad978b48a09f31",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Теги"
+            }
+          },
+          {
+            "id": "0df9e3762eca9e19",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Все свойства"
+            }
+          },
+          {
+            "id": "cc0c19f365a03e8e",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Структура"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Меню быстрого перехода": false,
+      "graph:Граф": false,
+      "canvas:Создать новый холст": false,
+      "daily-notes:Сегодняшняя заметка": false,
+      "templates:Вставить шаблон": false,
+      "command-palette:Открыть палитру команд": false,
+      "bases:Создать новую базу": false
+    }
+  },
+  "active": "2f15103574c9f094",
+  "lastOpenFiles": [
+    "bot/handlers/__pycache__/tariffs.cpython-312.pyc",
+    "test_bot/__pycache__/router.cpython-312.pyc",
+    "bot/handlers/__pycache__/devices.cpython-312.pyc",
+    "test_bot/__pycache__/__init__.cpython-312.pyc",
+    "test_bot/__pycache__",
+    "tests/__pycache__/test_test_bot_router.cpython-312.pyc",
+    "tests/__pycache__/test_bot_payment_handlers.cpython-312.pyc",
+    "bot/handlers/__pycache__/cabinet.cpython-312.pyc",
+    "bot/handlers/__pycache__",
+    "tests/__pycache__/test_bot_main_router_registration.cpython-312.pyc",
+    "tests/__pycache__/__init__.cpython-312.pyc",
+    "docs/02-архитектура/общая-схема.md",
+    "docs/02-архитектура/потоки-данных/регистрация-и-триал.md",
+    "mermaid-1776112652591.png",
+    "docs/index.md",
+    "docs/02-архитектура/компоненты/база-данных.md",
+    "docs/02-архитектура/компоненты/впн-ноды.md",
+    "docs/02-архитектура/компоненты/веб-панель.md",
+    "docs/02-архитектура/компоненты/телеграм-боты.md",
+    "docs/02-архитектура/компоненты/backend.md",
+    "docs/02-архитектура/компоненты.md",
+    "docs/01-обзор/публичные-точки-входа.md",
+    "docs/01-обзор/глоссарий.md",
+    "docs/01-обзор/описание-продукта 1.md",
+    "docs/01-обзор/описание-продукта.md",
+    "docs/00-быстрый-старт.md",
+    "docs/01-обзор-проекта.md"
+  ]
+}

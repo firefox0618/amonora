@@ -1307,6 +1307,25 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(callback.answers[-1]["text"], "Тариф не найден.")
         self.assertTrue(callback.answers[-1]["show_alert"])
 
+    async def test_renew_payment_method_rejects_unsupported_method(self) -> None:
+        callback = FakeCallback(FakeMessage(), "testv2:pay:renew:stars:1m")
+        user = SimpleNamespace(id=42, telegram_id=1001)
+
+        with (
+            patch.object(test_bot_router, "get_user_by_telegram_id", new=AsyncMock(return_value=user)),
+            patch.object(test_bot_router, "_load_pending_discount_payload", new=AsyncMock(return_value=None)),
+            patch.object(
+                test_bot_router,
+                "build_balance_breakdown_for_price",
+                new=AsyncMock(return_value={"list_price_amount": 149, "balance_amount": 0, "payable_amount": 149}),
+            ),
+            patch.object(test_bot_router, "get_open_payment_intent_for_user", new=AsyncMock(return_value=None)),
+        ):
+            await test_bot_router.v2_renew_payment_method_callback(callback)
+
+        self.assertEqual(callback.answers[-1]["text"], "Способ оплаты не поддерживается. Откройте экран заново.")
+        self.assertTrue(callback.answers[-1]["show_alert"])
+
     async def test_balance_manual_payment_creates_review_request(self) -> None:
         callback = FakeCallback(FakeMessage(), "testv2:pay:balance:sbp_manual:500")
         user = SimpleNamespace(id=42, telegram_id=1001)
@@ -1332,6 +1351,19 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
         labels = [button.text for row in callback.message.edits[0]["reply_markup"].inline_keyboard for button in row]
         self.assertIn("Я оплатил(а)", labels)
         self.assertIn("Проверить статус", labels)
+
+    async def test_balance_payment_method_rejects_unsupported_method(self) -> None:
+        callback = FakeCallback(FakeMessage(), "testv2:pay:balance:stars:500")
+        user = SimpleNamespace(id=42, telegram_id=1001)
+
+        with (
+            patch.object(test_bot_router, "get_user_by_telegram_id", new=AsyncMock(return_value=user)),
+            patch.object(test_bot_router, "_find_open_balance_topup_intent", new=AsyncMock(return_value=None)),
+        ):
+            await test_bot_router.v2_balance_payment_method_callback(callback)
+
+        self.assertEqual(callback.answers[-1]["text"], "Способ оплаты не поддерживается. Откройте экран заново.")
+        self.assertTrue(callback.answers[-1]["show_alert"])
 
     async def test_renew_external_check_handles_platega_sync_error(self) -> None:
         callback = FakeCallback(FakeMessage(), "testv2:pay:renew:external:check:77:1m")
@@ -1396,6 +1428,41 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
         labels = [button.text for row in callback.message.edits[0]["reply_markup"].inline_keyboard for button in row]
         self.assertIn("Оплатить", labels)
         self.assertIn("Проверить оплату", labels)
+
+    async def test_device_slot_payment_method_rejects_unsupported_method(self) -> None:
+        callback = FakeCallback(FakeMessage(), "testv2:pay:slot:stars")
+        user = SimpleNamespace(
+            id=42,
+            telegram_id=1001,
+            is_blocked=False,
+            subscription_status="active",
+            subscription_expires_at=datetime.utcnow() + timedelta(days=30),
+        )
+        context = {
+            "eligible": True,
+            "remaining_capacity": 2,
+            "price_rub": 49,
+            "duration_days": 29,
+            "expires_at": datetime.utcnow() + timedelta(days=29),
+            "expires_text": "2026-05-09 12:00:00",
+            "current_limit": 3,
+            "next_limit": 4,
+        }
+
+        with (
+            patch.object(test_bot_router, "get_user_by_telegram_id", new=AsyncMock(return_value=user)),
+            patch.object(test_bot_router, "_device_slot_context_for_user", new=AsyncMock(return_value=context)),
+            patch.object(
+                test_bot_router,
+                "build_balance_breakdown_for_price",
+                new=AsyncMock(return_value={"list_price_amount": 49, "balance_amount": 0, "payable_amount": 49}),
+            ),
+            patch.object(test_bot_router, "get_open_payment_intent_for_user", new=AsyncMock(return_value=None)),
+        ):
+            await test_bot_router.v2_device_slot_payment_method_callback(callback)
+
+        self.assertEqual(callback.answers[-1]["text"], "Способ оплаты не поддерживается. Откройте экран заново.")
+        self.assertTrue(callback.answers[-1]["show_alert"])
 
     def test_screen_asset_mapping_uses_subscription_and_info_images(self) -> None:
         self.assertEqual(test_bot_router.SCREEN_IMAGE_FILENAMES["key"], "sakura_my_subscription.jpg")

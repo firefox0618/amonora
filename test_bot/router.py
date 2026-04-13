@@ -3363,7 +3363,13 @@ async def v2_bonus_gift_pay_callback(callback: CallbackQuery) -> None:
     )
 
 
-@router.callback_query(F.data.startswith(V2_BONUS_GIFT_METHOD_PREFIX))
+@router.callback_query(
+    F.data.startswith(V2_BONUS_GIFT_METHOD_PREFIX)
+    & ~F.data.startswith(V2_BONUS_GIFT_MANUAL_PAID_PREFIX)
+    & ~F.data.startswith(V2_BONUS_GIFT_MANUAL_STATUS_PREFIX)
+    & ~F.data.startswith(V2_BONUS_GIFT_MANUAL_CANCEL_PREFIX)
+    & ~F.data.startswith(V2_BONUS_GIFT_EXTERNAL_CHECK_PREFIX)
+)
 async def v2_bonus_gift_payment_method_callback(callback: CallbackQuery) -> None:
     method, tariff_code = str(callback.data or "").removeprefix(V2_BONUS_GIFT_METHOD_PREFIX).split(":", 1)
     tariff = get_tariff(tariff_code)
@@ -3460,6 +3466,8 @@ async def v2_bonus_gift_payment_method_callback(callback: CallbackQuery) -> None
     except PlategaError as exc:
         logger.warning("Failed to create gift payment in test bot: %s", exc)
         await callback.answer("Не удалось создать оплату. Попробуйте ещё раз позже.", show_alert=True)
+        return
+    await callback.answer("Способ оплаты не поддерживается. Откройте экран заново.", show_alert=True)
 
 
 @router.callback_query(F.data == "testv2:bonus:no-link")
@@ -3755,7 +3763,13 @@ async def v2_balance_topup_amount_callback(callback: CallbackQuery) -> None:
     )
 
 
-@router.callback_query(F.data.startswith(V2_RENEW_METHOD_PREFIX))
+@router.callback_query(
+    F.data.startswith(V2_RENEW_METHOD_PREFIX)
+    & ~F.data.startswith(V2_RENEW_MANUAL_PAID_PREFIX)
+    & ~F.data.startswith(V2_RENEW_MANUAL_STATUS_PREFIX)
+    & ~F.data.startswith(V2_RENEW_MANUAL_CANCEL_PREFIX)
+    & ~F.data.startswith(V2_RENEW_EXTERNAL_CHECK_PREFIX)
+)
 async def v2_renew_payment_method_callback(callback: CallbackQuery) -> None:
     try:
         method, tariff_code = _split_callback_suffix(
@@ -3861,9 +3875,17 @@ async def v2_renew_payment_method_callback(callback: CallbackQuery) -> None:
     except PlategaError as exc:
         logger.warning("Failed to create renew payment in test bot: %s", exc)
         await callback.answer("Не удалось создать оплату. Попробуйте ещё раз позже.", show_alert=True)
+        return
+    await callback.answer("Способ оплаты не поддерживается. Откройте экран заново.", show_alert=True)
 
 
-@router.callback_query(F.data.startswith(V2_BALANCE_METHOD_PREFIX))
+@router.callback_query(
+    F.data.startswith(V2_BALANCE_METHOD_PREFIX)
+    & ~F.data.startswith(V2_BALANCE_MANUAL_PAID_PREFIX)
+    & ~F.data.startswith(V2_BALANCE_MANUAL_STATUS_PREFIX)
+    & ~F.data.startswith(V2_BALANCE_MANUAL_CANCEL_PREFIX)
+    & ~F.data.startswith(V2_BALANCE_EXTERNAL_CHECK_PREFIX)
+)
 async def v2_balance_payment_method_callback(callback: CallbackQuery) -> None:
     try:
         method, amount_raw = _split_callback_suffix(
@@ -3914,9 +3936,17 @@ async def v2_balance_payment_method_callback(callback: CallbackQuery) -> None:
     except PlategaError as exc:
         logger.warning("Failed to create balance top-up payment in test bot: %s", exc)
         await callback.answer("Не удалось создать оплату. Попробуйте ещё раз позже.", show_alert=True)
+        return
+    await callback.answer("Способ оплаты не поддерживается. Откройте экран заново.", show_alert=True)
 
 
-@router.callback_query(F.data.startswith(V2_DEVICE_SLOT_METHOD_PREFIX))
+@router.callback_query(
+    F.data.startswith(V2_DEVICE_SLOT_METHOD_PREFIX)
+    & ~F.data.startswith(V2_DEVICE_SLOT_MANUAL_PAID_PREFIX)
+    & ~F.data.startswith(V2_DEVICE_SLOT_MANUAL_STATUS_PREFIX)
+    & ~F.data.startswith(V2_DEVICE_SLOT_MANUAL_CANCEL_PREFIX)
+    & ~F.data.startswith(V2_DEVICE_SLOT_EXTERNAL_CHECK_PREFIX)
+)
 async def v2_device_slot_payment_method_callback(callback: CallbackQuery) -> None:
     method = str(callback.data or "").removeprefix(V2_DEVICE_SLOT_METHOD_PREFIX)
     user = await get_user_by_telegram_id(callback.from_user.id)
@@ -4001,6 +4031,8 @@ async def v2_device_slot_payment_method_callback(callback: CallbackQuery) -> Non
     except PlategaError as exc:
         logger.warning("Failed to create device-slot payment in test bot: %s", exc)
         await callback.answer("Не удалось создать оплату. Попробуйте ещё раз позже.", show_alert=True)
+        return
+    await callback.answer("Способ оплаты не поддерживается. Откройте экран заново.", show_alert=True)
 
 
 @router.callback_query(F.data.startswith(V2_RENEW_MANUAL_PAID_PREFIX))

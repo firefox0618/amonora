@@ -1,3 +1,8 @@
+# DEPRECATED: This unit file describes the old mtg v2 MTProto proxy.
+# It was replaced by amonora-dk-mtproxy.service (Telegram MTProxy) on March 29, 2026.
+# This file is kept in the repo as rollback evidence only.
+# The service should be disabled on production. See RUNBOOK.md for details.
+
 [Unit]
 Description=Amonora Denmark MTProto Proxy
 Documentation=https://github.com/9seconds/mtg

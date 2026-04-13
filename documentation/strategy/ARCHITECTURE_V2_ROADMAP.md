@@ -1,5 +1,6 @@
 # AMONORA — ARCHITECTURE V2 ROADMAP
 Дата: 19 марта 2026
+Обновлено: 13 апреля 2026 — актуализировано текущее состояние
 
 ---
 
@@ -10,9 +11,9 @@
 
 Главный принцип:
 
-> Сначала стабилизация.  
-> Потом управляемость.  
-> Потом масштаб.  
+> Сначала стабилизация.
+> Потом управляемость.
+> Потом масштаб.
 > Потом усложнение архитектуры.
 
 ---
@@ -22,16 +23,14 @@
 ## Сейчас проект выглядит так:
 
 - 1 core/backend server
-- 2 VPN nodes
+- 3 VPN nodes (Germany `3x-ui`, Denmark `Xray core`, Estonia reserve `x-ui`)
 - PostgreSQL
-- Telegram bot
-- Support bot
-- Next.js dashboard
-- 3x-ui control plane
-- manual SBP billing
-- ранний anti-DPI стек
+- 4 Telegram-бота (`@amonora_bot`, `@amonora_support_bot`, `@amonora_control_bot`, `@test_amonora_bot`)
+- dashboard + dashboard/ui (Next.js)
+- Platega auto-billing (СБП + крипто), ручной контур — emergency fallback
+- внутренний Баланс пользователя в RUB
 - реальные пользователи
-- первый платёж
+- early anti-DPI стек (Denmark `Xray core`)
 
 ## Это уже не черновик.
 Но это ещё не масштабируемая SaaS-платформа.
