@@ -378,6 +378,22 @@ BALANCE_TOPUP_PRODUCT_TYPE = "balance_topup"
 BALANCE_TOPUP_TARIFF_CODE = "balance_topup"
 
 
+def _callback_startswith(value: str | None, prefix: str) -> bool:
+    return str(value or "").startswith(prefix)
+
+
+def _callback_is_payment_method(
+    value: str | None,
+    *,
+    method_prefix: str,
+    excluded_prefixes: tuple[str, ...],
+) -> bool:
+    payload = str(value or "")
+    if not payload.startswith(method_prefix):
+        return False
+    return not any(payload.startswith(excluded) for excluded in excluded_prefixes)
+
+
 def _payment_metadata(record) -> dict:
     raw = getattr(record, "metadata_json", None)
     if not raw:

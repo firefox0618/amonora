@@ -88,6 +88,11 @@ LANDING_BRIDGE_USER_PREFIX = "bridge_"
 LANDING_BRIDGE_SUBSCRIPTION_SOURCE = "landing_bridge"
 LANDING_BRIDGE_TELEGRAM_ID_BASE = 9_000_000_000_000_000
 _UNSET = object()
+_PAYMENT_RECORD_FIELDS = set(PaymentRecord.__mapper__.attrs.keys())
+
+
+def _payment_record_kwargs(**kwargs) -> dict:
+    return {key: value for key, value in kwargs.items() if key in _PAYMENT_RECORD_FIELDS}
 
 
 def _payment_product_type_from_record(record: PaymentRecord) -> str:
@@ -2020,20 +2025,22 @@ async def create_external_payment_record(
             external_payment_id=external_payment_id,
         )
         record = PaymentRecord(
-            user_id=user_id,
-            external_payment_id=external_payment_id,
-            tariff_code=tariff_code,
-            payment_method=payment_method,
-            payment_status="pending",
-            amount=amount,
-            list_price_amount=list_price_amount if list_price_amount is not None else amount,
-            balance_reserved_amount=max(int(balance_reserved_amount), 0),
-            balance_applied_amount=max(int(balance_applied_amount), 0),
-            currency=currency,
-            duration_days=duration_days,
-            note=note,
-            metadata_json=json.dumps(effective_metadata, ensure_ascii=False) if effective_metadata else None,
-            expires_at=expires_at,
+            **_payment_record_kwargs(
+                user_id=user_id,
+                external_payment_id=external_payment_id,
+                tariff_code=tariff_code,
+                payment_method=payment_method,
+                payment_status="pending",
+                amount=amount,
+                list_price_amount=list_price_amount if list_price_amount is not None else amount,
+                balance_reserved_amount=max(int(balance_reserved_amount), 0),
+                balance_applied_amount=max(int(balance_applied_amount), 0),
+                currency=currency,
+                duration_days=duration_days,
+                note=note,
+                metadata_json=json.dumps(effective_metadata, ensure_ascii=False) if effective_metadata else None,
+                expires_at=expires_at,
+            )
         )
         session.add(record)
         try:
@@ -2242,20 +2249,22 @@ async def create_manual_payment_record(
             external_payment_id=generated_external_payment_id,
         )
         record = PaymentRecord(
-            user_id=user_id,
-            external_payment_id=generated_external_payment_id,
-            tariff_code=tariff_code,
-            payment_method=payment_method,
-            payment_status="awaiting_user_payment",
-            amount=amount,
-            list_price_amount=list_price_amount if list_price_amount is not None else amount,
-            balance_reserved_amount=max(int(balance_reserved_amount), 0),
-            balance_applied_amount=max(int(balance_applied_amount), 0),
-            currency=currency,
-            duration_days=duration_days,
-            note=note,
-            metadata_json=json.dumps(effective_metadata, ensure_ascii=False) if effective_metadata else None,
-            expires_at=expires_at,
+            **_payment_record_kwargs(
+                user_id=user_id,
+                external_payment_id=generated_external_payment_id,
+                tariff_code=tariff_code,
+                payment_method=payment_method,
+                payment_status="awaiting_user_payment",
+                amount=amount,
+                list_price_amount=list_price_amount if list_price_amount is not None else amount,
+                balance_reserved_amount=max(int(balance_reserved_amount), 0),
+                balance_applied_amount=max(int(balance_applied_amount), 0),
+                currency=currency,
+                duration_days=duration_days,
+                note=note,
+                metadata_json=json.dumps(effective_metadata, ensure_ascii=False) if effective_metadata else None,
+                expires_at=expires_at,
+            )
         )
         session.add(record)
         await session.commit()
@@ -2583,20 +2592,22 @@ async def create_balance_aware_manual_payment_record(
         reserved_amount = min(max(int(list_price_amount), 0), available_balance)
 
         record = PaymentRecord(
-            user_id=user_id,
-            external_payment_id=f"manual_{payment_method}_{uuid4().hex[:16]}",
-            tariff_code=tariff_code,
-            payment_method=payment_method,
-            payment_status="awaiting_user_payment",
-            amount=max(int(list_price_amount) - reserved_amount, 0),
-            list_price_amount=int(list_price_amount),
-            balance_reserved_amount=reserved_amount,
-            balance_applied_amount=0,
-            currency=currency,
-            duration_days=duration_days,
-            note=note,
-            metadata_json=json.dumps(metadata, ensure_ascii=False) if metadata else None,
-            expires_at=expires_at,
+            **_payment_record_kwargs(
+                user_id=user_id,
+                external_payment_id=f"manual_{payment_method}_{uuid4().hex[:16]}",
+                tariff_code=tariff_code,
+                payment_method=payment_method,
+                payment_status="awaiting_user_payment",
+                amount=max(int(list_price_amount) - reserved_amount, 0),
+                list_price_amount=int(list_price_amount),
+                balance_reserved_amount=reserved_amount,
+                balance_applied_amount=0,
+                currency=currency,
+                duration_days=duration_days,
+                note=note,
+                metadata_json=json.dumps(metadata, ensure_ascii=False) if metadata else None,
+                expires_at=expires_at,
+            )
         )
         session.add(record)
         await session.flush()
@@ -2654,20 +2665,22 @@ async def create_balance_aware_external_payment_record(
             external_payment_id=external_payment_id,
         )
         record = PaymentRecord(
-            user_id=user_id,
-            external_payment_id=external_payment_id,
-            tariff_code=tariff_code,
-            payment_method=payment_method,
-            payment_status="pending",
-            amount=max(int(list_price_amount) - reserved_amount, 0),
-            list_price_amount=int(list_price_amount),
-            balance_reserved_amount=reserved_amount,
-            balance_applied_amount=0,
-            currency=currency,
-            duration_days=duration_days,
-            note=note,
-            metadata_json=json.dumps(effective_metadata, ensure_ascii=False) if effective_metadata else None,
-            expires_at=expires_at,
+            **_payment_record_kwargs(
+                user_id=user_id,
+                external_payment_id=external_payment_id,
+                tariff_code=tariff_code,
+                payment_method=payment_method,
+                payment_status="pending",
+                amount=max(int(list_price_amount) - reserved_amount, 0),
+                list_price_amount=int(list_price_amount),
+                balance_reserved_amount=reserved_amount,
+                balance_applied_amount=0,
+                currency=currency,
+                duration_days=duration_days,
+                note=note,
+                metadata_json=json.dumps(effective_metadata, ensure_ascii=False) if effective_metadata else None,
+                expires_at=expires_at,
+            )
         )
         session.add(record)
         await session.flush()
@@ -2731,19 +2744,21 @@ async def create_balance_only_payment_record(
             external_payment_id=external_payment_id,
         )
         record = PaymentRecord(
-            user_id=user_id,
-            external_payment_id=external_payment_id,
-            tariff_code=tariff.code,
-            payment_method=payment_source,
-            payment_status="confirmed",
-            amount=0,
-            list_price_amount=int(tariff.rub_price),
-            balance_reserved_amount=0,
-            balance_applied_amount=int(tariff.rub_price),
-            currency="RUB",
-            duration_days=duration_days,
-            metadata_json=json.dumps(metadata, ensure_ascii=False),
-            confirmed_at=utcnow(),
+            **_payment_record_kwargs(
+                user_id=user_id,
+                external_payment_id=external_payment_id,
+                tariff_code=tariff.code,
+                payment_method=payment_source,
+                payment_status="confirmed",
+                amount=0,
+                list_price_amount=int(tariff.rub_price),
+                balance_reserved_amount=0,
+                balance_applied_amount=int(tariff.rub_price),
+                currency="RUB",
+                duration_days=duration_days,
+                metadata_json=json.dumps(metadata, ensure_ascii=False),
+                confirmed_at=utcnow(),
+            )
         )
         session.add(record)
         await session.flush()
@@ -2796,20 +2811,22 @@ async def create_balance_only_custom_payment_record(
             external_payment_id=external_payment_id,
         )
         record = PaymentRecord(
-            user_id=user_id,
-            external_payment_id=external_payment_id,
-            tariff_code=tariff_code,
-            payment_method=payment_source,
-            payment_status="confirmed",
-            amount=0,
-            list_price_amount=safe_amount,
-            balance_reserved_amount=0,
-            balance_applied_amount=safe_amount,
-            currency=currency,
-            duration_days=duration_days,
-            note=note,
-            metadata_json=json.dumps(effective_metadata, ensure_ascii=False) if effective_metadata else None,
-            confirmed_at=utcnow(),
+            **_payment_record_kwargs(
+                user_id=user_id,
+                external_payment_id=external_payment_id,
+                tariff_code=tariff_code,
+                payment_method=payment_source,
+                payment_status="confirmed",
+                amount=0,
+                list_price_amount=safe_amount,
+                balance_reserved_amount=0,
+                balance_applied_amount=safe_amount,
+                currency=currency,
+                duration_days=duration_days,
+                note=note,
+                metadata_json=json.dumps(effective_metadata, ensure_ascii=False) if effective_metadata else None,
+                confirmed_at=utcnow(),
+            )
         )
         session.add(record)
         await session.flush()
