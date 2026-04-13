@@ -3013,6 +3013,12 @@ async def _edit_screen(
                 parse_mode="HTML",
                 reply_markup=reply_markup,
             )
+    except Exception:
+        logger.exception("Failed to render v2 screen: screen_key=%s", screen_key)
+        try:
+            await callback.message.edit_text(text, parse_mode="HTML", reply_markup=reply_markup)
+        except Exception:
+            await callback.message.answer(text, parse_mode="HTML", reply_markup=reply_markup)
 
 
 async def _ack_callback_quietly(callback: CallbackQuery) -> None:
@@ -3771,6 +3777,7 @@ async def v2_balance_topup_amount_callback(callback: CallbackQuery) -> None:
     & ~F.data.startswith(V2_RENEW_EXTERNAL_CHECK_PREFIX)
 )
 async def v2_renew_payment_method_callback(callback: CallbackQuery) -> None:
+    await _ack_callback_quietly(callback)
     try:
         method, tariff_code = _split_callback_suffix(
             str(callback.data or "").removeprefix(V2_RENEW_METHOD_PREFIX),
@@ -3875,6 +3882,10 @@ async def v2_renew_payment_method_callback(callback: CallbackQuery) -> None:
     except PlategaError as exc:
         logger.warning("Failed to create renew payment in test bot: %s", exc)
         await callback.answer("Не удалось создать оплату. Попробуйте ещё раз позже.", show_alert=True)
+        return
+    except Exception:
+        logger.exception("Unhandled error in renew payment method callback: data=%s", callback.data)
+        await callback.answer("Не удалось обработать оплату. Попробуйте ещё раз.", show_alert=True)
         return
     await callback.answer("Способ оплаты не поддерживается. Откройте экран заново.", show_alert=True)
 
