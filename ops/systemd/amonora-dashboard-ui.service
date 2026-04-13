@@ -1,0 +1,16 @@
+[Unit]
+Description=Amonora Панель управления UI (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/amonora_bot/dashboard/ui
+EnvironmentFile=-/etc/amonora-dashboard-ui.env
+ExecStart=/usr/local/bin/node ./node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3001
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

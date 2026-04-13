@@ -1,0 +1,21 @@
+[Unit]
+Description=Amonora Denmark MTProto Proxy
+Documentation=https://github.com/9seconds/mtg
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mtg
+Group=mtg
+ExecStart=/usr/local/bin/mtg run /etc/mtg.toml
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mtg
+
+[Install]
+WantedBy=multi-user.target

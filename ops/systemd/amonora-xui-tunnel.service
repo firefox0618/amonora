@@ -1,0 +1,25 @@
+[Unit]
+Description=Amonora Germany 3x-ui dashboard tunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ssh -NT \
+  -o BatchMode=yes \
+  -o ExitOnForwardFailure=yes \
+  -o StrictHostKeyChecking=yes \
+  -o UserKnownHostsFile=/opt/amonora_bot/.ssh/known_hosts \
+  -o ConnectTimeout=10 \
+  -o ConnectionAttempts=3 \
+  -o TCPKeepAlive=yes \
+  -o ServerAliveInterval=15 \
+  -o ServerAliveCountMax=2 \
+  -i /opt/amonora_bot/.ssh/dashboard_metrics \
+  -L 127.0.0.1:12053:127.0.0.1:2053 \
+  root@213.108.20.34
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

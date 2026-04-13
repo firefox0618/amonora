@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Amonora Панель управления — вход{% endblock %}
+{% block body %}
+<main class="auth-shell">
+  <section class="auth-layout">
+    <article class="auth-showcase reveal visible">
+      <div class="auth-brand">
+        <img class="auth-logo" src="/dashboard/static/amonora-logo.svg" alt="Amonora">
+        <div>
+          <strong>Amonora</strong>
+          <span>Панель управления</span>
+        </div>
+      </div>
+
+      <div class="auth-copy">
+        <p class="eyebrow">Brand control center</p>
+        <h1>Управляй Amonora как продуктом, а не как набором сервисов</h1>
+        <p>Панель управления объединяет пользователей, доступ, поддержку, платежи, серверы и ботов в одном окне с двухэтапной авторизацией через Telegram.</p>
+      </div>
+
+      <div class="auth-metrics">
+        <div class="auth-stat">
+          <span>Control</span>
+          <strong>24/7</strong>
+        </div>
+        <div class="auth-stat">
+          <span>Security</span>
+          <strong>2-step</strong>
+        </div>
+        <div class="auth-stat">
+          <span>Scope</span>
+          <strong>Full</strong>
+        </div>
+      </div>
+
+      <div class="auth-list">
+        <div class="auth-feature">Живые статусы серверов, ботов и 3x-ui.</div>
+        <div class="auth-feature">Ручное управление доступом, устройствами и платежами.</div>
+        <div class="auth-feature">Подтверждение входа кодом в Telegram даже если пароль уже известен.</div>
+      </div>
+    </article>
+
+    <article class="auth-card reveal visible">
+      <div class="auth-brand">
+        <img class="auth-logo small" src="/dashboard/static/amonora-logo.svg" alt="Amonora">
+        <div>
+          <strong>Amonora</strong>
+          <span>Secure login</span>
+        </div>
+      </div>
+
+      <div class="auth-copy">
+        <p class="eyebrow">Admin access</p>
+        <h1>Вход в панель управления</h1>
+        <p>Сначала логин и пароль, потом код подтверждения в Telegram. Так панель остаётся закрытой даже при утечке пароля.</p>
+      </div>
+
+      {% if notice %}
+        <div class="flash flash-ok">{{ notice }}</div>
+      {% endif %}
+      {% if error %}
+        <div class="flash flash-error">{{ error }}</div>
+      {% endif %}
+
+      <form class="auth-form" method="post" action="/login">
+        <label for="dashboard-login-username">
+          <span>Логин</span>
+          <input id="dashboard-login-username" type="text" name="username" autocomplete="username" placeholder="login" required>
+        </label>
+        <label for="dashboard-login-password">
+          <span>Пароль</span>
+          <input id="dashboard-login-password" type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit" class="button-primary">Получить код входа</button>
+      </form>
+    </article>
+  </section>
+  <footer class="auth-footer reveal visible">
+    <p><strong>Amonora</strong> — цифровой бренд, который объединяет доступ, дашборд, поддержку и будущие инфраструктурные продукты.</p>
+    <p>© 2026 Amonora. Все права защищены.</p>
+  </footer>
+</main>
+{% endblock %}

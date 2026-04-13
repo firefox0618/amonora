@@ -1,0 +1,1846 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "title": "Главная Amonora",
+      "type": "link",
+      "url": "/d/amonora-home?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Воронка роста",
+      "type": "link",
+      "url": "/d/amonora-growth-funnel?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Источники и посты",
+      "type": "link",
+      "url": "/d/amonora-source-performance?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Выручка и монетизация",
+      "type": "link",
+      "url": "/d/amonora-revenue-monetization?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Удержание и отток",
+      "type": "link",
+      "url": "/d/amonora-retention-churn?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Качество подключения",
+      "type": "link",
+      "url": "/d/amonora-connection-quality?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Операции и ремонты",
+      "type": "link",
+      "url": "/d/amonora-ops-repair?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Алерты и инциденты",
+      "type": "link",
+      "url": "/d/amonora-alerts-incidents?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "title": "Ключевые показатели",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name = 'link_touched';",
+          "refId": "A"
+        }
+      ],
+      "title": "Переходы",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name = 'bot_start';",
+          "refId": "A"
+        }
+      ],
+      "title": "Старты",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name = 'channel_membership_confirmed';",
+          "refId": "A"
+        }
+      ],
+      "title": "Подписки",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name = 'config_issued';",
+          "refId": "A"
+        }
+      ],
+      "title": "Ключ выдан",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name IN ('subscription_activated', 'subscription_renewed');",
+          "refId": "A"
+        }
+      ],
+      "title": "Успешные оплаты",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name = 'first_connection_success';",
+          "refId": "A"
+        }
+      ],
+      "title": "Первые подключения",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 5
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name = 'subscription_renewed';",
+          "refId": "A"
+        }
+      ],
+      "title": "Продления",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "currencyRUB"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 5
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(revenue_amount_rub), 0)::bigint AS value\nFROM analytics_daily_revenue\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND payment_kind IN ('new', 'renewal');",
+          "refId": "A"
+        }
+      ],
+      "title": "Выручка",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 5
+      },
+      "id": 10,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(100.0 * (SUM(CASE WHEN event_name IN ('subscription_activated','subscription_renewed') THEN users_count ELSE 0 END)) / NULLIF((SUM(CASE WHEN event_name = 'bot_start' THEN users_count ELSE 0 END)), 0), 2) AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name IN ('bot_start','subscription_activated','subscription_renewed');",
+          "refId": "A"
+        }
+      ],
+      "title": "Конверсия в оплату, %",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 5
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(100.0 * (SUM(CASE WHEN event_name = 'first_connection_success' THEN users_count ELSE 0 END)) / NULLIF((SUM(CASE WHEN event_name IN ('subscription_activated','subscription_renewed') THEN users_count ELSE 0 END)), 0), 2) AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name IN ('subscription_activated','subscription_renewed','first_connection_success');",
+          "refId": "A"
+        }
+      ],
+      "title": "Конверсия в подключение, %",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 5
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH gap AS (\n  SELECT\n    COALESCE(SUM(CASE WHEN event_name IN ('subscription_activated','subscription_renewed') THEN users_count ELSE 0 END), 0)::bigint AS paid,\n    COALESCE(SUM(CASE WHEN event_name = 'first_connection_success' THEN users_count ELSE 0 END), 0)::bigint AS connected\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name IN ('subscription_activated','subscription_renewed','first_connection_success')\n)\nSELECT GREATEST(paid - connected, 0)::bigint AS value\nFROM gap;",
+          "refId": "A"
+        }
+      ],
+      "title": "Разрыв оплата → подключение",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 5
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH gap AS (\n  SELECT\n    COALESCE(SUM(CASE WHEN event_name IN ('subscription_activated','subscription_renewed') THEN users_count ELSE 0 END), 0)::bigint AS paid,\n    COALESCE(SUM(CASE WHEN event_name = 'first_connection_success' THEN users_count ELSE 0 END), 0)::bigint AS connected\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name IN ('subscription_activated','subscription_renewed','first_connection_success')\n)\nSELECT ROUND(100.0 * (GREATEST(paid - connected, 0)) / NULLIF((paid), 0), 2) AS value\nFROM gap;",
+          "refId": "A"
+        }
+      ],
+      "title": "Разрыв, %",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 14,
+      "panels": [],
+      "title": "Воронка подключения",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 15,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH funnel AS (\n  SELECT 1 AS step_order, 'link_touched' AS stage_key, 'Переход по ссылке' AS stage_name,\n         COALESCE(SUM(users_count), 0)::bigint AS total\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'link_touched'\n  UNION ALL\n  SELECT 2, 'bot_start', 'Старт в боте',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'bot_start'\n  UNION ALL\n  SELECT 3, 'channel_membership_confirmed', 'Подтвердили подписку',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'channel_membership_confirmed'\n  UNION ALL\n  SELECT 4, 'connection_started', 'Начало подключения',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name IN ('onboarding_started', 'connection_started')\n  UNION ALL\n  SELECT 5, 'connection_ready', 'Готов к подключению',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name IN ('onboarding_completed', 'connection_ready')\n  UNION ALL\n  SELECT 6, 'config_issued', 'Ключ / конфиг выдан',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'config_issued'\n  UNION ALL\n  SELECT 7, 'subscription_payment_started', 'Оплата начата',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'subscription_payment_started'\n  UNION ALL\n  SELECT 8, 'subscription_payment_success', 'Оплата успешна',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name IN ('subscription_activated', 'subscription_renewed')\n  UNION ALL\n  SELECT 9, 'first_connection_success', 'Первое подключение',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'first_connection_success'\n  UNION ALL\n  SELECT 10, 'subscription_renewed', 'Продление',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'subscription_renewed'\n),\nranked AS (\n  SELECT *,\n         LAG(total) OVER (ORDER BY step_order) AS previous_total,\n         MAX(CASE WHEN step_order = 1 THEN total END) OVER () AS funnel_start\n  FROM funnel\n)\n\nSELECT stage_name AS \"Этап\",\n       total AS \"Пользователи\",\n       ROUND(100.0 * (total) / NULLIF((COALESCE(previous_total, total)), 0), 2) AS \"% от предыдущего\",\n       ROUND(100.0 * (total) / NULLIF((funnel_start), 0), 2) AS \"% от начала\"\nFROM ranked\nORDER BY step_order;",
+          "refId": "A"
+        }
+      ],
+      "title": "Воронка подключения",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 16,
+      "panels": [],
+      "title": "Потери по этапам",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 17,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH funnel AS (\n  SELECT 1 AS step_order, 'link_touched' AS stage_key, 'Переход по ссылке' AS stage_name,\n         COALESCE(SUM(users_count), 0)::bigint AS total\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'link_touched'\n  UNION ALL\n  SELECT 2, 'bot_start', 'Старт в боте',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'bot_start'\n  UNION ALL\n  SELECT 3, 'channel_membership_confirmed', 'Подтвердили подписку',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'channel_membership_confirmed'\n  UNION ALL\n  SELECT 4, 'connection_started', 'Начало подключения',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name IN ('onboarding_started', 'connection_started')\n  UNION ALL\n  SELECT 5, 'connection_ready', 'Готов к подключению',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name IN ('onboarding_completed', 'connection_ready')\n  UNION ALL\n  SELECT 6, 'config_issued', 'Ключ / конфиг выдан',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'config_issued'\n  UNION ALL\n  SELECT 7, 'subscription_payment_started', 'Оплата начата',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'subscription_payment_started'\n  UNION ALL\n  SELECT 8, 'subscription_payment_success', 'Оплата успешна',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name IN ('subscription_activated', 'subscription_renewed')\n  UNION ALL\n  SELECT 9, 'first_connection_success', 'Первое подключение',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'first_connection_success'\n  UNION ALL\n  SELECT 10, 'subscription_renewed', 'Продление',\n         COALESCE(SUM(users_count), 0)::bigint\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name = 'subscription_renewed'\n),\nranked AS (\n  SELECT *,\n         LAG(total) OVER (ORDER BY step_order) AS previous_total,\n         MAX(CASE WHEN step_order = 1 THEN total END) OVER () AS funnel_start\n  FROM funnel\n)\n\nSELECT stage_name AS \"Этап\",\n       COALESCE(previous_total, total) AS \"Было на шаге выше\",\n       total AS \"Дошло до шага\",\n       GREATEST(COALESCE(previous_total, total) - total, 0) AS \"Потеря\",\n       ROUND(100.0 * (GREATEST(COALESCE(previous_total, total) - total, 0)) / NULLIF((COALESCE(previous_total, total)), 0), 2) AS \"Потеря, %\"\nFROM ranked\nWHERE step_order > 1\nORDER BY step_order;",
+          "refId": "A"
+        }
+      ],
+      "title": "Потери по этапам",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 18,
+      "panels": [],
+      "title": "Источники",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Источник / start_param"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Открыть источник",
+                    "url": "/d/amonora-source-performance?var-source_key=${__value.raw}&var-source_mode=${source_mode}&${__url_time_range}",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "id": 19,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH stage AS (\n  SELECT\n    source_mode,\n    source_key,\n    SUM(CASE WHEN event_name = 'link_touched' THEN users_count ELSE 0 END)::bigint AS link_touched,\n    SUM(CASE WHEN event_name = 'bot_start' THEN users_count ELSE 0 END)::bigint AS bot_start,\n    SUM(CASE WHEN event_name = 'channel_membership_confirmed' THEN users_count ELSE 0 END)::bigint AS channel_membership_confirmed,\n    SUM(CASE WHEN event_name IN ('subscription_activated','subscription_renewed') THEN users_count ELSE 0 END)::bigint AS payment_success,\n    SUM(CASE WHEN event_name = 'first_connection_success' THEN users_count ELSE 0 END)::bigint AS first_connection_success,\n    SUM(CASE WHEN event_name = 'subscription_renewed' THEN users_count ELSE 0 END)::bigint AS subscription_renewed\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND event_name IN ('link_touched','bot_start','channel_membership_confirmed','subscription_activated','subscription_renewed','first_connection_success')\n  GROUP BY source_mode, source_key\n),\nrevenue AS (\n  SELECT\n    source_mode,\n    source_key,\n    SUM(revenue_amount_rub)::bigint AS revenue_rub\n  FROM analytics_daily_revenue\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n    AND payment_kind IN ('new', 'renewal')\n  GROUP BY source_mode, source_key\n)\nSELECT\n  CASE stage.source_mode WHEN 'first' THEN 'Первый источник' ELSE 'Последний источник' END AS \"Режим источника\",\n  CASE WHEN stage.source_key IS NULL OR BTRIM(stage.source_key) = '' THEN 'Без источника' WHEN stage.source_key = 'organic_bot' THEN 'Органика' ELSE stage.source_key END AS \"Источник / start_param\",\n  stage.link_touched AS \"Переходы\",\n  stage.bot_start AS \"Старты\",\n  stage.channel_membership_confirmed AS \"Подтверждённые подписки\",\n  stage.payment_success AS \"Оплаты\",\n  stage.first_connection_success AS \"Первые подключения\",\n  stage.subscription_renewed AS \"Продления\",\n  COALESCE(revenue.revenue_rub, 0)::bigint AS \"Выручка, ₽\",\n  ROUND(100.0 * (stage.payment_success) / NULLIF((stage.bot_start), 0), 2) AS \"Конверсия в оплату, %\",\n  ROUND(100.0 * (stage.first_connection_success) / NULLIF((stage.bot_start), 0), 2) AS \"Конверсия в подключение, %\"\nFROM stage\nLEFT JOIN revenue\n  ON revenue.source_mode = stage.source_mode\n AND revenue.source_key = stage.source_key\nORDER BY \"Выручка, ₽\" DESC, \"Оплаты\" DESC\nLIMIT 40;",
+          "refId": "A"
+        }
+      ],
+      "title": "Источники",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "id": 20,
+      "panels": [],
+      "title": "Платежи и выручка",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 45
+      },
+      "id": 21,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name = 'subscription_payment_started';",
+          "refId": "A"
+        }
+      ],
+      "title": "Оплата начата",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 45
+      },
+      "id": 22,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name IN ('subscription_activated', 'subscription_renewed');",
+          "refId": "A"
+        }
+      ],
+      "title": "Оплата успешна",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 45
+      },
+      "id": 23,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name = 'subscription_payment_failed';",
+          "refId": "A"
+        }
+      ],
+      "title": "Оплата неуспешна",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 45
+      },
+      "id": 24,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(100.0 * (SUM(CASE WHEN event_name IN ('subscription_activated','subscription_renewed') THEN users_count ELSE 0 END)) / NULLIF((SUM(CASE WHEN event_name = 'subscription_payment_started' THEN users_count ELSE 0 END)), 0), 2) AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name IN ('subscription_payment_started','subscription_activated','subscription_renewed');",
+          "refId": "A"
+        }
+      ],
+      "title": "Успех оплаты, %",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 45
+      },
+      "id": 25,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(100.0 * (SUM(CASE WHEN event_name = 'subscription_payment_failed' THEN users_count ELSE 0 END)) / NULLIF((SUM(CASE WHEN event_name = 'subscription_payment_started' THEN users_count ELSE 0 END)), 0), 2) AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name IN ('subscription_payment_started','subscription_payment_failed');",
+          "refId": "A"
+        }
+      ],
+      "title": "Неуспех оплаты, %",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 45
+      },
+      "id": 26,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name = 'subscription_activated';",
+          "refId": "A"
+        }
+      ],
+      "title": "Новые оплаты",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 49
+      },
+      "id": 27,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND event_name = 'subscription_renewed';",
+          "refId": "A"
+        }
+      ],
+      "title": "Продления",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "currencyRUB"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 49
+      },
+      "id": 28,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(revenue_amount_rub), 0)::bigint AS value\nFROM analytics_daily_revenue\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND payment_kind = 'new';",
+          "refId": "A"
+        }
+      ],
+      "title": "Выручка новых",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "currencyRUB"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 49
+      },
+      "id": 29,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(revenue_amount_rub), 0)::bigint AS value\nFROM analytics_daily_revenue\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND payment_kind = 'renewal';",
+          "refId": "A"
+        }
+      ],
+      "title": "Выручка продлений",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "currencyRUB"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 49
+      },
+      "id": 30,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(revenue_amount_rub), 0)::bigint AS value\nFROM analytics_daily_revenue\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\n  AND payment_kind IN ('new', 'renewal');",
+          "refId": "A"
+        }
+      ],
+      "title": "Общая выручка",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 49
+      },
+      "id": 31,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  CASE reason_key\n    WHEN 'manual_rejected' THEN 'Ручное отклонение'\n    WHEN 'expired' THEN 'Истекла'\n    WHEN 'provider_error' THEN 'Ошибка провайдера'\n    WHEN 'rejected' THEN 'Отклонена'\n    ELSE 'Неизвестно'\n  END AS \"Причина ошибки\",\n  SUM(failures_count)::bigint AS \"Количество\"\nFROM analytics_daily_payment_failure_reasons\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND ('${source_key}' = '__all' OR source_key = '${source_key}')\nGROUP BY reason_key\nORDER BY \"Количество\" DESC, \"Причина ошибки\"\nLIMIT 20;",
+          "refId": "A"
+        }
+      ],
+      "title": "Причины неуспешной оплаты",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "id": 32,
+      "panels": [],
+      "title": "Качество данных",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 58
+      },
+      "id": 33,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH issues AS (\n  SELECT issue_type, SUM(issue_count)::bigint AS issue_count\n  FROM analytics_daily_attribution_integrity\n  WHERE $__timeFilter(bucket_date::timestamp)\n  GROUP BY issue_type\n),\ntotal AS (\n  SELECT COALESCE(SUM(users_count), 0)::bigint AS total_bot_start\n  FROM analytics_daily_stage_counts\n  WHERE $__timeFilter(bucket_date::timestamp)\n    AND source_mode = '${source_mode}'\n    AND event_name = 'bot_start'\n)\nSELECT\n  CASE issue_type\n    WHEN 'null_source_key' THEN 'NULL source_key'\n    WHEN 'empty_source_key' THEN 'Пустой source_key'\n    WHEN 'organic_bot' THEN 'Органика'\n    WHEN 'invalid_start_param' THEN 'Битый start_param'\n    ELSE 'События без атрибуции'\n  END AS \"Тип проблемы\",\n  issue_count AS \"Количество\",\n  ROUND(100.0 * (issue_count) / NULLIF(((SELECT total_bot_start FROM total)), 0), 2) AS \"Доля, %\"\nFROM issues\nORDER BY \"Количество\" DESC, \"Тип проблемы\";",
+          "refId": "A"
+        }
+      ],
+      "title": "Целостность атрибуции",
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "analytics",
+    "growth",
+    "stage-b",
+    "strict"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "Последний источник",
+          "value": "last"
+        },
+        "hide": 0,
+        "label": "Атрибуция",
+        "name": "source_mode",
+        "options": [
+          {
+            "selected": false,
+            "text": "Первый источник",
+            "value": "first"
+          },
+          {
+            "selected": true,
+            "text": "Последний источник",
+            "value": "last"
+          }
+        ],
+        "query": "first,last",
+        "type": "custom"
+      },
+      {
+        "allValue": "__all",
+        "current": {
+          "selected": true,
+          "text": "Все",
+          "value": "__all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "amonora-analytics"
+        },
+        "definition": "SELECT DISTINCT source_key FROM analytics_daily_stage_counts WHERE source_key IS NOT NULL AND BTRIM(source_key) <> '' ORDER BY 1",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Источник / start_param",
+        "multi": false,
+        "name": "source_key",
+        "options": [],
+        "query": "SELECT DISTINCT source_key FROM analytics_daily_stage_counts WHERE source_key IS NOT NULL AND BTRIM(source_key) <> '' ORDER BY 1",
+        "refresh": 1,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timezone": "",
+  "title": "Воронка роста",
+  "uid": "amonora-growth-funnel",
+  "version": 1,
+  "weekStart": ""
+}

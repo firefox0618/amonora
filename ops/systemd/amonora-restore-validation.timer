@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Amonora restore validation drill weekly
+
+[Timer]
+OnCalendar=Sun *-*-* 05:10:00
+Persistent=true
+Unit=amonora-restore-validation.service
+
+[Install]
+WantedBy=timers.target

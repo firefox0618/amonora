@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Amonora remote artifact backup for %i daily
+
+[Timer]
+OnCalendar=*-*-* 09:30:00
+Persistent=true
+Unit=amonora-remote-artifact-backup@%i.service
+
+[Install]
+WantedBy=timers.target

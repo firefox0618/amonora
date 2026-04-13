@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title }}</title>
+    <meta name="description" content="{{ page_description }}">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="theme-color" content="#100913">
+    <link rel="icon" href="/static/favicon.svg?v={{ asset_version }}">
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #08050c;
+        --panel: rgba(18, 10, 24, 0.94);
+        --panel-strong: rgba(28, 14, 34, 0.97);
+        --border: rgba(255, 214, 235, 0.16);
+        --text: #f6e9f1;
+        --muted: #c7b3c0;
+        --accent: #f2b4d4;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at 52% 16%, rgba(70, 28, 58, 0.22), transparent 48%),
+          radial-gradient(circle at 74% 34%, rgba(70, 30, 62, 0.1), transparent 40%),
+          linear-gradient(180deg, #08050c 0%, #120914 38%, #1b0d19 56%, #120914 74%, #07040a 100%);
+        color: var(--text);
+        font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+        background-size: 42px 42px;
+        mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 90%);
+      }
+
+      body::after {
+        background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 34%, rgba(3, 1, 5, 0.82) 100%);
+      }
+
+      .shell {
+        position: relative;
+        width: min(100%, 640px);
+        z-index: 1;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        padding: 28px;
+        background: linear-gradient(180deg, rgba(24, 12, 30, 0.98), rgba(12, 7, 18, 0.98));
+        box-shadow: 0 24px 80px rgba(6, 2, 10, 0.7);
+        backdrop-filter: blur(14px);
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        font-size: 12px;
+        color: var(--accent);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(30px, 6vw, 44px);
+        line-height: 1.04;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+        font-size: 17px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .hint {
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(14, 9, 19, 0.92);
+      }
+
+      .code {
+        display: block;
+        padding: 16px 18px;
+        border-radius: 18px;
+        background: rgba(10, 7, 14, 0.96);
+        border: 1px solid var(--border);
+        color: #f3cde3;
+        font-family: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+        word-break: break-all;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .actions {
+        display: grid;
+        gap: 12px;
+      }
+
+      .actions-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .button,
+      .link-button {
+        appearance: none;
+        border: 1px solid rgba(255, 214, 235, 0.16);
+        border-radius: 18px;
+        min-height: 56px;
+        padding: 14px 18px;
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 16px;
+        background:
+          linear-gradient(180deg, rgba(255, 220, 236, 0.05), rgba(255, 220, 236, 0) 44%),
+          linear-gradient(135deg, rgba(52, 22, 44, 0.96), rgba(32, 14, 28, 0.98) 54%, rgba(18, 10, 18, 0.99) 100%);
+        box-shadow:
+          0 18px 44px rgba(10, 4, 12, 0.42),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        cursor: pointer;
+      }
+
+      .secondary {
+        background: rgba(44, 20, 38, 0.34);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      .status {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 16px;
+        }
+
+        .card {
+          padding: 22px;
+          border-radius: 24px;
+        }
+
+        .actions-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card stack">
+        <div class="stack" style="gap: 10px;">
+          <p class="eyebrow">amonora happ wrapper</p>
+          <h1>Подключение подписки</h1>
+          <p>
+            Нажмите <strong>«Открыть подписку»</strong>, затем <strong>«Открыть Happ»</strong>.
+            Если приложение не откроется, используйте <strong>«Скопировать ссылку»</strong> и вставьте её в Happ вручную.
+          </p>
+        </div>
+
+        <div class="stack">
+          <p class="status">Ссылка подписки</p>
+          <code class="code" id="subscription-url">{{ feed_url }}</code>
+        </div>
+
+        <div class="actions">
+          <div class="actions-row">
+            <a class="link-button secondary" href="{{ page_url }}">Открыть подписку</a>
+            <a class="link-button" id="open-happ" href="{{ happ_deep_link }}">Открыть Happ</a>
+          </div>
+          <button class="button secondary" id="copy-link" type="button">Скопировать ссылку</button>
+        </div>
+
+        <p class="status" id="copy-status">Если Happ не открылся, скопируйте ссылку и вставьте её в приложение вручную.</p>
+      </section>
+    </main>
+    <script>
+      const feedUrl = {{ feed_url | tojson }};
+      const happDeepLink = {{ happ_deep_link | tojson }};
+      const copyStatus = document.getElementById("copy-status");
+      const copyButton = document.getElementById("copy-link");
+
+      async function copyFeedUrl() {
+        try {
+          await navigator.clipboard.writeText(feedUrl);
+          copyStatus.textContent = "Ссылка подписки скопирована. Теперь её можно вставить в Happ вручную.";
+        } catch (error) {
+          copyStatus.textContent = "Не удалось скопировать автоматически. Скопируйте ссылку из блока выше вручную.";
+        }
+      }
+
+      copyButton.addEventListener("click", copyFeedUrl);
+
+      window.setTimeout(() => {
+        window.location.href = happDeepLink;
+      }, 180);
+    </script>
+  </body>
+</html>

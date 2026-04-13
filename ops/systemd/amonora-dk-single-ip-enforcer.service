@@ -1,0 +1,9 @@
+[Unit]
+Description=Amonora Denmark single-IP enforcement
+After=network-online.target xray.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 /usr/local/bin/amonora_xray_single_ip_enforcer.py --max-devices 1 --lease-seconds 180 --whitelist-file /usr/local/etc/xray/amonora_dk_ip_whitelist.json --soft-limit-warnings

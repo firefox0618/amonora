@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Amonora analytics refresh every 10 minutes
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=10min
+AccuracySec=1min
+Unit=amonora-analytics-refresh.service
+
+[Install]
+WantedBy=timers.target

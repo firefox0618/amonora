@@ -1,0 +1,638 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "title": "Главная Amonora",
+      "type": "link",
+      "url": "/d/amonora-home?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Воронка роста",
+      "type": "link",
+      "url": "/d/amonora-growth-funnel?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Источники и посты",
+      "type": "link",
+      "url": "/d/amonora-source-performance?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Выручка и монетизация",
+      "type": "link",
+      "url": "/d/amonora-revenue-monetization?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Удержание и отток",
+      "type": "link",
+      "url": "/d/amonora-retention-churn?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Качество подключения",
+      "type": "link",
+      "url": "/d/amonora-connection-quality?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Операции и ремонты",
+      "type": "link",
+      "url": "/d/amonora-ops-repair?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Алерты и инциденты",
+      "type": "link",
+      "url": "/d/amonora-alerts-incidents?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "title": "Ключевые показатели",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE((detail_json::json ->> 'active_users')::integer, 0) AS value\nFROM analytics_runtime_status\nWHERE status_key = 'growth_active_users'\nORDER BY updated_at DESC\nLIMIT 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Активные подписки",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 5,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND event_name = 'subscription_renewed';",
+          "refId": "A"
+        }
+      ],
+      "title": "Продлили",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 10,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(users_count), 0)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND source_mode = '${source_mode}'\n  AND event_name = 'subscription_expired';",
+          "refId": "A"
+        }
+      ],
+      "title": "Истекли",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 15,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(100.0 * (SUM(CASE WHEN event_name = 'subscription_renewed' THEN users_count ELSE 0 END)) / NULLIF((SUM(CASE WHEN event_name IN ('subscription_renewed','subscription_expired') THEN users_count ELSE 0 END)), 0), 2) AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND event_name IN ('subscription_renewed','subscription_expired');",
+          "refId": "A"
+        }
+      ],
+      "title": "Продление, %",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 19,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(100.0 * (SUM(CASE WHEN event_name = 'subscription_expired' THEN users_count ELSE 0 END)) / NULLIF((SUM(CASE WHEN event_name IN ('subscription_renewed','subscription_expired') THEN users_count ELSE 0 END)), 0), 2) AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND event_name IN ('subscription_renewed','subscription_expired');",
+          "refId": "A"
+        }
+      ],
+      "title": "Отток, %",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 7,
+      "panels": [],
+      "title": "Удержание",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "id": 8,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  cohort_date AS \"Когорта\",\n  period_days AS \"День\",\n  cohort_size AS \"Размер\",\n  active_users AS \"Активны\",\n  renewed_users AS \"Продлили\",\n  expired_users AS \"Истекли\",\n  ROUND(100.0 * (active_users) / NULLIF((cohort_size), 0), 2) AS \"Активны, %\",\n  ROUND(100.0 * (renewed_users) / NULLIF((cohort_size), 0), 2) AS \"Продлили, %\"\nFROM analytics_cohort_retention\nWHERE cohort_type = '${cohort_type}'\nORDER BY cohort_date DESC, period_days ASC\nLIMIT 120;",
+          "refId": "A"
+        }
+      ],
+      "title": "Когортная таблица",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "id": 9,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  period_days AS \"День\",\n  AVG(cohort_size)::numeric(12,2) AS \"Средний размер когорты\",\n  AVG(active_users)::numeric(12,2) AS \"Активны\",\n  AVG(renewed_users)::numeric(12,2) AS \"Продлили\",\n  AVG(expired_users)::numeric(12,2) AS \"Истекли\",\n  ROUND(AVG(100.0 * active_users / NULLIF(cohort_size, 0)), 2) AS \"Активны, %\",\n  ROUND(AVG(100.0 * renewed_users / NULLIF(cohort_size, 0)), 2) AS \"Продлили, %\"\nFROM analytics_cohort_retention\nWHERE cohort_type = '${cohort_type}'\nGROUP BY period_days\nORDER BY period_days;",
+          "refId": "A"
+        }
+      ],
+      "title": "Ядро удержания",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 10,
+      "panels": [],
+      "title": "Продления и истечения",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#52D6E5",
+                "value": null
+              },
+              {
+                "color": "#F6B73C",
+                "value": 1
+              },
+              {
+                "color": "#FF6F61",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 19
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  bucket_date::timestamp AS time,\n  CASE event_name WHEN 'subscription_renewed' THEN 'Продлили' ELSE 'Истекли' END AS metric,\n  SUM(users_count)::bigint AS value\nFROM analytics_daily_stage_counts\nWHERE $__timeFilter(bucket_date::timestamp)\n  AND event_name IN ('subscription_renewed','subscription_expired')\nGROUP BY bucket_date, event_name\nORDER BY bucket_date, event_name;",
+          "refId": "A"
+        }
+      ],
+      "title": "Продления и истечения по дням",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 19
+      },
+      "id": 12,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  cohort_date AS \"Когорта\",\n  MAX(CASE WHEN period_days = 0 THEN active_users END) AS \"День 0\",\n  MAX(CASE WHEN period_days = 7 THEN active_users END) AS \"День 7\",\n  MAX(CASE WHEN period_days = 30 THEN active_users END) AS \"День 30\",\n  MAX(CASE WHEN period_days = 60 THEN active_users END) AS \"День 60\",\n  MAX(CASE WHEN period_days = 90 THEN active_users END) AS \"День 90\"\nFROM analytics_cohort_retention\nWHERE cohort_type = '${cohort_type}'\nGROUP BY cohort_date\nORDER BY cohort_date DESC\nLIMIT 40;",
+          "refId": "A"
+        }
+      ],
+      "title": "Активные пользователи по когортам",
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "analytics",
+    "retention",
+    "stage-b"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "Первая платная активация",
+          "value": "subscription_activated"
+        },
+        "hide": 0,
+        "label": "Когорта",
+        "name": "cohort_type",
+        "options": [
+          {
+            "selected": false,
+            "text": "Пробный старт",
+            "value": "trial_started"
+          },
+          {
+            "selected": true,
+            "text": "Первая платная активация",
+            "value": "subscription_activated"
+          }
+        ],
+        "query": "trial_started,subscription_activated",
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "timezone": "",
+  "title": "Удержание и отток",
+  "uid": "amonora-retention-churn",
+  "version": 1,
+  "weekStart": ""
+}

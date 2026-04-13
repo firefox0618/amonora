@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page_title }} — {{ brand }}</title>
+  <meta name="description" content="{{ page_description }}">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v={{ asset_version }}">
+  <script>
+    (() => {
+      try {
+        const canAnimateReveal =
+          "IntersectionObserver" in window &&
+          !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+        if (canAnimateReveal) {
+          document.documentElement.classList.add("reveal-enhanced");
+        }
+      } catch {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/landing.css?v={{ asset_version }}">
+</head>
+<body class="legal-body">
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <div class="ambient-grid" aria-hidden="true"></div>
+
+  <header class="topbar" data-topbar>
+    <a href="/" class="brand-lockup" aria-label="{{ brand }}">
+      <img src="/static/favicon.svg?v={{ asset_version }}" alt="Amonora sakura logo" class="brand-mark">
+      <div>
+        <span class="eyebrow">ecosystem interface</span>
+        <strong>{{ brand }}</strong>
+      </div>
+    </a>
+    <nav class="topnav">
+      <a href="/">Главная</a>
+      <a href="{{ bot_url }}">Бот</a>
+      <a href="{{ channel_url }}">Канал</a>
+      <a href="{{ legal_links.contacts }}">Контакты</a>
+    </nav>
+    <a href="{{ bot_url }}" class="button button-primary">Открыть Amonora Bot</a>
+  </header>
+
+  <main class="legal-shell">
+    <section class="section legal-hero">
+      <span class="eyebrow">{{ page_eyebrow }}</span>
+      <h1>{{ page_title }}</h1>
+      <p>{{ page_description }}</p>
+      {% if page_links %}
+      <div class="legal-links">
+        {% for link in page_links %}
+        <a href="{{ link.href }}" class="button button-soft">{{ link.label }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="section legal-section">
+      <article class="legal-card prose">
+        {{ document_html | safe }}
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>
+      <strong>{{ brand }}</strong>
+      <span>Правовые документы и публичная информация для клиентов</span>
+      <span>Контакты: <a href="{{ support_email_href }}">{{ support_email }}</a></span>
+    </div>
+    <div class="footer-links">
+      <a href="{{ legal_links.contacts }}">Контакты</a>
+      <a href="{{ legal_links.privacy }}">ПДн</a>
+      <a href="{{ legal_links.terms }}">Оферта</a>
+      <a href="{{ legal_links.refunds }}">Возвраты</a>
+    </div>
+  </footer>
+
+  <div class="cookie-banner" data-cookie-banner hidden>
+    <div class="cookie-banner__copy">
+      <strong>Мы заботимся о вашей конфиденциальности</strong>
+      <p>
+        Сайт использует необходимые cookie для корректной работы и защищённого доступа. Аналитические cookie будут включаться
+        только после вашего согласия. Подробнее — в
+        <a href="{{ legal_links.cookies }}">Политике использования cookie</a>.
+      </p>
+    </div>
+    <div class="cookie-banner__actions">
+      <button type="button" class="button button-ghost" data-cookie-settings>Настройки cookie</button>
+      <button type="button" class="button button-primary" data-cookie-accept>Принять</button>
+      <button type="button" class="button button-soft" data-cookie-essential>Только необходимые</button>
+    </div>
+  </div>
+
+  <div class="cookie-modal" data-cookie-modal hidden>
+    <div class="cookie-modal__backdrop" data-cookie-close></div>
+    <div class="cookie-modal__card">
+      <div class="cookie-modal__head">
+        <div>
+          <span class="eyebrow">cookie settings</span>
+          <h3>Настройки cookie</h3>
+        </div>
+        <button type="button" class="cookie-modal__close" data-cookie-close aria-label="Закрыть">×</button>
+      </div>
+
+      <div class="cookie-option">
+        <div>
+          <strong>Необходимые cookie</strong>
+          <p>Нужны для базовой работы сайта, безопасности сессий и корректного открытия страниц. Отключить их нельзя.</p>
+        </div>
+        <span class="cookie-chip is-locked">Всегда активны</span>
+      </div>
+
+      <label class="cookie-option cookie-option--toggle" for="analytics-consent-legal">
+        <div>
+          <strong>Аналитические cookie</strong>
+          <p>Сейчас аналитика по умолчанию выключена. Этот переключатель подготовлен на будущее и активируется только после согласия.</p>
+        </div>
+        <span class="cookie-toggle">
+          <input type="checkbox" id="analytics-consent-legal" data-cookie-analytics>
+          <span></span>
+        </span>
+      </label>
+
+      <div class="cookie-modal__actions">
+        <button type="button" class="button button-soft" data-cookie-essential>Только необходимые</button>
+        <button type="button" class="button button-primary" data-cookie-save>Сохранить выбор</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/landing.js?v={{ asset_version }}"></script>
+</body>
+</html>

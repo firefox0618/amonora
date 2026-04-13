@@ -1,0 +1,609 @@
+{% extends "base.html" %}
+{% block title %}Доска задач — Amonora{% endblock %}
+{% block body %}
+<main class="taskboard-page">
+  <header class="taskboard-header">
+    <div>
+      <h1>Доска задач</h1>
+      <p>Управление задачами команды</p>
+    </div>
+    <button type="button" class="button-primary" onclick="openCreateTaskModal()">
+      + Новая задача
+    </button>
+  </header>
+
+  {% if notice %}
+    <div class="flash flash-ok">{{ notice }}</div>
+  {% endif %}
+  {% if error %}
+    <div class="flash flash-error">{{ error }}</div>
+  {% endif %}
+
+  <!-- Фильтры -->
+  <form class="taskboard-filters" method="get" action="/dashboard/taskboard">
+    <input type="text" name="search" value="{{ search }}" placeholder="Поиск..." class="filter-input">
+    <select name="priority" class="filter-select">
+      <option value="">Все приоритеты</option>
+      <option value="low" {{ 'selected' if priority == 'low' }}>Низкий</option>
+      <option value="medium" {{ 'selected' if priority == 'medium' }}>Средний</option>
+      <option value="high" {{ 'selected' if priority == 'high' }}>Высокий</option>
+    </select>
+    <select name="assignee" class="filter-select">
+      <option value="">Все исполнители</option>
+      {% for a in board.assignees %}
+      <option value="{{ a }}" {{ 'selected' if assignee == a }}>{{ a }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="button-secondary">Фильтр</button>
+  </form>
+
+  <!-- Канбан-колонки -->
+  <div class="kanban-board">
+    {% for column in board.columns %}
+    <div class="kanban-column" data-status="{{ column.id }}">
+      <div class="column-header">
+        <h2>{{ column.name }}</h2>
+        <span class="column-count" style="background: {{ column.color }}">{{ column.tasks|length }}</span>
+      </div>
+      <div class="column-tasks">
+        {% for task in column.tasks %}
+        <div class="task-card" data-task-id="{{ task.id }}" draggable="true">
+          <div class="task-card-header">
+            <span class="task-priority task-priority-{{ task.priority }}">
+              {{ {'low': 'Низкий', 'medium': 'Средний', 'high': 'Высокий'}[task.priority] }}
+            </span>
+            {% if task.due_date %}
+            <span class="task-due">📅 {{ task.due_date }}</span>
+            {% endif %}
+          </div>
+          <h3 class="task-title">{{ task.title }}</h3>
+          {% if task.description %}
+          <p class="task-description">{{ task.description[:100] }}{{ '...' if task.description|length > 100 }}</p>
+          {% endif %}
+          {% if task.tags and task.tags|length > 0 %}
+          <div class="task-tags">
+            {% for tag in task.tags %}
+            <span class="tag">{{ tag }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <div class="task-card-footer">
+            {% if task.assignee %}
+            <span class="task-assignee">👤 {{ task.assignee }}</span>
+            {% endif %}
+            {% if task.comments_count > 0 %}
+            <span class="task-comments">💬 {{ task.comments_count }}</span>
+            {% endif %}
+            {% if task.checklist_total > 0 %}
+            <span class="task-checklist">☑ {{ task.checklist_done }}/{{ task.checklist_total }}</span>
+            {% endif %}
+          </div>
+          <div class="task-card-actions">
+            <button type="button" class="task-action-btn" onclick="openTaskModal({{ task.id }}, '{{ task.title|replace("'", "\\'") }}', '{{ task.description|replace("'", "\\'") if task.description else '' }}', '{{ task.status }}', '{{ task.priority }}', '{{ task.assignee or '' }}', '{{ task.due_date or '' }}', '{{ task.color }}')">
+              ✏️
+            </button>
+            <form method="post" action="/dashboard/taskboard/{{ task.id }}/delete" class="inline-form" onsubmit="return confirm('Удалить задачу?')">
+              <button type="submit" class="task-action-btn task-delete-btn">🗑️</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Модалка создания/редактирования задачи -->
+  <div id="task-modal" class="modal">
+    <div class="modal-backdrop" onclick="closeTaskModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="task-modal-title">Новая задача</h2>
+        <button type="button" class="modal-close" onclick="closeTaskModal()">✕</button>
+      </div>
+      <form id="task-form" method="post" action="/dashboard/taskboard/create">
+        <input type="hidden" id="task-id" name="task_id" value="">
+        <label>
+          <span>Заголовок *</span>
+          <input type="text" id="task-title-input" name="title" required>
+        </label>
+        <label>
+          <span>Описание</span>
+          <textarea id="task-description-input" name="description" rows="3"></textarea>
+        </label>
+        <div class="form-row">
+          <label>
+            <span>Статус</span>
+            <select id="task-status-select" name="status">
+              <option value="backlog">К выполнению</option>
+              <option value="in_progress">В работе</option>
+              <option value="testing">На тестирование</option>
+              <option value="deferred">Отложено</option>
+              <option value="done">Реализовано</option>
+            </select>
+          </label>
+          <label>
+            <span>Приоритет</span>
+            <select id="task-priority-select" name="priority">
+              <option value="low">Низкий</option>
+              <option value="medium">Средний</option>
+              <option value="high">Высокий</option>
+            </select>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>
+            <span>Исполнитель</span>
+            <input type="text" id="task-assignee-input" name="assignee">
+          </label>
+          <label>
+            <span>Дедлайн</span>
+            <input type="date" id="task-due-date-input" name="due_date">
+          </label>
+        </div>
+        <label>
+          <span>Цвет</span>
+          <input type="color" id="task-color-input" name="color" value="#3b82f6">
+        </label>
+        <label>
+          <span>Теги (через запятую)</span>
+          <input type="text" id="task-tags-input" name="tags" placeholder="баг, фича, срочно">
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="button-secondary" onclick="closeTaskModal()">Отмена</button>
+          <button type="submit" class="button-primary">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
+
+<style>
+.taskboard-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.taskboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.taskboard-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  color: #fff;
+}
+
+.taskboard-header p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+/* Фильтры */
+.taskboard-filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-input, .filter-select {
+  padding: 0.6rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 0.9rem;
+}
+
+.filter-input {
+  min-width: 200px;
+}
+
+/* Канбан-доска */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+.kanban-column {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 1rem;
+  min-height: 400px;
+}
+
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #334155;
+}
+
+.column-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #e2e8f0;
+}
+
+.column-count {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Карточки задач */
+.task-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-left: 3px solid #3b82f6;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.task-card:hover {
+  border-color: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.task-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.task-priority {
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.task-priority-low {
+  background: #064e3b;
+  color: #34d399;
+}
+
+.task-priority-medium {
+  background: #713f12;
+  color: #facc15;
+}
+
+.task-priority-high {
+  background: #7f1d1d;
+  color: #f87171;
+}
+
+.task-due {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.task-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: #f1f5f9;
+  line-height: 1.3;
+}
+
+.task-description {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.task-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.tag {
+  background: #334155;
+  color: #cbd5e1;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+}
+
+.task-card-footer {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.task-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.task-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.task-action-btn:hover {
+  opacity: 1;
+}
+
+.task-delete-btn {
+  color: #f87171;
+}
+
+/* Кнопки */
+.button-primary {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button-primary:hover {
+  background: #2563eb;
+}
+
+.button-secondary {
+  background: #334155;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button-secondary:hover {
+  background: #475569;
+}
+
+/* Флеш-сообщения */
+.flash {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.flash-ok {
+  background: #064e3b;
+  color: #34d399;
+  border: 1px solid #059669;
+}
+
+.flash-error {
+  background: #451a1a;
+  color: #f87171;
+  border: 1px solid #dc2626;
+}
+
+/* Модалка */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.modal.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.modal-content {
+  position: relative;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #f1f5f9;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.modal label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.modal label span {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.modal input[type="text"],
+.modal input[type="date"],
+.modal select,
+.modal textarea {
+  width: 100%;
+  padding: 0.6rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 0.9rem;
+}
+
+.modal textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.modal input[type="color"] {
+  width: 60px;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.inline-form {
+  margin: 0;
+  display: inline;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+/* Адаптив */
+@media (max-width: 1200px) {
+  .kanban-board {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .kanban-board {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+function openCreateTaskModal() {
+  document.getElementById('task-modal-title').textContent = 'Новая задача';
+  document.getElementById('task-form').action = '/dashboard/taskboard/create';
+  document.getElementById('task-id').value = '';
+  document.getElementById('task-title-input').value = '';
+  document.getElementById('task-description-input').value = '';
+  document.getElementById('task-status-select').value = 'backlog';
+  document.getElementById('task-priority-select').value = 'medium';
+  document.getElementById('task-assignee-input').value = '';
+  document.getElementById('task-due-date-input').value = '';
+  document.getElementById('task-color-input').value = '#3b82f6';
+  document.getElementById('task-tags-input').value = '';
+  document.getElementById('task-modal').classList.add('active');
+}
+
+function openTaskModal(id, title, description, status, priority, assignee, dueDate, color) {
+  document.getElementById('task-modal-title').textContent = 'Редактировать задачу';
+  document.getElementById('task-form').action = '/dashboard/taskboard/' + id + '/update';
+  document.getElementById('task-id').value = id;
+  document.getElementById('task-title-input').value = title;
+  document.getElementById('task-description-input').value = description;
+  document.getElementById('task-status-select').value = status;
+  document.getElementById('task-priority-select').value = priority;
+  document.getElementById('task-assignee-input').value = assignee;
+  document.getElementById('task-due-date-input').value = dueDate;
+  document.getElementById('task-color-input').value = color;
+  document.getElementById('task-modal').classList.add('active');
+}
+
+function closeTaskModal() {
+  document.getElementById('task-modal').classList.remove('active');
+}
+
+// Drag and Drop
+document.addEventListener('DOMContentLoaded', function() {
+  const cards = document.querySelectorAll('.task-card');
+  const columns = document.querySelectorAll('.kanban-column');
+
+  cards.forEach(card => {
+    card.addEventListener('dragstart', function(e) {
+      e.dataTransfer.setData('text/plain', card.dataset.taskId);
+      card.style.opacity = '0.5';
+    });
+
+    card.addEventListener('dragend', function() {
+      card.style.opacity = '1';
+    });
+  });
+
+  columns.forEach(column => {
+    column.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      column.style.background = '#1e293b';
+    });
+
+    column.addEventListener('dragleave', function() {
+      column.style.background = '#0f172a';
+    });
+
+    column.addEventListener('drop', function(e) {
+      e.preventDefault();
+      column.style.background = '#0f172a';
+      const taskId = e.dataTransfer.getData('text/plain');
+      const newStatus = column.dataset.status;
+
+      // Отправляем форму на обновление статуса
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/dashboard/taskboard/' + taskId + '/update';
+      form.innerHTML = '<input type="hidden" name="status" value="' + newStatus + '">';
+      document.body.appendChild(form);
+      form.submit();
+    });
+  });
+});
+</script>
+{% endblock %}

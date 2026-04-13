@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ product_name }} — private network access for the Amonora ecosystem</title>
+  <meta name="description" content="Amonora — частная цифровая сеть экосистемы Amonora с быстрым запуском через Telegram и двумя активными точками сети: Германия и Дания.">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v={{ asset_version }}">
+  <script>
+    (() => {
+      try {
+        const canAnimateReveal =
+          "IntersectionObserver" in window &&
+          !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+        if (canAnimateReveal) {
+          document.documentElement.classList.add("reveal-enhanced");
+        }
+      } catch {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/landing.css?v={{ asset_version }}">
+</head>
+<body>
+  <div class="sakura-backdrop" aria-hidden="true">
+    <div class="sakura-glow"></div>
+    <div class="sakura-bokeh"></div>
+    <div class="sakura-grain"></div>
+    <div class="sakura-vignette"></div>
+  </div>
+  <div class="sakura-petals" aria-hidden="true">
+    {% for _ in range(40) %}
+    <span class="sakura-petal" data-sakura-petal></span>
+    {% endfor %}
+  </div>
+  <div class="sakura-dust" aria-hidden="true">
+    {% for _ in range(20) %}
+    <span class="sakura-dust-particle" data-sakura-dust></span>
+    {% endfor %}
+  </div>
+
+  <header class="topbar" data-topbar>
+    <a href="/" class="brand-lockup" aria-label="{{ brand }}">
+      <img src="/static/favicon.svg?v={{ asset_version }}" alt="Amonora sakura logo" class="brand-mark">
+      <div>
+        <span class="eyebrow">ecosystem interface</span>
+        <strong>{{ brand }}</strong>
+      </div>
+    </a>
+    <nav class="topnav" aria-label="Разделы сайта">
+      <a href="#system">Как это работает</a>
+      <a href="#bridge">Ключ на день</a>
+      <a href="#locations">Локации</a>
+      <a href="#tariffs">Тарифы</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a href="{{ bot_url }}" class="button button-primary">Открыть Amonora Bot</a>
+  </header>
+
+  <main>
+    <section class="hero section">
+      <div class="hero-copy reveal">
+        <span class="hero-kicker">{{ hero.kicker }}</span>
+        <h1>{{ hero.title }}</h1>
+        <p class="hero-text">{{ hero.text }}</p>
+        <div class="cta-row">
+          <a href="{{ bot_url }}" class="button button-primary">{{ hero.primary_label }}</a>
+          <a href="{{ channel_url }}" class="button button-ghost">{{ hero.secondary_label }}</a>
+        </div>
+        <div class="signal-chips" aria-label="Сигналы сети">
+          {% for chip in hero_chips %}
+          <span class="signal-chip">{{ chip }}</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="hero-stage reveal">
+        <div class="hero-visual-wrap">
+          <div class="hero-visual" id="heroVisual" data-hero-visual>
+            <img
+              src="/static/favicon.svg?v={{ asset_version }}"
+              alt="Сакура Amonora"
+              class="hero-visual__image"
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="marquee-band" aria-label="Сетевой слоган">
+      <div class="marquee-track">
+        <span>{{ network_phrase }}</span>
+        <span>{{ network_phrase }}</span>
+        <span>{{ network_phrase }}</span>
+      </div>
+    </section>
+
+    <section class="section essence-section reveal" id="why">
+      <div class="section-head section-head-centered">
+        <span class="eyebrow">product essence</span>
+        <h2>Amonora</h2>
+      </div>
+      <div class="essence-grid">
+        {% for card in essence_cards %}
+        <article class="essence-card">
+          <span class="card-index">0{{ loop.index }}</span>
+          <h3>{{ card.title }}</h3>
+          <p>{{ card.text }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section system-section reveal" id="system">
+      <div class="system-card">
+        <div class="system-copy">
+          <span class="eyebrow">{{ auto_connect.eyebrow }}</span>
+          <h2>{{ auto_connect.title }}</h2>
+          <p>{{ auto_connect.text }}</p>
+        </div>
+        <div class="system-signals" aria-label="Сигналы подключения">
+          {% for signal in auto_connect.signals %}
+          <span>{{ signal }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="section bridge-section reveal" id="bridge">
+      <div class="bridge-shell">
+        <div class="bridge-copy">
+          <span class="eyebrow">{{ bridge_access.eyebrow }}</span>
+          <h2>{{ bridge_access.title }}</h2>
+          <p class="bridge-copy__lead">{{ bridge_access.text }}</p>
+          <p class="bridge-copy__story">{{ bridge_access.story }}</p>
+          <div class="bridge-flow" aria-label="Сценарий входа в экосистему">
+            {% for step in bridge_access.steps %}
+            <article class="bridge-flow__item">
+              <span class="bridge-flow__index">0{{ loop.index }}</span>
+              <div>
+                <strong>{{ step.title }}</strong>
+                <p>{{ step.text }}</p>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+          <div class="bridge-badges" aria-label="Условия bridge access">
+            <span class="signal-chip">24 hours</span>
+            <span class="signal-chip">Telegram unlock</span>
+            <span class="signal-chip">Product entry</span>
+          </div>
+        </div>
+
+        <article class="bridge-panel">
+          <span class="bridge-status">telegram bridge</span>
+          <h3>Временный ключ для входа в Telegram</h3>
+          <p class="bridge-note">{{ bridge_access.note }}</p>
+
+          <button type="button" class="button button-primary bridge-request" data-bridge-request>
+            {{ bridge_access.cta_label }}
+          </button>
+
+          <p class="bridge-hint">
+            Сначала получи ключ, подключись, открой Telegram, затем перейди в <a href="{{ bot_url }}">@amonora_bot</a> и продолжи уже внутри Amonora.
+          </p>
+
+          <div class="bridge-feedback bridge-feedback--error" data-bridge-error hidden></div>
+
+          <div class="bridge-result" data-bridge-result hidden>
+            <div class="bridge-result__meta">
+              <div>
+                <span class="bridge-result__label">Локация</span>
+                <strong data-bridge-country>—</strong>
+              </div>
+              <div>
+                <span class="bridge-result__label">Доступ до</span>
+                <strong data-bridge-expires>—</strong>
+              </div>
+            </div>
+
+            <label class="bridge-result__label" for="bridge-key-output">Ключ подключения</label>
+            <textarea id="bridge-key-output" class="bridge-key-output" data-bridge-key readonly></textarea>
+
+            <div class="bridge-result__actions">
+              <button type="button" class="button button-soft" data-bridge-copy>Скопировать ключ</button>
+              <a href="/manual" class="button button-ghost">Открыть инструкцию</a>
+            </div>
+            <div class="bridge-result__bot-row">
+              <a href="{{ bot_url }}" class="button button-soft bridge-result__bot-link">Открыть бота</a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section locations-section reveal" id="locations">
+      <div class="section-head section-head-centered">
+        <span class="eyebrow">{{ locations_head.eyebrow }}</span>
+        <h2>{{ locations_head.title }}</h2>
+        <p>{{ locations_head.text }}</p>
+      </div>
+      <div class="locations-grid">
+        {% for location in locations %}
+        <article class="location-card">
+          <div class="location-heading">
+            <span class="location-badge">{{ location.flag }}</span>
+            <div>
+              <strong>{{ location.name }}</strong>
+              <span>{{ location.city }}</span>
+            </div>
+          </div>
+          <p>{{ location.text }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section tariffs-section reveal" id="tariffs">
+      <div class="section-head section-head-centered">
+        <span class="eyebrow">{{ tariffs_head.eyebrow }}</span>
+        <h2>{{ tariffs_head.title }}</h2>
+        <p>{{ tariffs_head.text }}</p>
+      </div>
+      <div class="tariffs-grid">
+        {% for tariff in tariffs %}
+        <article class="tariff-card{% if tariff.featured %} is-featured{% endif %}">
+          <span class="tariff-kicker">{{ tariff.note }}</span>
+          <h3>{{ tariff.title }}</h3>
+          <div class="tariff-price">{{ tariff.price }}</div>
+          <p class="tariff-meta">{{ tariff.duration }}</p>
+          <a href="{{ bot_url }}" class="button {% if tariff.featured %}button-primary{% else %}button-soft{% endif %}">Выбрать в боте</a>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section faq-section reveal" id="faq">
+      <div class="section-head section-head-centered">
+        <span class="eyebrow">{{ faq_head.eyebrow }}</span>
+        <h2>{{ faq_head.title }}</h2>
+        <p>{{ faq_head.text }}</p>
+      </div>
+      <div class="faq-grid">
+        {% for item in faqs %}
+        <article class="faq-card">
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.text }}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="section final-cta reveal">
+      <div class="cta-panel">
+        <span class="eyebrow">{{ final_cta.eyebrow }}</span>
+        <h2>{{ final_cta.title }}</h2>
+        <p>{{ final_cta.text }}</p>
+        <a href="{{ bot_url }}" class="button button-primary button-large">Открыть Amonora Bot</a>
+        <div class="cta-links">
+          <a href="{{ channel_url }}" class="button button-ghost">Канал</a>
+          <a href="{{ support_url }}" class="button button-soft">Поддержка</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="{{ bot_url }}">Бот</a>
+      <a href="{{ channel_url }}">Канал</a>
+      <a href="{{ support_url }}">Поддержка</a>
+      <a href="/login">Панель управления</a>
+      <a href="{{ legal_links.privacy }}">ПДн</a>
+      <a href="{{ legal_links.terms }}">Оферта</a>
+      <a href="{{ legal_links.refunds }}">Возвраты</a>
+      <a href="{{ legal_links.license }}">Лицензия</a>
+      <a href="{{ legal_links.cookies }}">Cookie</a>
+    </div>
+    <div class="footer-copy">
+      <strong>{{ brand }}</strong>
+      <span>© {{ year }} Amonora. Все права защищены.</span>
+      <span>{{ footer_note }}</span>
+      <span>Владелец сервиса: {{ owner_name }}</span>
+    </div>
+  </footer>
+
+  <div class="cookie-banner" data-cookie-banner hidden>
+    <div class="cookie-banner__copy">
+      <strong>Мы заботимся о вашей конфиденциальности</strong>
+      <p>
+        Сайт использует необходимые cookie для корректной работы и защищённого доступа. Аналитические cookie будут включаться
+        только после вашего согласия. Подробнее — в
+        <a href="{{ legal_links.cookies }}">Политике использования cookie</a>.
+      </p>
+    </div>
+    <div class="cookie-banner__actions">
+      <button type="button" class="button button-ghost" data-cookie-settings>Настройки cookie</button>
+      <button type="button" class="button button-primary" data-cookie-accept>Принять</button>
+      <button type="button" class="button button-soft" data-cookie-essential>Только необходимые</button>
+    </div>
+  </div>
+
+  <div class="cookie-modal" data-cookie-modal hidden>
+    <div class="cookie-modal__backdrop" data-cookie-close></div>
+    <div class="cookie-modal__card">
+      <div class="cookie-modal__head">
+        <div>
+          <span class="eyebrow">cookie settings</span>
+          <h3>Настройки cookie</h3>
+        </div>
+        <button type="button" class="cookie-modal__close" data-cookie-close aria-label="Закрыть">×</button>
+      </div>
+
+      <div class="cookie-option">
+        <div>
+          <strong>Необходимые cookie</strong>
+          <p>Нужны для базовой работы сайта, безопасности сессий и корректного открытия страниц. Отключить их нельзя.</p>
+        </div>
+        <span class="cookie-chip is-locked">Всегда активны</span>
+      </div>
+
+      <label class="cookie-option cookie-option--toggle" for="analytics-consent">
+        <div>
+          <strong>Аналитические cookie</strong>
+          <p>Сейчас аналитика по умолчанию выключена. Этот переключатель подготовлен на будущее и активируется только после согласия.</p>
+        </div>
+        <span class="cookie-toggle">
+          <input type="checkbox" id="analytics-consent" data-cookie-analytics>
+          <span></span>
+        </span>
+      </label>
+
+      <div class="cookie-modal__actions">
+        <button type="button" class="button button-soft" data-cookie-essential>Только необходимые</button>
+        <button type="button" class="button button-primary" data-cookie-save>Сохранить выбор</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/landing.js?v={{ asset_version }}"></script>
+</body>
+</html>

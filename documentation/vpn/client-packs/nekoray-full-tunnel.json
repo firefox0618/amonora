@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "pack_type": "routing-policy",
+  "target_client": "Nekoray",
+  "client_family": "xray-or-sing-box",
+  "name": "Amonora - Full Tunnel Fallback",
+  "preferred_region": "de",
+  "fallback_region": "de",
+  "tun": {
+    "mtu": 1400,
+    "fallback_mtu": 1420
+  },
+  "dns": {
+    "mode": "remote-for-all",
+    "upstreams": [
+      "https+local://cloudflare-dns.com/dns-query",
+      "https+local://dns.sb/dns-query"
+    ]
+  },
+  "policy": {
+    "mode": "full-tunnel",
+    "blocked_protocols": [
+      "bittorrent"
+    ],
+    "default_outbound": "proxy"
+  },
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules": [
+      {
+        "type": "field",
+        "ip": [
+          "geoip:private"
+        ],
+        "outboundTag": "direct"
+      },
+      {
+        "type": "field",
+        "protocol": [
+          "bittorrent"
+        ],
+        "outboundTag": "blocked"
+      },
+      {
+        "type": "field",
+        "network": "tcp,udp",
+        "outboundTag": "proxy"
+      }
+    ]
+  }
+}

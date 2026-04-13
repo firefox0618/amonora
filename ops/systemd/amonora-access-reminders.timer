@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Amonora trigger and reminder worker every 5 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+AccuracySec=1min
+Unit=amonora-access-reminders.service
+
+[Install]
+WantedBy=timers.target

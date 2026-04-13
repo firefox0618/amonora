@@ -1,0 +1,988 @@
+{
+  "name": "amonora_daily_news_generate",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "12 10 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "18 14 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "37 19 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-daily",
+      "name": "Daily Slots MSK",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1180,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const now = new Date();\nconst parts = now.toLocaleString('sv-SE', { timeZone: 'Europe/Moscow', hour12: false }).split(' ');\nconst datePart = parts[0] || '';\nconst timePart = parts[1] || '00:00:00';\nconst hour = Number((timePart.split(':')[0] || '0'));\nlet slot;\nif (hour < 12) {\n  slot = {\n    slot_key: 'morning',\n    slot_label: 'Утро',\n    slot_prompt: 'Сделай полезный инфо-пост: короткий, ясный, с быстрым выводом и без тяжёлой подачи.',\n    slot_chars_min: 320,\n    slot_chars_max: 520,\n    slot_source_profile: 'morning'\n  };\n} else if (hour < 17) {\n  slot = {\n    slot_key: 'day',\n    slot_label: 'День',\n    slot_prompt: 'Сделай лёгкий дневной пост: короче обычного, без воды, с живой подачей и понятным контекстом.',\n    slot_chars_min: 260,\n    slot_chars_max: 420,\n    slot_source_profile: 'day'\n  };\n} else {\n  slot = {\n    slot_key: 'evening',\n    slot_label: 'Вечер',\n    slot_prompt: 'Сделай основной вечерний пост: самый сильный по подаче, с аккуратным заголовком, блоками и объяснением, почему это важно.',\n    slot_chars_min: 480,\n    slot_chars_max: 780,\n    slot_source_profile: 'evening'\n  };\n}\nreturn [{ json: { run_date_msk: datePart, run_time_msk: timePart.slice(0,5), ...slot } }];"
+      },
+      "id": "build-slot-context",
+      "name": "Build Slot Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first()?.json || {};\nconst slot = input.slot_source_profile || 'evening';\nconst common = {\n  slot_key: input.slot_key,\n  slot_label: input.slot_label,\n  slot_prompt: input.slot_prompt,\n  slot_chars_min: input.slot_chars_min,\n  slot_chars_max: input.slot_chars_max,\n  run_date_msk: input.run_date_msk,\n  run_time_msk: input.run_time_msk\n};\nconst all = [\n  { url: 'https://www.techradar.com/rss/vpn', provider: 'rss' },\n  { url: 'https://www.techradar.com/rss/news', provider: 'rss' },\n  { url: 'https://www.reuters.com/technology/rss', provider: 'rss' },\n  { url: 'https://www.theguardian.com/technology/rss', provider: 'rss' },\n  { url: 'https://www.bleepingcomputer.com/feed/', provider: 'rss' },\n  { url: 'https://thehackernews.com/feeds/posts/default', provider: 'rss' },\n  { url: 'https://www.theverge.com/rss/index.xml', provider: 'rss' },\n  { url: 'https://rsshub.app/telegram/channel/kod_durova', provider: 'tg' },\n  { url: 'https://rsshub.app/telegram/channel/vcnews', provider: 'tg' },\n  { url: 'https://rsshub.app/telegram/channel/rozetked', provider: 'tg' },\n  { url: 'https://rsshub.app/telegram/channel/tginfo', provider: 'tg' },\n  { url: 'https://rsshub.app/telegram/channel/tgstat', provider: 'tg' },\n  { url: 'https://rsshub.app/telegram/channel/cyberyozh_official', provider: 'tg' },\n  { url: 'https://rsshub.app/telegram/channel/roskomsvoboda', provider: 'tg' },\n  { url: 'https://rsshub.app/telegram/channel/netblocks', provider: 'tg' }\n];\nconst morning = new Set([\n  'https://www.techradar.com/rss/vpn',\n  'https://www.techradar.com/rss/news',\n  'https://www.reuters.com/technology/rss',\n  'https://www.theguardian.com/technology/rss',\n  'https://www.bleepingcomputer.com/feed/',\n  'https://www.theverge.com/rss/index.xml',\n  'https://rsshub.app/telegram/channel/tginfo',\n  'https://rsshub.app/telegram/channel/tgstat'\n]);\nconst day = new Set([\n  'https://www.reuters.com/technology/rss',\n  'https://www.theguardian.com/technology/rss',\n  'https://www.theverge.com/rss/index.xml',\n  'https://rsshub.app/telegram/channel/kod_durova',\n  'https://rsshub.app/telegram/channel/vcnews',\n  'https://rsshub.app/telegram/channel/rozetked',\n  'https://rsshub.app/telegram/channel/tginfo',\n  'https://rsshub.app/telegram/channel/cyberyozh_official'\n]);\nlet selected = all;\nif (slot === 'morning') selected = all.filter((item) => morning.has(item.url));\nif (slot === 'day') selected = all.filter((item) => day.has(item.url));\nreturn selected.map((item) => ({ ...common, ...item }));"
+      },
+      "id": "build-sources",
+      "name": "Build Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -980,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-sources",
+      "name": "Split Sources",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -780,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "id": "rss-read",
+      "name": "RSS Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const sourceUrl = $node[\"RSS Read\"].parameter.url || \"\";\nconst provider = sourceUrl.includes(\"rsshub.app/telegram/channel\") ? \"tg\" : \"rss\";\n\nfunction getAllImages(html) {\n  if (!html) return [];\n  return Array.from(html.matchAll(/<img[^>]+src=[\"']([^\"']+)[\"']/gi)).map((m) => (m[1] || \"\").trim());\n}\n\nfunction scoreImage(url) {\n  if (!url) return -999;\n  const value = url.toLowerCase();\n  let score = 0;\n  if (value.startsWith('http://') || value.startsWith('https://')) score += 5;\n  if (/(jpg|jpeg|png|webp)(\\?|$)/.test(value)) score += 4;\n  if (/(hero|cover|header|featured|article|media|photo|images|uploads|bleepstatic)/.test(value)) score += 6;\n  if (/(logo|icon|favicon|avatar|sprite|badge|brand|thumb-default)/.test(value)) score -= 20;\n  if (/\\b(64|96|128)x(64|96|128)\\b/.test(value)) score -= 10;\n  return score;\n}\n\nfunction pickBestImage(candidates) {\n  const unique = [...new Set(candidates.map((v) => (v || '').trim()).filter(Boolean))];\n  unique.sort((a, b) => scoreImage(b) - scoreImage(a));\n  return unique[0] || '';\n}\n\nreturn $input.all().map((item) => {\n  const json = item.json || {};\n  const title = (json.title || \"\").toString().trim();\n  const summary = (json.contentSnippet || json.content || json.summary || \"\").toString().trim();\n  const link = (json.link || json.guid || \"\").toString().trim();\n  const publishedAt = json.pubDate || json.isoDate || json.published || json.updated || \"\";\n  const content = (json.content || json.summary || \"\").toString();\n  const candidates = [\n    json.enclosure?.url,\n    json.enclosure?.link,\n    json.image?.url,\n    json.image?.link,\n    json['media:content']?.url,\n    json['media:thumbnail']?.url,\n    ...getAllImages(content),\n  ];\n  const imageUrl = pickBestImage(candidates);\n  const topicKey = `${title} ${summary}`.toLowerCase().replace(/\\s+/g, \" \").trim();\n  return {\n    title,\n    summary,\n    link,\n    published_at: publishedAt,\n    source_url: link || sourceUrl,\n    source_provider: provider,\n    topic_key: topicKey,\n    image_url: imageUrl,\n    slot_key: json.slot_key || '',\n    slot_label: json.slot_label || '',\n    slot_prompt: json.slot_prompt || '',\n    slot_chars_min: json.slot_chars_min || 320,\n    slot_chars_max: json.slot_chars_max || 780,\n    run_date_msk: json.run_date_msk || '',\n    run_time_msk: json.run_time_msk || ''\n  };\n});"
+      },
+      "id": "normalize-items",
+      "name": "Normalize Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const keywords = [\n  \"vpn\",\n  \"приватност\",\n  \"privacy\",\n  \"data leak\",\n  \"утеч\",\n  \"кибер\",\n  \"security\",\n  \"breach\",\n  \"block\",\n  \"blocking\",\n  \"restriction\",\n  \"ограничен\",\n  \"censorship\",\n  \"telegram\",\n  \"messenger\"\n];\nconst banned = [\n  \"war\",\n  \"missile\",\n  \"bombing\",\n  \"killed\",\n  \"combat\",\n  \"invasion\"\n];\nconst items = $input.all().map((i) => i.json);\nconst filtered = items.filter((item) => {\n  const text = `${item.title} ${item.summary}`.toLowerCase();\n  if (banned.some((w) => text.includes(w))) {\n    return false;\n  }\n  return keywords.some((w) => text.includes(w));\n});\nreturn filtered.map((item) => ({ json: item }));"
+      },
+      "id": "keyword-filter",
+      "name": "Keyword Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "limit": 6
+      },
+      "id": "limit-candidates",
+      "name": "Limit Candidates",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        120,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENROUTER_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: \"deepseek/deepseek-r1:free\",\n  messages: [\n    { role: \"system\", content: \"Answer only YES or NO.\" },\n    { role: \"user\", content: `Is this news about internet restrictions, privacy, cybersecurity, or messaging platforms?\\nTitle: ${$json.title}\\nSummary: ${$json.summary}` }\n  ],\n  temperature: 0.2\n} }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "ai-relevance",
+      "name": "AI Relevance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const content = (($json.choices || [])[0]?.message?.content || \"\").toString().toLowerCase();\nconst aiRelevant = content.includes(\"yes\");\nreturn { ...$json, ai_relevant: aiRelevant };"
+      },
+      "id": "ai-relevance-parse",
+      "name": "AI Relevance Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.ai_relevant }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "isTrue"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "ai-relevance-filter",
+      "name": "AI Relevance Filter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        820,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "={{ \"published_at\" }}",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "sort-latest",
+      "name": "Sort Latest",
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "limit": 1
+      },
+      "id": "limit-top",
+      "name": "Limit Top",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{($env.AMONORA_DASHBOARD_BASE_URL || 'http://127.0.0.1:8088') + '/dashboard/api/internal/daily-news/history'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-amonora-internal-secret",
+              "value": "={{$env.AMONORA_INTERNAL_CHANNEL_WEBHOOK_SECRET}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "sheet-history",
+      "name": "Get History (Sheets)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const candidate = $items('Limit Top')[0]?.json;\nif (!candidate) {\n  return [{ json: { skip: true, reason: 'no_candidates', slot_label: $items('Build Slot Context')[0]?.json?.slot_label || '' } }];\n}\nconst payload = $json.data || $json;\nconst rows = Array.isArray(payload?.rows) ? payload.rows : $input.all().map((i) => i.json);\nconst now = Date.now();\nconst weekMs = 7 * 24 * 60 * 60 * 1000;\nconst cooldownMs = 2 * 60 * 60 * 1000;\nconst recentPending = rows.some((row) => {\n  const status = (row.status || '').toString().toLowerCase();\n  if (!['pending', 'approved'].includes(status)) return false;\n  const ts = Date.parse(row.review_requested_at || row.approved_at || row.posted_at || '');\n  return ts && Math.abs(now - ts) <= cooldownMs;\n});\nif (recentPending) {\n  return [{ json: { skip: true, reason: 'cooldown', slot_label: candidate.slot_label || '' } }];\n}\nconst dup = rows.some((row) => {\n  if (!row || !row.topic_key) return false;\n  const sameUrl = row.source_url && candidate.source_url && row.source_url === candidate.source_url;\n  const sameTopic = row.topic_key && candidate.topic_key && row.topic_key === candidate.topic_key;\n  const postedAt = row.posted_at || row.approved_at || row.review_requested_at || row.source_published_at;\n  const ts = postedAt ? Date.parse(postedAt) : 0;\n  const recent = ts ? Math.abs(now - ts) <= weekMs : false;\n  return (sameUrl || sameTopic) && recent;\n});\nif (dup) {\n  return [{ json: { skip: true, reason: 'duplicate', slot_label: candidate.slot_label || '' } }];\n}\nreturn [{ json: { skip: false, candidate } }];"
+      },
+      "id": "dedupe-check",
+      "name": "Dedupe Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "isTrue"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "skip-if-none",
+      "name": "Skip If None",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const reason = ($json.reason || '').toString();\nconst slot = ($json.slot_label || $items('Build Slot Context')[0]?.json?.slot_label || '').toString();\nlet text = '⚠️ Нет релевантных новостей, публикуем резервный пост';\nif (reason === 'duplicate') text = '⚠️ Дубликат новости, публикуем резервный пост';\nif (reason === 'cooldown') text = '⚠️ Сработал cooldown, публикуем резервный пост';\nif (slot) text += ` · слот ${slot.toLowerCase()}`;\nconst raw = ($env.CONTROL_APPROVAL_CHAT_IDS || $env.CONTROL_APPROVAL_CHAT_ID || '').toString();\nconst ids = raw.split(',').map((v) => v.trim()).filter(Boolean);\nreturn ids.map((id) => ({ json: { chat_id: id, text } }));"
+      },
+      "id": "build-no-news-log",
+      "name": "Build No News Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TG_APPROVAL_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: $json.chat_id, text: $json.text } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "log-no-news",
+      "name": "Log: No News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2060,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const slot = $items('Build Slot Context')[0]?.json || {};\nconst reason = ($json.reason || 'no_candidates').toString();\nconst titles = {\n  morning: 'Как спокойнее держать под контролем приватность и доступ к сервисам',\n  day: 'Какие цифровые привычки реально помогают не терять доступ и данные',\n  evening: 'Что стоит проверить сегодня, чтобы завтра не столкнуться с сюрпризами в сети'\n};\nconst summaries = {\n  morning: 'Сделай короткий полезный пост о том, как без перегруза проверять приватность аккаунтов, обновления и важные настройки приложений.',\n  day: 'Сделай ясный дневной пост про базовые цифровые привычки: обновления, резервный доступ, проверка важных сервисов и аккуратная гигиена устройств.',\n  evening: 'Сделай сильный вечерний пост о том, почему важно заранее держать в порядке ключевые цифровые сервисы, доступы и настройки безопасности.'\n};\nreturn [{ json: {\n  title: titles[slot.slot_key] || 'Полезный пост Amonora',\n  summary: summaries[slot.slot_key] || 'Сделай полезный пост про стабильный доступ, приватность и цифровую гигиену.',\n  source_url: '',\n  source_provider: 'evergreen',\n  topic_key: `evergreen:${slot.slot_key || 'default'}:${slot.run_date_msk || new Date().toISOString().slice(0, 10)}:${reason}`,\n  image_url: '',\n  slot_key: slot.slot_key || '',\n  slot_label: slot.slot_label || '',\n  slot_prompt: slot.slot_prompt || '',\n  slot_chars_min: slot.slot_chars_min || 320,\n  slot_chars_max: slot.slot_chars_max || 780,\n  run_date_msk: slot.run_date_msk || '',\n  run_time_msk: slot.run_time_msk || '',\n  fallback_reason: reason\n} }];"
+      },
+      "id": "build-fallback-candidate",
+      "name": "Build Fallback Candidate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const candidate = $json.candidate;\nreturn { ...candidate };"
+      },
+      "id": "unwrap-candidate",
+      "name": "Unwrap Candidate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENROUTER_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: 'deepseek/deepseek-r1:free',\n  messages: [\n    {\n      role: 'system',\n      content: 'Ты пишешь готовый HTML-пост для Telegram-канала про интернет, приватность и технологии. Верни только готовый текст поста без пояснений. Используй только тег <b> для заголовков. Никакого markdown, никаких code fences, никаких ссылок в тексте. Структура: <b>короткий заголовок</b>, пустая строка, <b>Что случилось</b> с 2-3 пунктами, пустая строка, <b>Почему это важно</b> с 1-2 пунктами. Без кликбейта, без агрессивной рекламы, без инструкций и без прямого упоминания обхода блокировок.'\n    },\n    {\n      role: 'user',\n      content: `Слот: ${$json.slot_label}. ${$json.slot_prompt}\\nДлина текста: ${$json.slot_chars_min}-${$json.slot_chars_max} символов без учета HTML-тегов.\\n\\nМатериал:\\nЗаголовок: ${$json.title}\\nКратко: ${$json.summary}\\nИсточник: ${$json.source_url}`\n    }\n  ],\n  temperature: 0.35\n} }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "generate-post-1",
+      "name": "Generate Post (1)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2300,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "gen1-failed",
+      "name": "Gen1 Failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2520,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENROUTER_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: 'qwen/qwen2.5-72b-instruct:free',\n  messages: [\n    {\n      role: 'system',\n      content: 'Ты пишешь готовый HTML-пост для Telegram-канала про интернет, приватность и технологии. Верни только готовый текст поста без пояснений. Используй только тег <b> для заголовков. Никакого markdown, никаких code fences, никаких ссылок в тексте. Структура: <b>короткий заголовок</b>, пустая строка, <b>Что случилось</b> с 2-3 пунктами, пустая строка, <b>Почему это важно</b> с 1-2 пунктами. Без кликбейта, без агрессивной рекламы, без инструкций и без прямого упоминания обхода блокировок.'\n    },\n    {\n      role: 'user',\n      content: `Слот: ${$json.slot_label}. ${$json.slot_prompt}\\nДлина текста: ${$json.slot_chars_min}-${$json.slot_chars_max} символов без учета HTML-тегов.\\n\\nМатериал:\\nЗаголовок: ${$json.title}\\nКратко: ${$json.summary}\\nИсточник: ${$json.source_url}`\n    }\n  ],\n  temperature: 0.35\n} }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "generate-post-2",
+      "name": "Generate Post (2)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2720,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.OPENROUTER_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: 'mistralai/mistral-7b-instruct:free',\n  messages: [\n    {\n      role: 'system',\n      content: 'Ты пишешь готовый HTML-пост для Telegram-канала про интернет, приватность и технологии. Верни только готовый текст поста без пояснений. Используй только тег <b> для заголовков. Никакого markdown, никаких code fences, никаких ссылок в тексте. Структура: <b>короткий заголовок</b>, пустая строка, <b>Что случилось</b> с 2-3 пунктами, пустая строка, <b>Почему это важно</b> с 1-2 пунктами. Без кликбейта, без агрессивной рекламы, без инструкций и без прямого упоминания обхода блокировок.'\n    },\n    {\n      role: 'user',\n      content: `Слот: ${$json.slot_label}. ${$json.slot_prompt}\\nДлина текста: ${$json.slot_chars_min}-${$json.slot_chars_max} символов без учета HTML-тегов.\\n\\nМатериал:\\nЗаголовок: ${$json.title}\\nКратко: ${$json.summary}\\nИсточник: ${$json.source_url}`\n    }\n  ],\n  temperature: 0.35\n} }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "generate-post-3",
+      "name": "Generate Post (3)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2920,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "let text = (($json.choices || [])[0]?.message?.content || '').toString().trim();\ntext = text.replace(/^```[a-z]*\\s*/i, '').replace(/```$/i, '').trim();\ntext = text.replace(/\\r/g, '').replace(/\\n{3,}/g, '\\n\\n');\nif (!text) {\n  text = `<b>${$json.title || 'Новая новость'}</b>\\n\\n<b>Что случилось</b>\\n• ${($json.summary || 'Появился новый заметный инфоповод.').trim()}\\n\\n<b>Почему это важно</b>\\n• Доступ к сервисам и цифровым инструментам может меняться быстрее, чем кажется.`;\n}\nif (!/<b>/.test(text)) {\n  text = `<b>${$json.title || 'Новая новость'}</b>\\n\\n<b>Что случилось</b>\\n${text}`;\n}\nreturn {\n  ...$json,\n  post_text: text\n};"
+      },
+      "id": "extract-post",
+      "name": "Extract Post Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3140,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const now = new Date();\nconst id = now.getTime().toString();\nreturn {\n  ...$json,\n  id,\n  status: \"pending\",\n  review_requested_at: now.toISOString()\n};"
+      },
+      "id": "assign-id",
+      "name": "Assign ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3340,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.AMONORA_DASHBOARD_BASE_URL || 'http://127.0.0.1:8088') + '/dashboard/api/internal/daily-news/items/upsert'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-amonora-internal-secret",
+              "value": "={{$env.AMONORA_INTERNAL_CHANNEL_WEBHOOK_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "append-row",
+      "name": "Append Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3560,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const payload = $json.data || $json;\nconst itemId = (payload.id || '').toString();\nreturn [{ json: { ...payload, item_id: itemId } }];"
+      },
+      "id": "build-publish-request",
+      "name": "Build Publish Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3760,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.AMONORA_DASHBOARD_BASE_URL || 'http://127.0.0.1:8088') + '/dashboard/api/internal/daily-news/items/' + $json.item_id + '/publish'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-amonora-internal-secret",
+              "value": "={{$env.AMONORA_INTERNAL_CHANNEL_WEBHOOK_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {} }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "publish-daily-news",
+      "name": "Publish Daily News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3780,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const payload = $json.data || $json;\nconst slot = (payload.slot_label || '').toString();\nconst source = (payload.title || payload.source_title || '').toString();\nconst mode = (payload.source_provider || '').toString() === 'evergreen' ? 'Резервный' : 'Новость';\nconst text = `✅ Автопост опубликован\\n\\nID: ${payload.id}\\nТип: ${mode}${slot ? `\\nСлот: ${slot}` : ''}${source ? `\\nИсточник: ${source}` : ''}`;\nconst raw = ($env.CONTROL_APPROVAL_CHAT_IDS || $env.CONTROL_APPROVAL_CHAT_ID || '').toString();\nconst ids = raw.split(',').map((v) => v.trim()).filter(Boolean);\nreturn ids.map((id) => ({ json: { chat_id: id, text } }));"
+      },
+      "id": "build-publish-log",
+      "name": "Build Publish Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3980,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TG_APPROVAL_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: $json.chat_id, text: $json.text, disable_web_page_preview: true } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "send-publish-log",
+      "name": "Send Publish Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3980,
+        -40
+      ]
+    }
+  ],
+  "connections": {
+    "Build Sources": {
+      "main": [
+        [
+          {
+            "node": "Split Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Sources": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Normalize Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Items": {
+      "main": [
+        [
+          {
+            "node": "Keyword Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keyword Filter": {
+      "main": [
+        [
+          {
+            "node": "Limit Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit Candidates": {
+      "main": [
+        [
+          {
+            "node": "Sort Latest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Relevance": {
+      "main": [
+        [
+          {
+            "node": "AI Relevance Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Relevance Parse": {
+      "main": [
+        [
+          {
+            "node": "AI Relevance Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Relevance Filter": {
+      "main": [
+        [
+          {
+            "node": "Sort Latest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort Latest": {
+      "main": [
+        [
+          {
+            "node": "Limit Top",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit Top": {
+      "main": [
+        [
+          {
+            "node": "Get History (Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get History (Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Dedupe Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedupe Check": {
+      "main": [
+        [
+          {
+            "node": "Skip If None",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip If None": {
+      "main": [
+        [
+          {
+            "node": "Build No News Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Fallback Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unwrap Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unwrap Candidate": {
+      "main": [
+        [
+          {
+            "node": "Generate Post (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Post (1)": {
+      "main": [
+        [
+          {
+            "node": "Gen1 Failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gen1 Failed?": {
+      "main": [
+        [
+          {
+            "node": "Extract Post Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Post (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Post (2)": {
+      "main": [
+        [
+          {
+            "node": "Generate Post (3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Post (3)": {
+      "main": [
+        [
+          {
+            "node": "Extract Post Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Post Text": {
+      "main": [
+        [
+          {
+            "node": "Assign ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign ID": {
+      "main": [
+        [
+          {
+            "node": "Append Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Row": {
+      "main": [
+        [
+          {
+            "node": "Build Publish Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build No News Log": {
+      "main": [
+        [
+          {
+            "node": "Log: No News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Fallback Candidate": {
+      "main": [
+        [
+          {
+            "node": "Generate Post (1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Publish Request": {
+      "main": [
+        [
+          {
+            "node": "Publish Daily News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Daily News": {
+      "main": [
+        [
+          {
+            "node": "Build Publish Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Publish Log": {
+      "main": [
+        [
+          {
+            "node": "Send Publish Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Slots MSK": {
+      "main": [
+        [
+          {
+            "node": "Build Slot Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Slot Context": {
+      "main": [
+        [
+          {
+            "node": "Build Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "Europe/Moscow",
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "versionId": "amonora-daily-news-generate-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

@@ -1,0 +1,28 @@
+apiVersion: 1
+prune: true
+
+deleteDatasources:
+  - name: Amonora Analytics
+    orgId: 1
+
+datasources:
+  - name: Amonora Analytics
+    uid: amonora-analytics
+    type: postgres
+    access: proxy
+    url: $__env{GRAFANA_ANALYTICS_DB_HOST}:$__env{GRAFANA_ANALYTICS_DB_PORT}
+    user: $__env{GRAFANA_ANALYTICS_DB_USER}
+    secureJsonData:
+      password: $__env{GRAFANA_ANALYTICS_DB_PASSWORD}
+    jsonData:
+      database: $__env{GRAFANA_ANALYTICS_DB_NAME}
+      sslmode: $__env{GRAFANA_ANALYTICS_DB_SSLMODE}
+      postgresVersion: 1500
+      timescaledb: false
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+      minTimeInterval: 5m
+      defaultEditor: code
+    isDefault: false
+    editable: false

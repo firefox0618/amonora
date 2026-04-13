@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title }}</title>
+    <meta name="description" content="{{ page_description }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <meta name="theme-color" content="#100913">
+    <link rel="icon" href="/static/favicon.svg?v={{ asset_version }}">
+    <link rel="stylesheet" href="/client-static/assets/app.css?v={{ asset_version }}">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      window.__AMONORA_CLIENT_TOKEN__ = {{ client_token | tojson }};
+      window.__AMONORA_CLIENT_API_BASE__ = "";
+    </script>
+    <script type="module" src="/client-static/assets/app.js?v={{ asset_version }}"></script>
+  </body>
+</html>

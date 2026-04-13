@@ -1,0 +1,11 @@
+[Unit]
+Description=Amonora analytics rollup refresh
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/amonora_bot
+Environment=PYTHONPATH=/opt/amonora_bot
+ExecStart=/opt/amonora_bot/venv/bin/python -m ops.analytics_refresh

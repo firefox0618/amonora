@@ -1,0 +1,77 @@
+{
+  "name": "generate_due_channel_drafts",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 12 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-generate-drafts",
+      "name": "Daily 12:00 EKB",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.AMONORA_DASHBOARD_BASE_URL || 'http://127.0.0.1:8088') + '/dashboard/api/internal/channel/generate'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-amonora-internal-secret",
+              "value": "={{$env.AMONORA_INTERNAL_CHANNEL_WEBHOOK_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"notify_missing_content\": false}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "http-generate-drafts",
+      "name": "Generate Due Drafts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Daily 12:00 EKB": {
+      "main": [
+        [
+          {
+            "node": "Generate Due Drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "timezone": "Asia/Yekaterinburg",
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "active": false,
+  "tags": []
+}

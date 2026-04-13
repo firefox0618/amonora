@@ -1,0 +1,13 @@
+[Unit]
+Description=Amonora remote artifact backup for %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/amonora/backup.env
+EnvironmentFile=/etc/amonora/backup.d/%i.env
+ExecStart=/bin/bash /opt/amonora_bot/ops/backup/remote_artifact_backup.sh
+
+[Install]
+WantedBy=multi-user.target

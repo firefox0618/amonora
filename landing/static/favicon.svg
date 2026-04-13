@@ -1,0 +1,35 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="40" x2="476" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5A2A4A"/>
+      <stop offset="0.45" stop-color="#3A1A2F"/>
+      <stop offset="1" stop-color="#1A0F1F"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 224) rotate(90) scale(210 210)">
+      <stop stop-color="#FFE3F1" stop-opacity="0.9"/>
+      <stop offset="0.55" stop-color="#F2B8D6" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#F2B8D6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="petal" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 164) rotate(90) scale(92 58)">
+      <stop stop-color="#FFF1F7"/>
+      <stop offset="1" stop-color="#F3B7D3"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg)"/>
+  <circle cx="256" cy="230" r="150" fill="url(#glow)"/>
+  <g opacity="0.95">
+    <ellipse cx="256" cy="132" rx="56" ry="96" fill="url(#petal)"/>
+    <ellipse cx="256" cy="132" rx="56" ry="96" fill="url(#petal)" transform="rotate(45 256 256)"/>
+    <ellipse cx="256" cy="132" rx="56" ry="96" fill="url(#petal)" transform="rotate(90 256 256)"/>
+    <ellipse cx="256" cy="132" rx="56" ry="96" fill="url(#petal)" transform="rotate(135 256 256)"/>
+    <ellipse cx="256" cy="132" rx="56" ry="96" fill="url(#petal)" transform="rotate(180 256 256)"/>
+    <ellipse cx="256" cy="132" rx="56" ry="96" fill="url(#petal)" transform="rotate(225 256 256)"/>
+    <ellipse cx="256" cy="132" rx="56" ry="96" fill="url(#petal)" transform="rotate(270 256 256)"/>
+    <ellipse cx="256" cy="132" rx="56" ry="96" fill="url(#petal)" transform="rotate(315 256 256)"/>
+  </g>
+  <circle cx="256" cy="256" r="26" fill="#FFE5F3"/>
+  <circle cx="256" cy="256" r="11" fill="#F6B8D3"/>
+  <circle cx="164" cy="210" r="8" fill="#FFE7F4" opacity="0.75"/>
+  <circle cx="348" cy="198" r="6" fill="#FFE7F4" opacity="0.7"/>
+  <circle cx="330" cy="300" r="7" fill="#FFE7F4" opacity="0.6"/>
+</svg>

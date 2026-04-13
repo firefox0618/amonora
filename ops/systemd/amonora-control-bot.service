@@ -1,0 +1,16 @@
+[Unit]
+Description=Amonora Control Bot
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/amonora_bot
+Environment=PYTHONPATH=/opt/amonora_bot
+ExecStart=/opt/amonora_bot/venv/bin/python -m control_bot.main
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

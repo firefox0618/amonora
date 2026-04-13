@@ -1,0 +1,122 @@
+<svg width="640" height="720" viewBox="0 0 640 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="branch-main" x1="620" y1="118" x2="236" y2="478" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4E213D"/>
+      <stop offset="0.38" stop-color="#693052"/>
+      <stop offset="0.82" stop-color="#2B1221"/>
+      <stop offset="1" stop-color="#170910"/>
+    </linearGradient>
+    <linearGradient id="branch-soft" x1="560" y1="164" x2="298" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6F3456" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#24101B" stop-opacity="0.95"/>
+    </linearGradient>
+    <radialGradient id="bloom-core" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(0 0) rotate(90) scale(54 54)">
+      <stop offset="0.05" stop-color="#FFFBE8"/>
+      <stop offset="0.28" stop-color="#FFF2F8"/>
+      <stop offset="0.64" stop-color="#F5C6DD"/>
+      <stop offset="1" stop-color="#D976AD"/>
+    </radialGradient>
+    <radialGradient id="bloom-shadow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(0 0) rotate(90) scale(70 70)">
+      <stop offset="0.2" stop-color="#FFDDEB" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#FFDDEB" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="petal-soft" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(0 0) rotate(90) scale(46 30)">
+      <stop stop-color="#FFF7FB"/>
+      <stop offset="0.52" stop-color="#F8D2E4"/>
+      <stop offset="1" stop-color="#E58DBD"/>
+    </radialGradient>
+    <radialGradient id="orb" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(0 0) rotate(90) scale(220 220)">
+      <stop offset="0.08" stop-color="#FFEAF6" stop-opacity="0.3"/>
+      <stop offset="0.42" stop-color="#D98CB7" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#8F4E77" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="branch-glow" x="108" y="44" width="580" height="514" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <filter id="bloom-glow" x="-120" y="-120" width="240" height="240" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <filter id="sparkle" x="-40" y="-40" width="80" height="80" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+    <symbol id="blossom" viewBox="-62 -62 124 124">
+      <circle cx="0" cy="0" r="46" fill="url(#bloom-shadow)"/>
+      <g opacity="0.98">
+        <path d="M0 -40C11 -33 15 -15 0 0C-15 -15 -11 -33 0 -40Z" fill="url(#petal-soft)"/>
+        <path d="M38 -11C30 -2 12 3 0 0C8 -17 26 -21 38 -11Z" fill="url(#petal-soft)"/>
+        <path d="M24 33C10 30 0 15 0 0C18 5 30 19 24 33Z" fill="url(#petal-soft)"/>
+        <path d="M-24 33C-30 19 -18 5 0 0C0 15 -10 30 -24 33Z" fill="url(#petal-soft)"/>
+        <path d="M-38 -11C-26 -21 -8 -17 0 0C-12 3 -30 -2 -38 -11Z" fill="url(#petal-soft)"/>
+      </g>
+      <circle cx="0" cy="0" r="8.5" fill="#FFF4C5"/>
+      <circle cx="0" cy="0" r="4.5" fill="#FFF9EE"/>
+    </symbol>
+    <symbol id="loose-petal" viewBox="-24 -18 48 36">
+      <path d="M0 -15C9 -12 15 -4 14 6C5 13 -8 13 -14 3C-14 -7 -8 -14 0 -15Z" fill="url(#petal-soft)"/>
+      <path d="M-7 -3C-2 -1 4 0 9 -1" stroke="#FFF2F7" stroke-opacity="0.55" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+
+  <circle cx="438" cy="286" r="186" fill="url(#orb)"/>
+  <circle cx="472" cy="420" r="134" fill="url(#orb)" opacity="0.58"/>
+
+  <g filter="url(#branch-glow)" opacity="0.28">
+    <path d="M628 104C560 146 522 184 482 244C428 326 366 386 254 448" stroke="#F1B6D5" stroke-width="18" stroke-linecap="round"/>
+    <path d="M555 154C518 192 486 248 450 312" stroke="#F4B8D7" stroke-width="12" stroke-linecap="round"/>
+  </g>
+
+  <g opacity="0.98">
+    <path d="M624 112C558 152 522 188 482 246C430 322 370 382 258 444" stroke="url(#branch-main)" stroke-width="17" stroke-linecap="round"/>
+    <path d="M560 154C524 186 492 240 456 306" stroke="url(#branch-soft)" stroke-width="11" stroke-linecap="round"/>
+    <path d="M520 188C488 210 448 228 400 242" stroke="url(#branch-soft)" stroke-width="8.5" stroke-linecap="round"/>
+    <path d="M480 248C446 278 412 322 392 372" stroke="url(#branch-soft)" stroke-width="9" stroke-linecap="round"/>
+    <path d="M434 304C404 326 370 340 328 346" stroke="url(#branch-soft)" stroke-width="7.5" stroke-linecap="round"/>
+    <path d="M390 370C360 392 326 414 288 420" stroke="url(#branch-soft)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M470 250C452 212 432 182 402 152" stroke="url(#branch-soft)" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <g opacity="0.62" filter="url(#bloom-glow)">
+    <circle cx="592" cy="132" r="38" fill="#FFD9E9"/>
+    <circle cx="516" cy="192" r="34" fill="#FFCFE3"/>
+    <circle cx="460" cy="242" r="44" fill="#FFC9DF"/>
+    <circle cx="410" cy="332" r="46" fill="#FFC0DA"/>
+    <circle cx="344" cy="344" r="34" fill="#FFD8E9"/>
+    <circle cx="308" cy="420" r="32" fill="#FFD8E9"/>
+    <circle cx="424" cy="154" r="28" fill="#FFD8E9"/>
+  </g>
+
+  <g opacity="0.98">
+    <use href="#blossom" x="592" y="132" width="76" height="76"/>
+    <use href="#blossom" x="516" y="192" width="68" height="68" transform="rotate(-14 516 192)"/>
+    <use href="#blossom" x="462" y="242" width="90" height="90" transform="rotate(8 462 242)"/>
+    <use href="#blossom" x="410" y="332" width="92" height="92" transform="rotate(-10 410 332)"/>
+    <use href="#blossom" x="344" y="346" width="72" height="72" transform="rotate(12 344 346)"/>
+    <use href="#blossom" x="308" y="420" width="64" height="64" transform="rotate(-6 308 420)"/>
+    <use href="#blossom" x="424" y="154" width="58" height="58" transform="rotate(18 424 154)"/>
+    <use href="#blossom" x="404" y="242" width="54" height="54" transform="rotate(-20 404 242)"/>
+    <use href="#blossom" x="368" y="284" width="48" height="48" transform="rotate(10 368 284)"/>
+    <use href="#blossom" x="520" y="118" width="50" height="50" transform="rotate(4 520 118)"/>
+  </g>
+
+  <g opacity="0.92">
+    <use href="#loose-petal" x="504" y="312" width="36" height="28" transform="rotate(14 504 312)"/>
+    <use href="#loose-petal" x="476" y="360" width="30" height="24" transform="rotate(-12 476 360)"/>
+    <use href="#loose-petal" x="438" y="402" width="28" height="22" transform="rotate(22 438 402)"/>
+    <use href="#loose-petal" x="540" y="266" width="26" height="20" transform="rotate(-28 540 266)"/>
+    <use href="#loose-petal" x="350" y="462" width="34" height="26" transform="rotate(18 350 462)"/>
+  </g>
+
+  <g opacity="0.88">
+    <circle cx="588" cy="128" r="3.5" fill="#FFF7FB"/>
+    <circle cx="522" cy="184" r="3" fill="#FFF6FB"/>
+    <circle cx="426" cy="150" r="2.5" fill="#FFF6FB"/>
+    <circle cx="332" cy="414" r="3.5" fill="#FFF6FB"/>
+    <circle cx="460" cy="240" r="2.2" fill="#FFF6FB"/>
+  </g>
+
+  <g filter="url(#sparkle)" opacity="0.74">
+    <circle cx="560" cy="116" r="6" fill="#FFF7FB"/>
+    <circle cx="468" cy="218" r="5" fill="#FFF7FB"/>
+    <circle cx="382" cy="324" r="5.5" fill="#FFF7FB"/>
+  </g>
+</svg>

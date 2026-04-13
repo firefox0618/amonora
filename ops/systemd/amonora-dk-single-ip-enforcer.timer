@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Amonora Denmark single-IP enforcement every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=15s
+Unit=amonora-dk-single-ip-enforcer.service
+
+[Install]
+WantedBy=timers.target

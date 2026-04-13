@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Amonora server watchdog every 2 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=30s
+Unit=amonora-server-watchdog.service
+
+[Install]
+WantedBy=timers.target

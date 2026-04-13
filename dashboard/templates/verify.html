@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Amonora Панель управления — подтверждение{% endblock %}
+{% block body %}
+<main class="auth-shell">
+  <section class="auth-layout">
+    <article class="auth-showcase reveal visible">
+      <div class="auth-brand">
+        <img class="auth-logo" src="/dashboard/static/amonora-logo.svg" alt="Amonora">
+        <div>
+          <strong>Amonora</strong>
+          <span>Telegram verification</span>
+        </div>
+      </div>
+
+      <div class="auth-copy">
+        <p class="eyebrow">Security step</p>
+        <h1>Код подтверждения отправлен в Telegram</h1>
+        <p>Код действует 10 минут. После подтверждения ты попадёшь в командный центр Amonora с правами своей роли.</p>
+      </div>
+
+      <div class="auth-list">
+        <div class="auth-feature">Если код не пришёл, вернись на шаг назад и запроси новый.</div>
+        <div class="auth-feature">Код приходит в Telegram администратора, привязанного к аккаунту панели.</div>
+        <div class="auth-feature">После входа откроется панель управления с пользователями, серверами, сервисами и поддержкой.</div>
+      </div>
+    </article>
+
+    <article class="auth-card reveal visible">
+      <div class="auth-brand">
+        <img class="auth-logo small" src="/dashboard/static/amonora-logo.svg" alt="Amonora">
+        <div>
+          <strong>Amonora</strong>
+          <span>Confirm session</span>
+        </div>
+      </div>
+
+      <div class="auth-copy">
+        <p class="eyebrow">Telegram step</p>
+        <h1>Подтверди вход</h1>
+        <p>Введи шестизначный код, который пришёл в Telegram. После этого создастся защищённая сессия для панели управления.</p>
+      </div>
+
+      {% if notice %}
+        <div class="flash flash-ok">{{ notice }}</div>
+      {% endif %}
+      {% if error %}
+        <div class="flash flash-error">{{ error }}</div>
+      {% endif %}
+
+      <form class="auth-form" method="post" action="/verify">
+        <input type="hidden" name="username" value="{{ username }}">
+        <label for="dashboard-verify-code">
+          <span>Код подтверждения</span>
+          <input id="dashboard-verify-code" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" required>
+        </label>
+        <button type="submit" class="button-primary">Войти в панель</button>
+      </form>
+    </article>
+  </section>
+  <footer class="auth-footer reveal visible">
+    <p><strong>Amonora</strong> — цифровой бренд для частного доступа и сервисной инфраструктуры нового поколения.</p>
+    <p>© 2026 Amonora. Все права защищены.</p>
+  </footer>
+</main>
+{% endblock %}

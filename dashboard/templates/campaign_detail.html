@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+{% block title %}{{ campaign.name }} — Кампания — Amonora{% endblock %}
+{% block body %}
+<main class="campaign-detail-page">
+  <header class="detail-header">
+    <div>
+      <a href="/dashboard/campaigns" class="back-link">← Назад к кампаниям</a>
+      <h1>{{ campaign.name }}</h1>
+      <span class="campaign-status {{ 'active' if campaign.is_active else 'inactive' }}">
+        {{ 'Активна' if campaign.is_active else 'Неактивна' }}
+      </span>
+    </div>
+    <div class="detail-actions">
+      <form method="post" action="/dashboard/campaigns/{{ campaign.id }}/toggle" class="inline-form">
+        <button type="submit" class="button-secondary">
+          {{ 'Деактивировать' if campaign.is_active else 'Активировать' }}
+        </button>
+      </form>
+      <form method="post" action="/dashboard/campaigns/{{ campaign.id }}/delete" class="inline-form" onsubmit="return confirm('Удалить кампанию?')">
+        <button type="submit" class="button-danger">Удалить</button>
+      </form>
+    </div>
+  </header>
+
+  <!-- Трекинг-ссылка -->
+  <section class="detail-section">
+    <h2>Трекинг-ссылка</h2>
+    <div class="tracking-url-box">
+      <code>{{ campaign.tracking_url }}</code>
+      <button type="button" class="button-icon" onclick="navigator.clipboard.writeText('{{ campaign.tracking_url }}')">
+        📋 Копировать
+      </button>
+    </div>
+  </section>
+
+  <!-- Воронка конверсии -->
+  <section class="detail-section">
+    <h2>Воронка конверсии</h2>
+    <div class="funnel">
+      {% for stage in funnel %}
+      <div class="funnel-stage" style="width: {{ stage.rate }}%">
+        <div class="funnel-stage-content">
+          <span class="funnel-stage-name">{{ stage.stage }}</span>
+          <span class="funnel-stage-count">{{ stage.count }}</span>
+          <span class="funnel-stage-rate">{{ stage.rate }}%</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Статистика -->
+  <section class="detail-section">
+    <h2>Статистика</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-value">{{ campaign.stats.transitions }}</span>
+        <span class="stat-label">Переходы по ссылке</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ campaign.stats.bot_starts }}</span>
+        <span class="stat-label">Нажали /start</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ campaign.stats.trial_started }}</span>
+        <span class="stat-label">Начали триал</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ campaign.stats.key_issued }}</span>
+        <span class="stat-label">Получили ключ</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ campaign.stats.paid }}</span>
+        <span class="stat-label">Оплатили</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ campaign.stats.renewed }}</span>
+        <span class="stat-label">Продлили</span>
+      </div>
+      <div class="stat-card highlight">
+        <span class="stat-value">{{ campaign.stats.conversion_rate }}%</span>
+        <span class="stat-label">Конверсия</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Последние события -->
+  {% if campaign.recent_events and campaign.recent_events|length > 0 %}
+  <section class="detail-section">
+    <h2>Последние события</h2>
+    <table class="events-table">
+      <thead>
+        <tr>
+          <th>Событие</th>
+          <th>Telegram ID</th>
+          <th>Дата</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in campaign.recent_events[:20] %}
+        <tr>
+          <td><code>{{ event.event_name }}</code></td>
+          <td>{{ event.user_telegram_id or '—' }}</td>
+          <td>{{ event.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  <!-- Мета-информация -->
+  <section class="detail-section">
+    <h2>Информация</h2>
+    <dl class="meta-list">
+      <div class="meta-item">
+        <dt>CTA текст</dt>
+        <dd>{{ campaign.cta_label }}</dd>
+      </div>
+      <div class="meta-item">
+        <dt>Токен</dt>
+        <dd><code>{{ campaign.token }}</code></dd>
+      </div>
+      <div class="meta-item">
+        <dt>Создана</dt>
+        <dd>{{ campaign.created_at }}</dd>
+      </div>
+    </dl>
+  </section>
+</main>
+
+<style>
+.campaign-detail-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #334155;
+}
+
+.back-link {
+  display: inline-block;
+  color: #38bdf8;
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.detail-header h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.75rem;
+  color: #f1f5f9;
+}
+
+.campaign-status {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.campaign-status.active {
+  background: #064e3b;
+  color: #34d399;
+}
+
+.campaign-status.inactive {
+  background: #451a1a;
+  color: #f87171;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.inline-form {
+  margin: 0;
+}
+
+.detail-section {
+  margin-bottom: 2rem;
+}
+
+.detail-section h2 {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+  color: #f1f5f9;
+}
+
+.tracking-url-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+}
+
+.tracking-url-box code {
+  flex: 1;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  word-break: break-all;
+}
+
+/* Воронка */
+.funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.funnel-stage {
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 6px;
+  padding: 0;
+  min-width: 100px;
+  transition: all 0.3s ease;
+}
+
+.funnel-stage-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+}
+
+.funnel-stage-name {
+  font-weight: 600;
+  color: #fff;
+}
+
+.funnel-stage-count {
+  color: #dbeafe;
+  font-size: 0.9rem;
+}
+
+.funnel-stage-rate {
+  color: #93c5fd;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Статистика */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.stat-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.stat-card.highlight {
+  border-color: #3b82f6;
+  background: #1e3a5f;
+}
+
+.stat-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #38bdf8;
+  margin-bottom: 0.25rem;
+}
+
+.stat-card.highlight .stat-value {
+  color: #60a5fa;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Таблица событий */
+.events-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.events-table th {
+  text-align: left;
+  padding: 0.75rem;
+  background: #0f172a;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.events-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #1e293b;
+  color: #cbd5e1;
+}
+
+.events-table tr:hover td {
+  background: #1e293b;
+}
+
+.events-table code {
+  background: #0f172a;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #38bdf8;
+}
+
+/* Мета-список */
+.meta-list {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.meta-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #334155;
+}
+
+.meta-item:last-child {
+  border-bottom: none;
+}
+
+.meta-item dt {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.meta-item dd {
+  color: #f1f5f9;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.meta-item code {
+  background: #0f172a;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* Кнопки */
+.button-secondary {
+  background: #334155;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button-secondary:hover {
+  background: #475569;
+}
+
+.button-danger {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button-danger:hover {
+  background: #b91c1c;
+}
+
+.button-icon {
+  background: #334155;
+  border: 1px solid #475569;
+  color: #e2e8f0;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.button-icon:hover {
+  background: #475569;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,201 @@
+{
+  "title": "Amonora Documentation",
+  "description": "Центральная база знаний по продукту, инфраструктуре, ботам, Панели управления и операционному контуру.",
+  "sections": [
+    {
+      "title": "Основа",
+      "items": [
+        {
+          "slug": "README.md",
+          "title": "Стартовая страница",
+          "icon": "◈",
+          "summary": "Короткий вход в проект Amonora и структуру документации."
+        },
+        {
+          "slug": "supporting/product.md",
+          "title": "Продукт и бренд",
+          "icon": "✦",
+          "summary": "Что такое Amonora, как позиционируется продукт и куда развивается бренд."
+        },
+        {
+          "slug": "ALERTS_ATTENTION_MAP.md",
+          "title": "Карта alert / attention signals",
+          "icon": "⚠",
+          "summary": "Единая карта текущих user-level и system-level сигналов, которые требуют внимания в dashboard и ops-контуре."
+        },
+        {
+          "slug": "REPAIR_REASON_MAP.md",
+          "title": "Карта repair reasons",
+          "icon": "◈",
+          "summary": "Канонический набор payment/access/VPN repair reasons, legacy aliases и правила их нормализации в UI и overview."
+        },
+        {
+          "slug": "MANUAL_PAYMENTS_FLOW_MAP.md",
+          "title": "Карта ручных оплат",
+          "icon": "◫",
+          "summary": "Каноническая карта manual payments flow: создание заявки, review, confirm/reject, handoff в access activation и основные friction points."
+        },
+        {
+          "slug": "PAYMENT_SUPPORT_ACCESS_TRIAGE_MAP.md",
+          "title": "Карта payment / support / access triage",
+          "icon": "◬",
+          "summary": "Карта ручных payment/support/access кейсов, где проект всё ещё тратит operator time и где следующие hardening-задачи дадут максимальную пользу."
+        },
+        {
+          "slug": "SUPPORT_BACKLOG_REPAIR_WORKLOAD_MAP.md",
+          "title": "Карта support backlog и repair workload",
+          "icon": "◭",
+          "summary": "Карта основных источников support-нагрузки вокруг payment/access/repair и visibility gaps, которые всё ещё заставляют операторов копать вручную."
+        },
+        {
+          "slug": "supporting/bot-flow.md",
+          "title": "Логика бота",
+          "icon": "⬢",
+          "summary": "Экраны, кнопки, доступ, устройства, оплата и реферальная логика."
+        },
+        {
+          "slug": "legal-compliance.md",
+          "title": "Юридические и регуляторные риски",
+          "icon": "⚖",
+          "summary": "Практический risk memo по РФ: РКН, персональные данные, платежи, контент и меры снижения риска."
+        },
+        {
+          "slug": "contact-information.md",
+          "title": "Контакты владельца и поддержки",
+          "icon": "✉",
+          "summary": "Публичные контакты владельца сервиса Amonora и официальный email для обращений пользователей."
+        },
+        {
+          "slug": "privacy-policy.md",
+          "title": "Политика обработки персональных данных",
+          "icon": "◍",
+          "summary": "Рабочая политика ПДн для публичного размещения на сайте и в проектной документации."
+        },
+        {
+          "slug": "terms-of-service.md",
+          "title": "Оферта / пользовательское соглашение",
+          "icon": "◐",
+          "summary": "Базовые условия использования Amonora, доступа, оплат и ограничений ответственности."
+        },
+        {
+          "slug": "refunds-support-policy.md",
+          "title": "Политика возврата и поддержки",
+          "icon": "◑",
+          "summary": "Порядок поддержки пользователей, спорных платежей, возвратов и урегулирования обращений."
+        },
+        {
+          "slug": "license-notice.md",
+          "title": "Лицензия и права на материалы",
+          "icon": "◒",
+          "summary": "Публичные условия использования материалов сайта, текстов, дизайна и программных компонентов Amonora."
+        },
+        {
+          "slug": "cookie-policy.md",
+          "title": "Политика использования cookie",
+          "icon": "◓",
+          "summary": "Описание необходимых и будущих аналитических cookie, а также логики согласия на сайте Amonora."
+        }
+      ]
+    },
+    {
+      "title": "Операции",
+      "items": [
+        {
+          "slug": "supporting/infrastructure.md",
+          "title": "Инфраструктура",
+          "icon": "⬡",
+          "summary": "Текущая серверная схема: backend отдельно, VPN отдельно."
+        },
+        {
+          "slug": "supporting/deployment.md",
+          "title": "Deployment и перенос",
+          "icon": "◉",
+          "summary": "Как выкатывать обновления и переносить сервисы между VPS."
+        },
+        {
+          "slug": "supporting/operations-runbook.md",
+          "title": "Операционный runbook",
+          "icon": "◌",
+          "summary": "Проверки DE/EE split, ручные платежи, backup, reconcile и daily smoke для прод-контура."
+        },
+        {
+          "slug": "vpn/DENMARK_GOLDEN_NODE_BASELINE.md",
+          "title": "Denmark Golden Node Baseline",
+          "icon": "◍",
+          "summary": "Текущая golden-node политика для Denmark, safe baseline для DE/EE и правила hardening без ломки действующего парка."
+        },
+        {
+          "slug": "vpn/CLIENT_PACK_POLICY.md",
+          "title": "Client Pack Policy",
+          "icon": "◐",
+          "summary": "Официальные routing/MTU/fallback пакеты для v2rayNG, Nekoray и Streisand."
+        },
+        {
+          "slug": "ops/DENMARK_GOLDEN_NODE_REPORT_2026-03-21.md",
+          "title": "Golden Node Report 2026-03-21",
+          "icon": "◓",
+          "summary": "Итоговый операторский отчёт по Denmark golden-node hardening, safe fleet baseline для DE/EE и evidence таблице выполнения."
+        },
+        {
+          "slug": "ops/AMONORA_CONTROL_BOT_ROLLOUT_REPORT_2026-03-21.md",
+          "title": "Amonora Control Rollout Report",
+          "icon": "🛰",
+          "summary": "Итоговый отчёт по разделению internal notifications и client support, запуску Amonora Control и переносу operational review из support-бота."
+        },
+        {
+          "slug": "ops/REFERRAL_PANEL_UI_CLEANUP_REPORT_2026-03-22.md",
+          "title": "Referral / Panel UI Cleanup Report",
+          "icon": "🧭",
+          "summary": "Итоговый отчёт по рублёвому referral backfill, cleanup support media policy, переносу panel UI в dashboard/ui и удалению live WireGuard legacy."
+        },
+        {
+          "slug": "ops/AMONORA_CONTROL_BOT_REDESIGN_REPORT_2026-03-22.md",
+          "title": "Amonora Control Redesign Report",
+          "icon": "🛰",
+          "summary": "Итоговый отчёт по полному redesign `@amonora_control_bot`, owner-only broadcast/trigger layer, per-admin preferences и 5-минутному shared messaging worker."
+        },
+        {
+          "slug": "supporting/dashboard.md",
+          "title": "Панель управления",
+          "icon": "◎",
+          "summary": "Роли, разделы, сценарии и правила работы Панели управления."
+        },
+        {
+          "slug": "supporting/panel-ui-deep-dive.md",
+          "title": "Панель управления UI: deep dive",
+          "icon": "⬟",
+          "summary": "Полная карта нового Next.js-контура: структура, маршруты, payload-ы, сильные стороны, ограничения и текущие operational notes."
+        },
+        {
+          "slug": "supporting/optimization-report.md",
+          "title": "Отчёт по оптимизации",
+          "icon": "⬣",
+          "summary": "Что было оптимизировано, как тестировалось и какие проверки пройдены перед выкладкой."
+        }
+      ]
+    },
+    {
+      "title": "Поддержка и пользователи",
+      "items": [
+        {
+          "slug": "supporting/amonora-control-bot.md",
+          "title": "Amonora Control Bot",
+          "icon": "🛰",
+          "summary": "Внутренний Telegram-бот для системных уведомлений, review ручных оплат, auth-кодов и infra alerts."
+        },
+        {
+          "slug": "supporting/support-bot.md",
+          "title": "Support Bot",
+          "icon": "✉",
+          "summary": "Как работает линия клиентской поддержки, тикеты, медиавложения и операторские ответы."
+        },
+        {
+          "slug": "supporting/user-guide.md",
+          "title": "Инструкция для пользователей",
+          "icon": "◆",
+          "summary": "Как клиенту создать устройство, получить ключ и подключить VPN."
+        }
+      ]
+    }
+  ]
+}

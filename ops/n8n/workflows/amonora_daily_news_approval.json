@@ -1,0 +1,717 @@
+{
+  "name": "amonora_daily_news_approval",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/2 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-approval-poll",
+      "name": "Every 2 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -620,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const data = this.getWorkflowStaticData('global');\nconst last = data.lastUpdateId || 0;\nreturn [{ json: { offset: last + 1 } }];"
+      },
+      "id": "prepare-updates",
+      "name": "Prepare Updates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TG_APPROVAL_BOT_TOKEN + '/getUpdates' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "offset",
+              "value": "={{ $json.offset }}"
+            },
+            {
+              "name": "timeout",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "get-updates",
+      "name": "Get Updates",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -180,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const updates = $json.result || [];\nconst data = this.getWorkflowStaticData('global');\nlet maxId = data.lastUpdateId || 0;\nconst raw = ($env.CONTROL_APPROVAL_CHAT_IDS || $env.CONTROL_APPROVAL_CHAT_ID || \"\").toString();\nconst allowed = raw.split(\",\").map((v) => v.trim()).filter(Boolean);\nconst items = [];\nfor (const upd of updates) {\n  const updateId = upd.update_id || 0;\n  if (updateId > maxId) maxId = updateId;\n  const msg = upd.message || upd.edited_message;\n  if (!msg) continue;\n  const text = (msg.text || \"\").toString().trim().toLowerCase();\n  const reply = msg.reply_to_message || {};\n  const replyText = (reply.text || \"\").toString();\n  const decision = text === \"да\" ? \"approve\" : text === \"нет\" ? \"reject\" : null;\n  if (!decision) continue;\n  const idMatch = replyText.match(/ID:\\s*(\\d+)/i);\n  const id = idMatch ? idMatch[1] : null;\n  const chatId = msg.chat?.id;\n  if (!id || !reply.message_id) continue;\n  if (allowed.length && !allowed.includes(`${chatId}`)) continue;\n  items.push({\n    json: {\n      decision,\n      id,\n      chat_id: chatId,\n      reply_message_id: reply.message_id,\n      valid: true\n    }\n  });\n}\ndata.lastUpdateId = maxId;\nreturn items;"
+      },
+      "id": "parse-updates",
+      "name": "Parse Updates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "isTrue"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "valid-approval",
+      "name": "Valid Approval?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        260,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{($env.AMONORA_DASHBOARD_BASE_URL || 'http://127.0.0.1:8088') + '/dashboard/api/internal/daily-news/history'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-amonora-internal-secret",
+              "value": "={{$env.AMONORA_INTERNAL_CHANNEL_WEBHOOK_SECRET}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "sheet-history",
+      "name": "Get History (Sheets)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const targetId = $items(\"Parse Updates\")[0]?.json?.id;\nconst payload = $json.data || $json;\nconst rows = Array.isArray(payload?.rows) ? payload.rows : $input.all().map((i) => i.json);\nconst rowIndex = rows.findIndex((row) => `${row.id}` === `${targetId}`);\nif (rowIndex === -1) {\n  return [{ json: { found: false, id: targetId } }];\n}\nreturn [{\n  json: {\n    found: true,\n    id: targetId,\n    row: rows[rowIndex]\n  }\n}];"
+      },
+      "id": "find-row",
+      "name": "Find Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.found }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "isTrue"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "row-found",
+      "name": "Row Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        920,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const text = `⚠️ Не найден пост с ID: ${$json.id}`;\nconst raw = ($env.CONTROL_APPROVAL_CHAT_IDS || $env.CONTROL_APPROVAL_CHAT_ID || \"\").toString();\nconst ids = raw.split(\",\").map((v) => v.trim()).filter(Boolean);\nreturn ids.map((id) => ({ json: { chat_id: id, text } }));"
+      },
+      "id": "build-log-not-found",
+      "name": "Build Log Not Found",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TG_APPROVAL_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: $json.chat_id, text: $json.text } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "log-not-found",
+      "name": "Log: Not Found",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $items(\"Parse Updates\")[0].json.decision }}",
+              "rightValue": "approve",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "decision-approve",
+      "name": "Decision Approve?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TG_APPROVAL_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: '@amonora_vpn', text: $json.row.post_text, parse_mode: 'HTML', disable_web_page_preview: true } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "publish-to-channel",
+      "name": "Publish to Channel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.row.image_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "has-image",
+      "name": "Has Image?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TG_APPROVAL_BOT_TOKEN + '/sendPhoto' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: '@amonora_vpn', photo: $json.row.image_url, caption: $json.row.post_text, parse_mode: 'HTML' } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "publish-photo",
+      "name": "Publish Photo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const now = new Date().toISOString();\nreturn {\n  id: $json.id,\n  status: \"posted\",\n  approved_at: now,\n  posted_at: now,\n  reject_reason: \"\"\n};"
+      },
+      "id": "build-posted-update",
+      "name": "Build Posted Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.AMONORA_DASHBOARD_BASE_URL || 'http://127.0.0.1:8088') + '/dashboard/api/internal/daily-news/items/' + $json.id + '/status'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-amonora-internal-secret",
+              "value": "={{$env.AMONORA_INTERNAL_CHANNEL_WEBHOOK_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "sheet-update-posted",
+      "name": "Update Row (Posted)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const payload = $json.data || $json;\nconst text = `✅ опубликован ID: ${payload.id}`;\nconst raw = ($env.CONTROL_APPROVAL_CHAT_IDS || $env.CONTROL_APPROVAL_CHAT_ID || '').toString();\nconst ids = raw.split(',').map((v) => v.trim()).filter(Boolean);\nreturn ids.map((id) => ({ json: { chat_id: id, text } }));"
+      },
+      "id": "build-log-posted",
+      "name": "Build Log Posted",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1940,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TG_APPROVAL_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: $json.chat_id, text: $json.text } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "log-posted",
+      "name": "Log: Posted",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2140,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const now = new Date().toISOString();\nreturn {\n  id: $json.id,\n  status: \"rejected\",\n  approved_at: now,\n  reject_reason: \"rejected_by_operator\"\n};"
+      },
+      "id": "build-rejected-update",
+      "name": "Build Rejected Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{($env.AMONORA_DASHBOARD_BASE_URL || 'http://127.0.0.1:8088') + '/dashboard/api/internal/daily-news/items/' + $json.id + '/status'}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-amonora-internal-secret",
+              "value": "={{$env.AMONORA_INTERNAL_CHANNEL_WEBHOOK_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "sheet-update-rejected",
+      "name": "Update Row (Rejected)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const payload = $json.data || $json;\nconst text = `❌ отклонен ID: ${payload.id}`;\nconst raw = ($env.CONTROL_APPROVAL_CHAT_IDS || $env.CONTROL_APPROVAL_CHAT_ID || '').toString();\nconst ids = raw.split(',').map((v) => v.trim()).filter(Boolean);\nreturn ids.map((id) => ({ json: { chat_id: id, text } }));"
+      },
+      "id": "build-log-rejected",
+      "name": "Build Log Rejected",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.telegram.org/bot' + $env.TG_APPROVAL_BOT_TOKEN + '/sendMessage' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { chat_id: $json.chat_id, text: $json.text } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "log-rejected",
+      "name": "Log: Rejected",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1940,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Prepare Updates": {
+      "main": [
+        [
+          {
+            "node": "Get Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Updates": {
+      "main": [
+        [
+          {
+            "node": "Parse Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Updates": {
+      "main": [
+        [
+          {
+            "node": "Valid Approval?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Approval?": {
+      "main": [
+        [
+          {
+            "node": "Get History (Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get History (Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Find Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Row": {
+      "main": [
+        [
+          {
+            "node": "Row Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Row Found?": {
+      "main": [
+        [
+          {
+            "node": "Decision Approve?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Log Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Log Not Found": {
+      "main": [
+        [
+          {
+            "node": "Log: Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Approve?": {
+      "main": [
+        [
+          {
+            "node": "Has Image?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Rejected Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to Channel": {
+      "main": [
+        [
+          {
+            "node": "Build Posted Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Image?": {
+      "main": [
+        [
+          {
+            "node": "Publish Photo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Publish to Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Photo": {
+      "main": [
+        [
+          {
+            "node": "Build Posted Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Posted Update": {
+      "main": [
+        [
+          {
+            "node": "Update Row (Posted)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Row (Posted)": {
+      "main": [
+        [
+          {
+            "node": "Build Log Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Log Posted": {
+      "main": [
+        [
+          {
+            "node": "Log: Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Rejected Update": {
+      "main": [
+        [
+          {
+            "node": "Update Row (Rejected)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Row (Rejected)": {
+      "main": [
+        [
+          {
+            "node": "Build Log Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Log Rejected": {
+      "main": [
+        [
+          {
+            "node": "Log: Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 2 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Prepare Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "timezone": "Europe/Moscow",
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "active": false,
+  "tags": []
+}

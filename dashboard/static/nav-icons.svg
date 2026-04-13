@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="overview" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="2"/>
+    <rect x="14" y="3" width="7" height="5" rx="2"/>
+    <rect x="14" y="12" width="7" height="9" rx="2"/>
+    <rect x="3" y="14" width="7" height="7" rx="2"/>
+  </symbol>
+  <symbol id="users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 21v-1.2a4.8 4.8 0 0 0-4.8-4.8H8.8A4.8 4.8 0 0 0 4 19.8V21"/>
+    <circle cx="10" cy="8" r="3.5"/>
+    <path d="M20 20v-1a3.8 3.8 0 0 0-3-3.7"/>
+    <path d="M15.5 4.7a3.3 3.3 0 0 1 0 6.3"/>
+  </symbol>
+  <symbol id="vpn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3l7 3v5c0 4.8-2.9 8.8-7 10-4.1-1.2-7-5.2-7-10V6l7-3z"/>
+    <path d="M9 12l2 2 4-4"/>
+  </symbol>
+  <symbol id="support" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 18l-3 3v-6.2A8 8 0 1 1 20 12a8 8 0 0 1-8 8c-1.8 0-3.4-.4-5-2z"/>
+  </symbol>
+  <symbol id="payments" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="5" width="18" height="14" rx="3"/>
+    <path d="M3 10h18"/>
+    <path d="M7 15h3"/>
+    <path d="M14 15h3"/>
+  </symbol>
+  <symbol id="finance" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 20h16"/>
+    <path d="M7 16V8"/>
+    <path d="M12 16V4"/>
+    <path d="M17 16v-6"/>
+    <path d="M5.5 8.5 12 4l6.5 6.5"/>
+  </symbol>
+  <symbol id="servers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4" y="4" width="16" height="5" rx="2"/>
+    <rect x="4" y="10.5" width="16" height="5" rx="2"/>
+    <rect x="4" y="17" width="16" height="3" rx="1.5"/>
+    <path d="M8 6.5h.01M8 13h.01M8 18.5h.01"/>
+  </symbol>
+  <symbol id="services" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 6h7"/>
+    <path d="M13 6h7"/>
+    <path d="M9 6a2 2 0 1 0 0 .01"/>
+    <path d="M4 12h3"/>
+    <path d="M9 12h11"/>
+    <path d="M7 12a2 2 0 1 0 0 .01"/>
+    <path d="M4 18h11"/>
+    <path d="M17 18h3"/>
+    <path d="M15 18a2 2 0 1 0 0 .01"/>
+  </symbol>
+  <symbol id="docs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H20v15.5A2.5 2.5 0 0 0 17.5 16H5z"/>
+    <path d="M5 5.5V19a2 2 0 0 0 2 2h13"/>
+    <path d="M9 7h7"/>
+    <path d="M9 11h7"/>
+  </symbol>
+</svg>

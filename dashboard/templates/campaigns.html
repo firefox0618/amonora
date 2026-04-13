@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% block title %}Маркетинговые кампании — Amonora{% endblock %}
+{% block body %}
+<main class="dashboard-page">
+  <header class="page-header">
+    <div class="page-header-left">
+      <h1>Маркетинговые кампании</h1>
+      <p>Создавайте трекинг-ссылки и отслеживайте конверсии</p>
+    </div>
+    <button type="button" class="button-primary" onclick="document.getElementById('create-campaign-modal').classList.add('active')">
+      + Новая кампания
+    </button>
+  </header>
+
+  {% if notice %}
+    <div class="flash flash-ok">{{ notice }}</div>
+  {% endif %}
+  {% if error %}
+    <div class="flash flash-error">{{ error }}</div>
+  {% endif %}
+
+  {% if campaigns and campaigns|length > 0 %}
+    <div class="campaigns-grid">
+      {% for campaign in campaigns %}
+      <article class="campaign-card">
+        <div class="campaign-header">
+          <div>
+            <h2>{{ campaign.name }}</h2>
+            <span class="campaign-status {{ 'active' if campaign.is_active else 'inactive' }}">
+              {{ 'Активна' if campaign.is_active else 'Неактивна' }}
+            </span>
+          </div>
+          <div class="campaign-actions">
+            <a href="/dashboard/campaigns/{{ campaign.id }}" class="button-small">Подробнее</a>
+            <form method="post" action="/dashboard/campaigns/{{ campaign.id }}/toggle" class="inline-form">
+              <button type="submit" class="button-small button-secondary">
+                {{ 'Деактивировать' if campaign.is_active else 'Активировать' }}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="campaign-stats">
+          <div class="stat">
+            <span class="stat-value">{{ campaign.stats.transitions }}</span>
+            <span class="stat-label">Переходы</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ campaign.stats.bot_starts }}</span>
+            <span class="stat-label">/start</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ campaign.stats.trial_started }}</span>
+            <span class="stat-label">Триалы</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ campaign.stats.paid }}</span>
+            <span class="stat-label">Оплаты</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ campaign.stats.conversion_rate }}%</span>
+            <span class="stat-label">Конверсия</span>
+          </div>
+        </div>
+
+        <div class="campaign-tracking">
+          <code>{{ campaign.tracking_url }}</code>
+          <button type="button" class="button-icon" onclick="navigator.clipboard.writeText('{{ campaign.tracking_url }}')">
+            📋
+          </button>
+        </div>
+
+        <div class="campaign-meta">
+          <span>CTA: {{ campaign.cta_label }}</span>
+          <span>Создана: {{ campaign.created_at }}</span>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h2>Кампаний пока нет</h2>
+      <p>Создайте первую трекинг-кампанию для отслеживания конверсий</p>
+      <button type="button" class="button-primary" onclick="document.getElementById('create-campaign-modal').classList.add('active')">
+        Создать кампанию
+      </button>
+    </div>
+  {% endif %}
+
+  <!-- Модалка создания кампании -->
+  <div id="create-campaign-modal" class="modal">
+    <div class="modal-backdrop" onclick="this.parentElement.classList.remove('active')"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Новая кампания</h2>
+        <button type="button" class="modal-close" onclick="this.closest('.modal').classList.remove('active')">✕</button>
+      </div>
+      <form method="post" action="/dashboard/campaigns/create">
+        <label>
+          <span>Название</span>
+          <input type="text" name="name" placeholder="Реклама в Telegram" required>
+        </label>
+        <label>
+          <span>Текст кнопки</span>
+          <input type="text" name="cta_label" value="Попробовать бесплатно">
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="button-secondary" onclick="this.closest('.modal').classList.remove('active')">Отмена</button>
+          <button type="submit" class="button-primary">Создать</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
+
+<style>
+.dashboard-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.75rem;
+  color: #fff;
+}
+
+.page-header p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.campaigns-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.campaign-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.campaign-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.campaign-header h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: #f1f5f9;
+}
+
+.campaign-status {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.campaign-status.active {
+  background: #064e3b;
+  color: #34d399;
+}
+
+.campaign-status.inactive {
+  background: #451a1a;
+  color: #f87171;
+}
+
+.campaign-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.campaign-stats {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #0f172a;
+  border-radius: 8px;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.campaign-tracking {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #0f172a;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+
+.campaign-tracking code {
+  flex: 1;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  word-break: break-all;
+}
+
+.campaign-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #94a3b8;
+}
+
+.empty-state h2 {
+  color: #f1f5f9;
+  margin-bottom: 0.5rem;
+}
+
+.inline-form {
+  margin: 0;
+}
+
+/* Кнопки */
+.button-primary {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.button-primary:hover {
+  background: #2563eb;
+}
+
+.button-secondary {
+  background: #334155;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.button-secondary:hover {
+  background: #475569;
+}
+
+.button-small {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+.button-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.25rem;
+}
+
+/* Флеш-сообщения */
+.flash {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.flash-ok {
+  background: #064e3b;
+  color: #34d399;
+  border: 1px solid #059669;
+}
+
+.flash-error {
+  background: #451a1a;
+  color: #f87171;
+  border: 1px solid #dc2626;
+}
+
+/* Модалка */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.modal.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.modal-content {
+  position: relative;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 500px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #f1f5f9;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.modal label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.modal label span {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.modal input {
+  width: 100%;
+  padding: 0.6rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 0.9rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,40 @@
+<svg width="720" height="920" viewBox="0 0 720 920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="trunk" x1="352" y1="260" x2="420" y2="880" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5B2E3F"/>
+      <stop offset="1" stop-color="#311524"/>
+    </linearGradient>
+    <radialGradient id="blossom" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(0 0) rotate(90) scale(40 32)">
+      <stop stop-color="#FFE9F4"/>
+      <stop offset="1" stop-color="#F2AECB"/>
+    </radialGradient>
+    <radialGradient id="softGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(420 260) rotate(90) scale(220 220)">
+      <stop stop-color="#F6C7DD" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#F6C7DD" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="720" height="920" fill="none"/>
+  <circle cx="420" cy="260" r="220" fill="url(#softGlow)"/>
+  <path d="M358 868C376 828 382 782 380 742C377 696 368 658 352 624C336 590 330 560 338 532C346 502 366 468 356 430C346 392 316 362 292 332C268 302 254 272 256 240C258 204 292 174 338 154C386 133 444 126 502 140C560 154 604 190 628 236C650 278 646 326 620 368C596 408 556 436 510 458C464 480 420 500 396 538C372 576 370 634 392 686C414 738 438 780 432 828C426 876 390 906 338 916C312 922 298 900 314 884C330 868 344 864 358 868Z" fill="url(#trunk)" fill-opacity="0.82"/>
+  <path d="M408 300C436 258 474 228 520 214C566 200 612 204 646 220" stroke="#3A1A2F" stroke-width="18" stroke-linecap="round" stroke-opacity="0.6"/>
+  <path d="M330 330C300 292 270 258 232 232C194 206 150 194 104 190" stroke="#3A1A2F" stroke-width="16" stroke-linecap="round" stroke-opacity="0.55"/>
+  <path d="M420 400C466 380 514 378 560 392C606 406 640 432 670 468" stroke="#3A1A2F" stroke-width="14" stroke-linecap="round" stroke-opacity="0.5"/>
+  <g opacity="0.9">
+    <circle cx="520" cy="214" r="18" fill="url(#blossom)"/>
+    <circle cx="568" cy="224" r="14" fill="url(#blossom)"/>
+    <circle cx="606" cy="242" r="12" fill="url(#blossom)"/>
+    <circle cx="470" cy="260" r="16" fill="url(#blossom)"/>
+    <circle cx="430" cy="286" r="18" fill="url(#blossom)"/>
+    <circle cx="392" cy="312" r="14" fill="url(#blossom)"/>
+    <circle cx="340" cy="320" r="12" fill="url(#blossom)"/>
+    <circle cx="300" cy="300" r="10" fill="url(#blossom)"/>
+    <circle cx="260" cy="276" r="14" fill="url(#blossom)"/>
+    <circle cx="214" cy="250" r="12" fill="url(#blossom)"/>
+    <circle cx="186" cy="230" r="10" fill="url(#blossom)"/>
+    <circle cx="560" cy="360" r="16" fill="url(#blossom)"/>
+    <circle cx="602" cy="388" r="12" fill="url(#blossom)"/>
+    <circle cx="634" cy="420" r="10" fill="url(#blossom)"/>
+    <circle cx="520" cy="392" r="14" fill="url(#blossom)"/>
+    <circle cx="472" cy="410" r="12" fill="url(#blossom)"/>
+  </g>
+</svg>

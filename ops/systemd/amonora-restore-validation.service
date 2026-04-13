@@ -1,0 +1,12 @@
+[Unit]
+Description=Amonora restore validation drill
+After=network-online.target postgresql.service amonora-core-pg-backup.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/amonora/backup.env
+ExecStart=/bin/bash /opt/amonora_bot/ops/backup/restore_validation_check.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,487 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "title": "Главная Amonora",
+      "type": "link",
+      "url": "/d/amonora-home?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Воронка роста",
+      "type": "link",
+      "url": "/d/amonora-growth-funnel?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Источники и посты",
+      "type": "link",
+      "url": "/d/amonora-source-performance?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Выручка и монетизация",
+      "type": "link",
+      "url": "/d/amonora-revenue-monetization?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Удержание и отток",
+      "type": "link",
+      "url": "/d/amonora-retention-churn?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Качество подключения",
+      "type": "link",
+      "url": "/d/amonora-connection-quality?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Операции и ремонты",
+      "type": "link",
+      "url": "/d/amonora-ops-repair?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    },
+    {
+      "title": "Алерты и инциденты",
+      "type": "link",
+      "url": "/d/amonora-alerts-incidents?var-source_mode=${source_mode}&var-source_key=${source_key}&var-cohort_type=${cohort_type}&${__url_time_range}"
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "title": "Операции",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(repair_needed_open_count, 0) AS value\nFROM analytics_hourly_ops_snapshots\nORDER BY bucket_hour DESC\nLIMIT 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Открытые repair",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(unresolved_incident_count, 0) AS value\nFROM analytics_hourly_ops_snapshots\nORDER BY bucket_hour DESC\nLIMIT 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Открытые инциденты",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(provisioning_failure_events_24h, 0) AS value\nFROM analytics_hourly_ops_snapshots\nORDER BY bucket_hour DESC\nLIMIT 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Provisioning 24ч",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#131A23",
+                "value": null
+              },
+              {
+                "color": "#52D6E5",
+                "value": 1
+              },
+              {
+                "color": "#3DD598",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(reconcile_failure_events_24h, 0) AS value\nFROM analytics_hourly_ops_snapshots\nORDER BY bucket_hour DESC\nLIMIT 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Reconcile 24ч",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#52D6E5",
+                "value": null
+              },
+              {
+                "color": "#F6B73C",
+                "value": 1
+              },
+              {
+                "color": "#FF6F61",
+                "value": 5
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT bucket_hour AS time, 'Открытые ремонты' AS metric, repair_needed_open_count::bigint AS value\nFROM analytics_hourly_ops_snapshots\nWHERE bucket_hour >= NOW() - INTERVAL '72 hour'\nUNION ALL\nSELECT bucket_hour AS time, 'Открытые инциденты' AS metric, unresolved_incident_count::bigint AS value\nFROM analytics_hourly_ops_snapshots\nWHERE bucket_hour >= NOW() - INTERVAL '72 hour'\nORDER BY time, metric;",
+          "refId": "A"
+        }
+      ],
+      "title": "Ремонты и инциденты по часам",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
+      "id": 7,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  incident_class AS \"Класс\",\n  category AS \"Категория\",\n  severity AS \"Серьёзность\",\n  event_type AS \"Тип события\",\n  SUM(created_count)::bigint AS \"Создано\",\n  SUM(resolved_count)::bigint AS \"Решено\",\n  SUM(repeated_count)::bigint AS \"Повторов\",\n  SUM(unique_entities_count)::bigint AS \"Сущностей\"\nFROM analytics_hourly_ops_incidents\nWHERE bucket_hour >= NOW() - INTERVAL '24 hour'\nGROUP BY incident_class, category, severity, event_type\nORDER BY \"Создано\" DESC, \"Повторов\" DESC\nLIMIT 40;",
+          "refId": "A"
+        }
+      ],
+      "title": "Инциденты по типам",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "amonora-analytics"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 8,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  bucket_hour AS \"Срез\",\n  repair_needed_open_count AS \"Открытые ремонты\",\n  unresolved_incident_count AS \"Инциденты\",\n  unresolved_warning_count AS \"Предупреждения\",\n  unresolved_critical_count AS \"Критические\",\n  unresolved_access_count AS \"Доступ\",\n  unresolved_node_count AS \"Ноды\",\n  unresolved_service_count AS \"Сервисы\",\n  provisioning_failure_events_24h AS \"Provisioning 24ч\",\n  reconcile_failure_events_24h AS \"Reconcile 24ч\"\nFROM analytics_hourly_ops_snapshots\nORDER BY bucket_hour DESC\nLIMIT 12;",
+          "refId": "A"
+        }
+      ],
+      "title": "Последний ops-срез",
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "analytics",
+    "ops",
+    "repair",
+    "stage-b"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-72h",
+    "to": "now"
+  },
+  "timezone": "",
+  "title": "Операции и ремонты",
+  "uid": "amonora-ops-repair",
+  "version": 1,
+  "weekStart": ""
+}
