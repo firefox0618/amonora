@@ -1029,7 +1029,11 @@ async def tariff_method_callback(callback: CallbackQuery) -> None:
             list_price_amount=tariff.rub_price,
             duration_days=tariff.duration_days,
         )
-        if existing_record is not None:
+        existing_method = str(getattr(existing_record, "payment_method", "") or "").strip().lower() if existing_record is not None else ""
+        should_reuse_existing = existing_record is not None
+        if method == "sbp_manual" and existing_method not in MANUAL_PAYMENT_METHODS:
+            should_reuse_existing = False
+        if should_reuse_existing:
             await _show_existing_subscription_payment_intent(callback, record=existing_record, tariff=tariff)
             return
 

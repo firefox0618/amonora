@@ -333,7 +333,7 @@ class TariffPaymentFallbackTests(unittest.IsolatedAsyncioTestCase):
 
         topup_mock.assert_awaited_once_with(callback, method="sbp", amount_rub=300, user=user)
 
-    async def test_tariff_method_reuses_existing_open_intent_across_methods(self) -> None:
+    async def test_tariff_method_sbp_manual_creates_manual_request_even_with_open_platega_intent(self) -> None:
         callback = FakeCallback("tariff:method:sbp_manual:1m")
         user = SimpleNamespace(id=77, telegram_id=1010)
         existing_record = SimpleNamespace(
@@ -357,16 +357,13 @@ class TariffPaymentFallbackTests(unittest.IsolatedAsyncioTestCase):
             patch.object(tariffs_handlers, "get_open_payment_intent_for_user", new=AsyncMock(return_value=existing_record)),
             patch.object(tariffs_handlers, "_show_manual_payment", new=AsyncMock()) as manual_mock,
             patch.object(tariffs_handlers, "_show_platega_payment", new=AsyncMock()) as platega_mock,
+            patch.object(tariffs_handlers.config, "enable_manual_sbp_user_flow", True),
         ):
             await tariffs_handlers.tariff_method_callback(callback)
 
-        manual_mock.assert_not_awaited()
+        manual_mock.assert_awaited_once()
         platega_mock.assert_not_awaited()
-        self.assertEqual(len(callback.message.edits), 1)
-        self.assertIn("активный счёт", callback.message.edits[0]["text"].lower())
-        self.assertIn("не создавать дубль", callback.message.edits[0]["text"].lower())
-        self.assertEqual(callback.answers[-1]["text"], "Уже есть активный счёт")
-        self.assertTrue(callback.answers[-1]["show_alert"])
+        self.assertEqual(len(callback.message.edits), 0)
 
     async def test_device_slot_method_reuses_existing_manual_request(self) -> None:
         callback = FakeCallback("device-slot:method:crypto")
