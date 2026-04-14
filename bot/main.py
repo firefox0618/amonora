@@ -14,12 +14,12 @@ from bot.handlers.start import router as start_router
 from bot.handlers.support import router as support_router
 from bot.handlers.tariffs import router as tariffs_router
 from bot.middlewares.activity import UserActivityMiddleware
+from bot.router import router as main_router
 from bot.utils.logging_setup import configure_logging
-from test_bot.router import router as v2_router
 
 
 dp = Dispatcher()
-dp.include_router(v2_router)
+dp.include_router(main_router)
 dp.include_router(start_router)
 dp.include_router(cabinet_router)
 dp.include_router(devices_router)

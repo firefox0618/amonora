@@ -23,15 +23,15 @@ from bot.handlers.start import router as start_router
 from bot.handlers.support import router as support_router
 from bot.handlers.tariffs import router as tariffs_router
 from bot.main import dp
-from test_bot.router import router as v2_router
+from bot.router import router as main_router
 
 
 class BotMainRouterRegistrationTests(unittest.TestCase):
-    def test_dispatcher_includes_v2_and_runtime_bot_routers(self) -> None:
+    def test_dispatcher_includes_main_and_runtime_bot_routers(self) -> None:
         included = set(dp.sub_routers)
 
         expected = {
-            v2_router,
+            main_router,
             start_router,
             cabinet_router,
             devices_router,
