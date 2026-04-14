@@ -18,7 +18,6 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InputMediaPhoto,
     Message,
-    ReplyKeyboardRemove,
 )
 from sqlalchemy import select
 
@@ -2669,16 +2668,6 @@ async def _send_screen(
     )
 
 
-async def _remove_legacy_reply_keyboard(message: Message) -> None:
-    try:
-        await message.answer(
-            "✅ Нижнее меню отключено. Используйте кнопки в карточке ниже.",
-            reply_markup=ReplyKeyboardRemove(),
-        )
-    except TelegramBadRequest:
-        pass
-
-
 async def _send_main_menu(message: Message, telegram_id: int) -> None:
     PROMO_INPUT_WAITERS.discard(int(telegram_id))
     summary = await _load_test_user_summary(telegram_id)
@@ -2907,7 +2896,6 @@ async def _ack_callback_quietly(callback: CallbackQuery) -> None:
 
 @router.message(CommandStart())
 async def v2_start_handler(message: Message, command: CommandObject | None = None) -> None:
-    await _remove_legacy_reply_keyboard(message)
     await _track_start_attribution(message.from_user, command)
     if await _show_returning_user_screen(message, int(message.from_user.id)):
         return
@@ -2921,44 +2909,37 @@ async def v2_show_agreement_callback(callback: CallbackQuery) -> None:
 
 @router.message(Command("menu"))
 async def v2_menu_handler(message: Message) -> None:
-    await _remove_legacy_reply_keyboard(message)
     await _send_main_menu(message, int(message.from_user.id))
 
 
 @router.message(Command("support"))
 @router.message(F.text.in_({"🛟 Поддержка", "Поддержка"}))
 async def v2_support_message_handler(message: Message) -> None:
-    await _remove_legacy_reply_keyboard(message)
     await _send_support_screen(message)
 
 
 @router.message(F.text.in_({"📚 Информация", "Информация", "📡 Канал", "Канал"}))
 async def v2_info_message_handler(message: Message) -> None:
-    await _remove_legacy_reply_keyboard(message)
     await _send_info_screen(message)
 
 
 @router.message(F.text.in_({"💳 Купить", "Продлить", "💳 Продлить"}))
 async def v2_renew_message_handler(message: Message) -> None:
-    await _remove_legacy_reply_keyboard(message)
     await _send_renew_screen(message, int(message.from_user.id))
 
 
 @router.message(F.text.in_({"🎁 Реферальная система", "🎁 Бонусная система", "Бонусная система"}))
 async def v2_bonus_message_handler(message: Message) -> None:
-    await _remove_legacy_reply_keyboard(message)
     await _send_bonus_screen(message, int(message.from_user.id))
 
 
 @router.message(F.text.in_({"👤 Личный кабинет", "Кабинет", "🏠 Главная"}))
 async def v2_legacy_home_message_handler(message: Message) -> None:
-    await _remove_legacy_reply_keyboard(message)
     await _send_main_menu(message, int(message.from_user.id))
 
 
 @router.message(F.text == "📱 Устройства")
 async def v2_legacy_devices_message_handler(message: Message) -> None:
-    await _remove_legacy_reply_keyboard(message)
     await _send_my_devices_screen(message, int(message.from_user.id))
 
 
