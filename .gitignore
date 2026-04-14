@@ -31,3 +31,4 @@ support_bot/data/
 .DS_Store
 
 ops/env/*.env
+.obsidian/
