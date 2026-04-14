@@ -13,6 +13,7 @@ from aiogram.filters import BaseFilter, Command, CommandObject, CommandStart
 from aiogram.types import (
     BufferedInputFile,
     CallbackQuery,
+    CopyTextButton,
     FSInputFile,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -922,46 +923,30 @@ def _my_devices_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
 
 
 def _subscription_key_menu_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
+    connection_uri = _subscription_connection_uri(summary)
     open_page_button = (
-        InlineKeyboardButton(text="Открыть подписку", url=summary.subscription_page_url)
+        InlineKeyboardButton(text="Подписка", url=summary.subscription_page_url)
         if summary.subscription_page_url
-        else InlineKeyboardButton(text="Открыть подписку", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
+        else InlineKeyboardButton(text="Подписка", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
     )
     open_happ_button = (
-        InlineKeyboardButton(text="Открыть в Happ", url=summary.happ_subscription_url)
+        InlineKeyboardButton(text="Happ", url=summary.happ_subscription_url)
         if summary.happ_subscription_url
-        else InlineKeyboardButton(text="Открыть в Happ", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
+        else InlineKeyboardButton(text="Happ", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
     )
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                open_page_button,
-                open_happ_button,
-            ],
-            [InlineKeyboardButton(text="Скопировать ссылку", callback_data=V2_COPY_KEY_CALLBACK)],
-            [InlineKeyboardButton(text="Мои устройства", callback_data=V2_MY_DEVICES_CALLBACK)],
-            [InlineKeyboardButton(text="Назад", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)],
-        ]
-    )
-
-
-def _subscription_key_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
-    open_page_button = (
-        InlineKeyboardButton(text="Открыть подписку", url=summary.subscription_page_url)
-        if summary.subscription_page_url
-        else InlineKeyboardButton(text="Открыть подписку", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
-    )
-    open_happ_button = (
-        InlineKeyboardButton(text="Открыть в Happ", url=summary.happ_subscription_url)
-        if summary.happ_subscription_url
-        else InlineKeyboardButton(text="Открыть в Happ", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
-    )
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [open_page_button, open_happ_button],
-            [InlineKeyboardButton(text="Назад", callback_data=V2_KEY_MENU_CALLBACK)],
-        ]
-    )
+    rows: list[list[InlineKeyboardButton]] = [
+        [open_page_button, open_happ_button],
+    ]
+    if connection_uri:
+        rows.append([
+            InlineKeyboardButton(
+                text="📋 Скопировать",
+                copy_text=CopyTextButton(text=connection_uri),
+            )
+        ])
+    rows.append([InlineKeyboardButton(text="Мои устройства", callback_data=V2_MY_DEVICES_CALLBACK)])
+    rows.append([InlineKeyboardButton(text="Назад", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def _device_detail_keyboard(device_kind: str, device_id: int, connection_uri: str | None) -> InlineKeyboardMarkup:
@@ -1673,44 +1658,6 @@ def _subscription_connection_uri(summary: TestUserSummary) -> str | None:
         if connection_uri:
             return connection_uri
     return None
-
-
-def _subscription_key_text(summary: TestUserSummary) -> str:
-    connection_uri = _subscription_connection_uri(summary) or "Ссылка пока недоступна"
-    return (
-        "📋 <b>Ссылка для ручного подключения:</b>\n\n"
-        f"<code>{connection_uri}</code>\n"
-        "(нажмите на ссылку, чтобы скопировать)\n\n"
-        "Что делать дальше:\n"
-        "1) Откройте Happ\n"
-        "2) Нажмите «+» в правом верхнем углу\n"
-        "3) Выберите «Вставить из буфера обмена»\n"
-        "4) Сохраните подключение"
-    )
-
-
-def _subscription_key_menu_text(summary: TestUserSummary) -> str:
-    connection_uri = _subscription_connection_uri(summary)
-    open_page_hint = "• <b>Открыть подписку</b> — откроет страницу подписки на сайте."
-    open_happ_hint = (
-        "• <b>Открыть в Happ</b> — откроет приложение Happ и добавит подписку автоматически."
-        if summary.happ_subscription_url
-        else "• <b>Открыть в Happ</b> — кнопка станет активной, когда ссылка будет готова."
-    )
-    copy_hint = "• <b>Скопировать ссылку</b> — скопирует ссылку, чтобы вставить её в Happ вручную."
-    availability_hint = (
-        "\n\nТекущая ссылка уже готова для ручного импорта."
-        if connection_uri
-        else "\n\nСсылка появится после подготовки подключения."
-    )
-    return (
-        "🔑 <b>Ключ доступа</b>\n\n"
-        "Выберите, как вам удобнее подключиться:\n\n"
-        f"{open_page_hint}\n"
-        f"{open_happ_hint}\n"
-        f"{copy_hint}"
-        f"{availability_hint}"
-    )
 
 
 def _device_os_label(device_type: str | None) -> str:
@@ -3101,9 +3048,27 @@ async def v2_key_menu_callback(callback: CallbackQuery) -> None:
     if not summary.happ_subscription_url and not _subscription_connection_uri(summary):
         await callback.answer("Ссылка пока недоступна.", show_alert=True)
         return
+    connection_uri = _subscription_connection_uri(summary)
+    lines = [
+        "🔑 <b>Ваш ключ подключения</b>",
+        "",
+        "<b>Подписка</b> — откроет страницу с QR-кодом и инструкциями в браузере.",
+        "<b>Happ</b> — автоматически добавит подписку в приложение Happ.",
+    ]
+    if connection_uri:
+        lines.extend([
+            "<b>📋 Скопировать</b> — скопирует ссылку в буфер обмена.",
+            "",
+            f"<code>{connection_uri}</code>",
+            "",
+            "💡 Или нажмите «Подписка» чтобы открыть страницу с инструкцией.",
+        ])
+    else:
+        lines.append("")
+        lines.append("Ссылка появится после подготовки подключения.")
     await _edit_screen(
         callback,
-        _subscription_key_menu_text(summary),
+        "\n".join(lines),
         _subscription_key_menu_keyboard(summary),
         screen_key="key",
         answer_first=False,
@@ -3542,18 +3507,7 @@ async def v2_my_device_delete_callback(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == V2_COPY_KEY_CALLBACK)
 async def v2_copy_key_callback(callback: CallbackQuery) -> None:
-    await _ack_callback_quietly(callback)
-    summary = await _load_test_user_summary(int(callback.from_user.id))
-    if not _subscription_connection_uri(summary):
-        await callback.answer("Ссылка пока недоступна.", show_alert=True)
-        return
-    await _edit_screen(
-        callback,
-        _subscription_key_text(summary),
-        _subscription_key_keyboard(summary),
-        screen_key="key",
-        answer_first=False,
-    )
+    await callback.answer("✅ Ссылка скопирована")
 
 
 @router.callback_query(F.data.startswith("testv2:renew:tariff:"))
