@@ -1515,7 +1515,7 @@ def _subscription_text(summary: TestUserSummary) -> str:
         [
             f"⏳ Действует до: <b>{summary.expires_text}</b>",
             f"💰 Баланс: <b>{summary.balance_rub}</b> руб.",
-            f"📱 Устройств: <b>{summary.devices_count}</b>",
+            f"📱 Устройств: <b>{summary.devices_count}</b> из <b>{summary.device_limit}</b>",
         ]
     )
     return "\n".join(lines)

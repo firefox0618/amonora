@@ -1350,7 +1350,16 @@ async def get_user_by_id(user_id: int) -> User | None:
             await _ensure_ref_code(session, user)
             await session.commit()
             await session.refresh(user)
-        return await _sync_complimentary_admin_access(session, user)
+        user = await _sync_complimentary_admin_access(session, user)
+        # Load active device slot add-ons so that public subscription surfaces
+        # (client.amonoraconnect.com) report the correct device_limit.
+        try:
+            active_slots = await _active_device_slot_count_for_user(session, user_id)
+            setattr(user, "active_device_slot_addons", active_slots)
+        except Exception:
+            # Non-critical: leave attribute unset; downstream code falls back to 0.
+            pass
+        return user
 
 
 async def touch_user_activity(
