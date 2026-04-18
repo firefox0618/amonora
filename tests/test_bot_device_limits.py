@@ -47,6 +47,11 @@ class BotDeviceLimitTests(unittest.TestCase):
 
         self.assertEqual(get_device_limit_for_user(admin_user), 10)
 
+    def test_personal_limit_override_for_s_ufa(self) -> None:
+        user = SimpleNamespace(telegram_id=417561011, active_device_slot_addons=0)
+
+        self.assertEqual(get_device_limit_for_user(user), 20)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,6 +13,9 @@ VIP_SUBSCRIPTION_SOURCES = {
 }
 
 ADMIN_DEVICE_LIMIT = 10
+PERSONAL_DEVICE_LIMITS: dict[int, int] = {
+    417561011: 20,  # @s_ufa
+}
 TRIAL_ACTIVITY_LEVEL_LOW = "low"
 TRIAL_ACTIVITY_LEVEL_ACTIVE = "active"
 
@@ -40,7 +43,12 @@ def get_device_limit_for_telegram_id(telegram_id: int | None) -> int:
 
 
 def get_device_limit_for_user(user) -> int:
-    base_limit = get_device_limit_for_telegram_id(getattr(user, "telegram_id", None))
+    telegram_id = getattr(user, "telegram_id", None)
+    personal_limit = PERSONAL_DEVICE_LIMITS.get(int(telegram_id)) if telegram_id is not None else None
+    if personal_limit is not None:
+        return max(int(personal_limit), 1)
+
+    base_limit = get_device_limit_for_telegram_id(telegram_id)
     if base_limit == ADMIN_DEVICE_LIMIT:
         return base_limit
     return effective_device_limit_for_user(user, base_limit=base_limit)
