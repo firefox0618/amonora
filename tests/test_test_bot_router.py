@@ -18,6 +18,8 @@ os.environ.setdefault("XUI_USERNAME", "test")
 os.environ.setdefault("XUI_PASSWORD", "test")
 os.environ.setdefault("CHANNEL_ID", "1")
 
+from bot.ui.screens.user import _bonus_stats_text as shared_bonus_stats_text
+from bot.ui.screens.user import _bonus_text as shared_bonus_text
 from test_bot import router as test_bot_router
 
 
@@ -764,7 +766,7 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
             await test_bot_router.v2_bonus_callback(callback)
 
         self.assertEqual(len(callback.message.edits), 1)
-        self.assertIn("зарабатывай бонусы", callback.message.edits[0]["text"].lower())
+        self.assertIn("бонусы и скидки", callback.message.edits[0]["text"].lower())
         self.assertIn("ref_test123", callback.message.edits[0]["text"])
         labels = [button.text for row in callback.message.edits[0]["reply_markup"].inline_keyboard for button in row]
         self.assertEqual(labels, ["Моя статистика", "Пригласить друга", "Ввести промокод", "Подарить подписку", "Назад"])
@@ -785,6 +787,18 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(callback.message.edits), 1)
         self.assertIn("моя статистика", callback.message.edits[0]["text"].lower())
         self.assertIn("100 ₽", callback.message.edits[0]["text"])
+
+    def test_bonus_copy_uses_shared_bot_ui_source(self) -> None:
+        summary = test_bot_router.TestBonusSummary(
+            referral_link="https://t.me/amonora_bot?start=ref_test123",
+            invited_count=4,
+            paid_count=2,
+            earned_total_rub=100,
+            balance_available_rub=75,
+        )
+
+        self.assertEqual(test_bot_router._bonus_text(summary), shared_bonus_text(summary))
+        self.assertEqual(test_bot_router._bonus_stats_text(summary), shared_bonus_stats_text(summary))
 
     async def test_bonus_promo_screen_shows_new_copy_and_back(self) -> None:
         callback = FakeCallback(FakeMessage(), test_bot_router.V2_BONUS_PROMO_CALLBACK)

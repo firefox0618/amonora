@@ -1,13 +1,12 @@
 import logging
 
 from aiogram import Bot
-from aiogram.types import ReplyKeyboardRemove
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
 from bot.config import config
-from bot.db import count_user_vpn_clients, get_user_by_telegram_id
-from bot.keyboards.home import home_keyboard_for_user
-from bot.utils.texts import home_text
+from bot.services.user.summary import _load_test_user_summary
+from bot.ui.keyboards.inline.user import _main_menu_keyboard
+from bot.ui.screens.user import _main_menu_text
 
 
 logger = logging.getLogger(__name__)
@@ -44,10 +43,7 @@ async def send_user_message_and_refresh_home(telegram_id: int, text: str) -> boo
     if not token or not telegram_id:
         return False
 
-    user = await get_user_by_telegram_id(int(telegram_id))
-    if user is None:
-        return False
-    devices_count = await count_user_vpn_clients(user.id)
+    summary = await _load_test_user_summary(int(telegram_id))
 
     bot = Bot(token)
     try:
@@ -55,13 +51,12 @@ async def send_user_message_and_refresh_home(telegram_id: int, text: str) -> boo
             bot,
             int(telegram_id),
             text,
-            reply_markup=ReplyKeyboardRemove(),
         )
         refreshed = await _send_message(
             bot,
             int(telegram_id),
-            home_text(user, devices_count),
-            reply_markup=home_keyboard_for_user(user),
+            _main_menu_text(summary),
+            reply_markup=_main_menu_keyboard(),
         )
         return delivered and refreshed
     finally:

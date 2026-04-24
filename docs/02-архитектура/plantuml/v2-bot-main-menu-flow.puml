@@ -1,0 +1,58 @@
+@startuml
+title Amonora v2 Bot - главное меню и верхний уровень навигации
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+
+actor "Пользователь" as user
+rectangle "bot/router.py\n_main_menu_keyboard()\n_main_menu_text()\n_send_main_menu()" as main_menu
+
+rectangle "\"Моя подписка\"\nV2_MY_SUBSCRIPTION_CALLBACK\nv2_my_subscription_callback()\nrouter.py + _load_test_user_summary()\nbot/db.py + bot/public_subscription.py" as my_subscription
+
+rectangle "\"Ключ\"\nV2_KEY_MENU_CALLBACK\nv2_key_menu_callback()\nrouter.py + _subscription_key_menu_keyboard()\nbot/public_subscription.py + bot/db.py" as key_menu
+
+rectangle "\"Продлить\"\nV2_RENEW_CALLBACK\nv2_renew_callback()\nrouter.py + _renew_keyboard()\nbot/db.py + bot/utils/texts.py" as renew
+
+rectangle "\"Информация\"\nV2_INFO_CALLBACK\nv2_info_callback()\nrouter.py + _info_keyboard()\nbot/utils/texts.py" as info
+
+rectangle "\"Поддержка\"\nV2_SUPPORT_CALLBACK\nv2_support_callback()\nrouter.py + _support_keyboard()\nbot/utils/texts.py" as support
+
+rectangle "\"Бонусная система\"\nV2_BONUS_CALLBACK\nv2_bonus_callback()\nrouter.py + _load_bonus_summary()\nbot/db.py + bot/keyboards/referrals.py" as bonus
+
+rectangle "bot/db.py\nget_user_by_telegram_id()\nget_user_balance_summary()\nget_user_vpn_clients()\nget_user_referral_stats()" as bot_db
+rectangle "bot/public_subscription.py\nget_or_create_public_subscription_page_url_for_user()\nbuild_public_subscription_happ_wrapper_url()\nget_public_subscription_bound_devices_for_user()" as public_subscription
+rectangle "bot/utils/texts.py\nINFO_SCREEN_TEXT\nSUPPORT_SCREEN_TEXT\npayment text helpers" as texts
+rectangle "bot/keyboards/referrals.py\nreferral_share_url()" as referrals_keyboard
+
+user --> main_menu
+
+main_menu --> my_subscription
+main_menu --> key_menu
+main_menu --> renew
+main_menu --> info
+main_menu --> support
+main_menu --> bonus
+
+my_subscription --> bot_db
+my_subscription --> public_subscription
+
+key_menu --> bot_db
+key_menu --> public_subscription
+
+renew --> bot_db
+renew --> texts
+
+info --> texts
+support --> texts
+
+bonus --> bot_db
+bonus --> referrals_keyboard
+
+note bottom of main_menu
+Кнопки главного меню в router.py:
+1. Моя подписка / Ключ
+2. Продлить / Информация
+3. Поддержка / Бонусная система
+end note
+@enduml

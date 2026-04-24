@@ -64,6 +64,7 @@ from bot.platega_flow import (
     platega_payment_method_for_choice,
     sync_platega_record_by_id,
 )
+from bot.ui.screens.user import _bonus_stats_text, _bonus_text
 from bot.public_subscription import (
     _normalize_device_type,
     _normalize_public_os_version,
@@ -2746,35 +2747,6 @@ async def _show_existing_device_slot_payment_intent(callback: CallbackQuery, *, 
         answer_first=False,
     )
     await callback.answer("Уже есть активный счёт", show_alert=True)
-
-
-def _bonus_text(summary: TestBonusSummary) -> str:
-    return (
-        "🔥 <b>Зарабатывай бонусы и получай скидки</b>\n\n"
-        "Используй все возможности, чтобы платить меньше 👇\n\n"
-        "🔗 <b>Твоя ссылка:</b>\n"
-        f"<code>{summary.referral_link}</code>\n\n"
-        "👥 <b>Приглашай друзей и зарабатывай:</b>\n"
-        "• отправь ссылку\n"
-        "• друг оплачивает доступ\n"
-        "• вы оба получаете бонус\n\n"
-        "💸 до <b>100 ₽ за каждого приглашённого</b>\n\n"
-        "🎁 <b>Подарить подписку</b>\n"
-        "Сделай подарок другу или близкому — быстрый доступ к сервису за пару кликов\n\n"
-        "🏷 <b>Промокоды — ещё больше выгоды:</b>\n"
-        "Вводи промокоды и получай дополнительные бонусы и скидки\n\n"
-        "📊 Отслеживай всё в своей статистике"
-    )
-
-
-def _bonus_stats_text(summary: TestBonusSummary) -> str:
-    return (
-        "📊 <b>Моя статистика</b>\n\n"
-        f"👥 Приглашено: <b>{summary.invited_count}</b>\n"
-        f"💳 Оплатили: <b>{summary.paid_count}</b>\n"
-        f"💰 Заработано: <b>{summary.earned_total_rub} ₽</b>\n"
-        f"🏦 Доступно на балансе: <b>{summary.balance_available_rub} ₽</b>"
-    )
 
 
 def _screen_photo(screen_key: str) -> FSInputFile:

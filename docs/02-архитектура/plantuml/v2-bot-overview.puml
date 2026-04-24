@@ -1,0 +1,82 @@
+@startuml
+title Amonora v2 Bot - обзорная архитектурная карта
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+
+rectangle "Пользователь\nTelegram" as user
+rectangle "Telegram update\nmessage / callback" as telegram
+rectangle "bot/router.py\nv2 entrypoints + callbacks\n(без legacy handlers/*)" as router
+
+package "Главные data/service зависимости" {
+  rectangle "bot/db.py\nusers, devices, balance,\nreferrals, payment intents" as bot_db
+  rectangle "bot/public_subscription.py\npublic subscription page,\nHapp wrapper, bound devices" as public_subscription
+  rectangle "bot/payment_flow.py\nfinalize_* payment,\nnotify_referral_bonus" as payment_flow
+  rectangle "bot/manual_payments.py\nmanual payment notifications" as manual_payments
+  rectangle "bot/platega_flow.py\nexternal payment intents,\ncheckout sync" as platega_flow
+  rectangle "bot/utils/texts.py\nscreen text,\nURLs, payment copy" as texts
+  rectangle "backend/core/models.py\nUser, PaymentRecord,\nreferral/payment entities" as models
+}
+
+package "Экранные ветки в bot/router.py" {
+  rectangle "Старт / trial / guides\nCommandStart\nV2_SHOW_AGREEMENT_CALLBACK\nV2_CHECK_SUBSCRIPTION_CALLBACK\nV2_GUIDES_CALLBACK" as start_branch
+  rectangle "Главное меню\n_main_menu_keyboard()\nV2_MENU_CALLBACK" as menu_branch
+  rectangle "Моя подписка / Ключ\nV2_MY_SUBSCRIPTION_CALLBACK\nV2_KEY_MENU_CALLBACK\nV2_COPY_KEY_CALLBACK" as subscription_branch
+  rectangle "Продлить / Оплата\nV2_RENEW_CALLBACK\nrenew, balance, slot payments" as renew_branch
+  rectangle "Мои устройства / Слоты\nV2_MY_DEVICES_CALLBACK\nV2_DEVICE_SLOT_CALLBACK" as devices_branch
+  rectangle "Информация / Документы\nV2_INFO_CALLBACK\nV2_INFO_DOCS_CALLBACK\nV2_INFO_GUIDES_CALLBACK" as info_branch
+  rectangle "Поддержка\nV2_SUPPORT_CALLBACK" as support_branch
+  rectangle "Бонусная система\nV2_BONUS_CALLBACK\nstats / promo / gift" as bonus_branch
+}
+
+user --> telegram
+telegram --> router
+
+router --> start_branch
+router --> menu_branch
+router --> subscription_branch
+router --> renew_branch
+router --> devices_branch
+router --> info_branch
+router --> support_branch
+router --> bonus_branch
+
+menu_branch --> bot_db
+subscription_branch --> bot_db
+subscription_branch --> public_subscription
+subscription_branch --> texts
+
+renew_branch --> bot_db
+renew_branch --> payment_flow
+renew_branch --> manual_payments
+renew_branch --> platega_flow
+renew_branch --> texts
+
+devices_branch --> bot_db
+devices_branch --> public_subscription
+devices_branch --> payment_flow
+devices_branch --> manual_payments
+devices_branch --> platega_flow
+devices_branch --> texts
+
+info_branch --> texts
+support_branch --> texts
+
+bonus_branch --> bot_db
+bonus_branch --> payment_flow
+bonus_branch --> manual_payments
+bonus_branch --> platega_flow
+bonus_branch --> texts
+
+bot_db --> models
+payment_flow --> models
+platega_flow --> models
+
+note bottom of router
+Источник истины для схем:
+только текущий v2 flow в bot/router.py.
+Legacy handlers/* и home:* callbacks
+в эту карту не включены.
+end note
+@enduml

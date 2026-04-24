@@ -1,0 +1,159 @@
+@startuml
+title Amonora v2 Bot - полный вложенный user flow после главного меню
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+
+actor "Пользователь" as user
+
+rectangle "Главное меню\nbot/router.py\n_main_menu_keyboard()\nV2_MENU_CALLBACK" as menu
+
+package "Подписка и ключ" {
+  rectangle "\"Моя подписка\"\nV2_MY_SUBSCRIPTION_CALLBACK\nv2_my_subscription_callback()\n_subscription_text() + _subscription_keyboard()\n_load_test_user_summary()\nbot/db.py + bot/public_subscription.py" as sub
+  rectangle "\"Ключ\"\nV2_KEY_MENU_CALLBACK\nv2_key_menu_callback()\n_subscription_key_menu_keyboard()\nsubscription_page_url + happ_subscription_url" as key
+  rectangle "\"Скопировать\"\nV2_COPY_KEY_CALLBACK\nv2_copy_key_callback()" as copy_key
+  rectangle "\"Мои устройства\"\nV2_MY_DEVICES_CALLBACK\nv2_my_devices_callback()\n_devices_page_text() + _my_devices_keyboard()" as my_devices
+  rectangle "\"Деталь устройства\"\ntestv2:mydevices:view:*\nv2_my_device_detail_callback()\n_device_detail_keyboard()" as device_detail
+  rectangle "\"Удалить устройство\"\nV2_DEVICE_DELETE_PREFIX*\nv2_my_device_delete_callback()\nbot/db.py + bot/public_subscription.py\nbot.vpn_api / bot.vpn_provisioning" as device_delete
+  rectangle "\"Купить дополнительный слот\"\nV2_DEVICE_SLOT_CALLBACK\nv2_device_slot_callback()" as slot_entry
+  rectangle "Slot payment methods\nV2_DEVICE_SLOT_METHOD_PREFIX*\nmanual / crypto / sbp" as slot_methods
+  rectangle "Slot manual/external checks\nV2_DEVICE_SLOT_MANUAL_*\nV2_DEVICE_SLOT_EXTERNAL_CHECK_PREFIX\nmanual_payments + payment_flow + platega_flow" as slot_status
+}
+
+package "Продлить и оплаты" {
+  rectangle "\"Продлить\"\nV2_RENEW_CALLBACK\nv2_renew_callback()\n_renew_text() + _renew_keyboard()" as renew
+  rectangle "\"Выбор тарифа\"\ntestv2:renew:tariff:*\nv2_renew_methods_callback()" as renew_tariff
+  rectangle "\"Пополнить баланс\"\ntestv2:renew:tariff:balance\n_balance_topup_text() + _balance_topup_keyboard()" as balance_topup
+  rectangle "\"Сумма пополнения\"\nV2_BALANCE_TOPUP_AMOUNT_PREFIX*\nv2_balance_topup_amount_callback()" as balance_amount
+  rectangle "\"Метод оплаты продления\"\nV2_RENEW_METHOD_PREFIX*\n_show_manual_subscription_payment()\n_show_platega_subscription_payment()" as renew_method
+  rectangle "\"Метод оплаты баланса\"\nV2_BALANCE_METHOD_PREFIX*\n_show_manual_balance_topup_payment()\n_show_platega_balance_topup_payment()" as balance_method
+  rectangle "Renew manual/external checks\nV2_RENEW_MANUAL_*\nV2_RENEW_EXTERNAL_CHECK_PREFIX\nmanual_payments + payment_flow + platega_flow" as renew_status
+  rectangle "Balance manual/external checks\nV2_BALANCE_MANUAL_*\nV2_BALANCE_EXTERNAL_CHECK_PREFIX\nmanual_payments + payment_flow + platega_flow" as balance_status
+}
+
+package "Информация и поддержка" {
+  rectangle "\"Информация\"\nV2_INFO_CALLBACK\nv2_info_callback()\n_info_keyboard()\nbot/utils/texts.py" as info
+  rectangle "\"Инструкции\"\nV2_INFO_GUIDES_CALLBACK\nv2_info_guides_callback()\n_guides_keyboard()" as guides
+  rectangle "\"Документы\"\nV2_INFO_DOCS_CALLBACK\nv2_info_docs_callback()\n_info_documents_keyboard()" as docs
+  rectangle "\"Канал\"\nCHANNEL_URL\ninline url button" as channel
+  rectangle "\"Поддержка\"\nV2_SUPPORT_CALLBACK\nv2_support_callback()\n_support_keyboard()" as support
+  rectangle "\"Открыть поддержку\"\nSUPPORT_URL\ninline url button" as support_url
+}
+
+package "Бонусная система" {
+  rectangle "\"Бонусная система\"\nV2_BONUS_CALLBACK\nv2_bonus_callback()\n_bonus_text() + _bonus_keyboard()\n_load_bonus_summary()" as bonus
+  rectangle "\"Моя статистика\"\nV2_BONUS_STATS_CALLBACK\nv2_bonus_stats_callback()" as bonus_stats
+  rectangle "\"Ввести промокод\"\nV2_BONUS_PROMO_CALLBACK\nv2_bonus_promo_callback()\nPROMO_INPUT_WAITERS" as promo
+  rectangle "\"Сообщение с кодом\"\nAwaitingPromoInputFilter\nv2_bonus_promo_message_handler()\nredeem_promo_code_for_user()" as promo_input
+  rectangle "\"Подарить подписку\"\nV2_BONUS_GIFT_CALLBACK\nv2_bonus_gift_callback()" as gift
+  rectangle "\"Тариф подарка\"\nV2_BONUS_GIFT_TARIFFS_CALLBACK\nV2_BONUS_GIFT_TARIFF_PREFIX*" as gift_tariff
+  rectangle "\"Оплатить подарок\"\nV2_BONUS_GIFT_PAY_PREFIX*\n_bonus_gift_payment_methods_keyboard()" as gift_pay
+  rectangle "\"Метод оплаты подарка\"\nV2_BONUS_GIFT_METHOD_PREFIX*\n_show_manual_gift_payment()\n_show_platega_gift_payment()" as gift_method
+  rectangle "Gift manual/external checks\nV2_BONUS_GIFT_MANUAL_*\nV2_BONUS_GIFT_EXTERNAL_CHECK_PREFIX\nmanual_payments + payment_flow + platega_flow" as gift_status
+}
+
+rectangle "bot/db.py\nusers, devices, referrals,\npayment intents, balances" as bot_db
+rectangle "bot/public_subscription.py\nsubscription page,\nHapp wrapper, public devices" as public_subscription
+rectangle "bot/payment_flow.py\nfinalize_subscription_payment()\nfinalize_payment_record_product()\nnotify_referral_bonus()" as payment_flow
+rectangle "bot/manual_payments.py\nnotify_support_admins_about_manual_payment()" as manual_payments
+rectangle "bot/platega_flow.py\nensure_platega_*()\nsync_platega_record_by_id()" as platega_flow
+rectangle "bot/utils/texts.py\nscreen text, URLs,\npayment status copy" as texts
+
+user --> menu
+
+menu --> sub
+menu --> key
+menu --> renew
+menu --> info
+menu --> support
+menu --> bonus
+
+sub --> key : кнопка \"Ключ\"
+sub --> my_devices : кнопка \"Мои устройства\"
+key --> copy_key : кнопка \"Скопировать\"
+key --> my_devices : кнопка \"Мои устройства\"
+my_devices --> device_detail : testv2:mydevices:view:*
+device_detail --> device_delete : удалить
+my_devices --> slot_entry : купить слот
+slot_entry --> slot_methods
+slot_methods --> slot_status
+device_detail --> my_devices : назад
+my_devices --> sub : назад
+key --> sub : назад
+
+renew --> renew_tariff
+renew --> menu : назад
+renew_tariff --> renew_method : тариф подписки
+renew_tariff --> balance_topup : ветка balance
+balance_topup --> balance_amount
+balance_amount --> balance_method
+renew_method --> renew_status
+balance_method --> balance_status
+renew_status --> renew : назад / после проверки
+balance_status --> balance_topup : назад / после проверки
+
+info --> guides
+info --> docs
+info --> channel
+info --> menu : назад
+guides --> info : назад
+docs --> info : назад
+support --> support_url
+support --> menu : назад
+
+bonus --> bonus_stats
+bonus --> promo
+bonus --> gift
+bonus --> menu : назад
+promo --> promo_input : пользователь отправляет код
+promo_input --> bonus : вернуться в раздел
+bonus_stats --> bonus : назад
+gift --> gift_tariff : кнопка \"Тариф\"
+gift --> bonus : назад
+gift_tariff --> gift_pay
+gift_pay --> gift_method
+gift_method --> gift_status
+gift_status --> gift_tariff : назад / после проверки
+
+sub --> bot_db
+sub --> public_subscription
+key --> bot_db
+key --> public_subscription
+my_devices --> bot_db
+my_devices --> public_subscription
+device_delete --> bot_db
+device_delete --> public_subscription
+
+renew --> bot_db
+renew_method --> bot_db
+renew_method --> payment_flow
+renew_method --> manual_payments
+renew_method --> platega_flow
+balance_method --> bot_db
+balance_method --> payment_flow
+balance_method --> manual_payments
+balance_method --> platega_flow
+slot_methods --> bot_db
+slot_methods --> payment_flow
+slot_methods --> manual_payments
+slot_methods --> platega_flow
+
+info --> texts
+docs --> texts
+support --> texts
+bonus --> bot_db
+bonus --> texts
+promo_input --> bot_db
+gift_method --> bot_db
+gift_method --> payment_flow
+gift_method --> manual_payments
+gift_method --> platega_flow
+
+note bottom of menu
+Граница схемы:
+только текущий v2 flow из bot/router.py.
+Legacy handlers/cabinet.py, handlers/start.py
+и старые home:* reply flows не включены.
+end note
+@enduml

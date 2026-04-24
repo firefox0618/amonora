@@ -1,0 +1,44 @@
+import os
+import unittest
+
+
+os.environ.setdefault("BOT_TOKEN", "test-token")
+os.environ.setdefault("ADMIN_IDS", "1")
+os.environ.setdefault("DB_HOST", "localhost")
+os.environ.setdefault("DB_PORT", "5432")
+os.environ.setdefault("DB_NAME", "test")
+os.environ.setdefault("DB_USER", "test")
+os.environ.setdefault("DB_PASS", "test")
+os.environ.setdefault("XUI_URL", "http://127.0.0.1:12053")
+os.environ.setdefault("XUI_USERNAME", "test")
+os.environ.setdefault("XUI_PASSWORD", "test")
+os.environ.setdefault("CHANNEL_ID", "1")
+
+from bot.services.user.models import TestUserSummary
+from bot.ui.keyboards.inline.user import _subscription_key_menu_keyboard
+from bot.user_flow.constants import V2_MENU_CALLBACK
+
+
+class BotV2KeyNavigationTests(unittest.TestCase):
+    def test_key_screen_back_button_returns_to_main_menu(self) -> None:
+        summary = TestUserSummary(
+            telegram_id=1001,
+            access_active=True,
+            status_label="✅ Подписка активна",
+            days_left_text="5 дн.",
+            expires_text="01.01.2027 00:00",
+            balance_rub=0,
+            tariff_title="1 месяц",
+            devices_count=1,
+            device_limit=3,
+            devices=(),
+            single_connection_uri="vless://example",
+            subscription_page_url="https://example.com/subscription",
+            happ_subscription_url="happ://example",
+        )
+
+        keyboard = _subscription_key_menu_keyboard(summary)
+        back_button = keyboard.inline_keyboard[-1][0]
+
+        self.assertEqual(back_button.text, "Назад")
+        self.assertEqual(back_button.callback_data, V2_MENU_CALLBACK)
