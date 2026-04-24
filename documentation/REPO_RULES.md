@@ -55,7 +55,7 @@
 - **Xray core** — VPN runtime Denmark
 - **systemd** — запуск сервисов
 - **Nginx** — маршрутизация трафика
-- **Grafana** — операторская аналитика
+- **Dashboard analytics** — операторская аналитика
 - **n8n** — автоматизация каналов
 - **Jinja2** — legacy UI шаблоны
 - **pillow, qrcode** — генерация QR-кодов
@@ -83,7 +83,6 @@
 | `test_trial*.py` | Trial flow |
 | `test_support*.py` | Поддержка |
 | `test_device*.py` | Устройства |
-| `test_grafana*.py` | Grafana конфиг |
 | `test_server_watchdog.py` | Watchdog |
 | `test_ops*.py` | Ops-скрипты |
 

@@ -23,7 +23,6 @@
 | `@amonora_control_bot` | Internal admin-only |
 | `@amonora_v_2_0_bot` | Тестовый бот, не канонический вход |
 | `https://amonoraconnect.com/n8n/` | Operator-only, Basic Auth |
-| `https://grafana.amonoraconnect.com/` | Operator-only, Basic Auth, read-only datasource |
 
 ## Tokenized subscription page (`client.amonoraconnect.com/<token>`)
 

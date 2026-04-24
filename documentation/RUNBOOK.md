@@ -12,7 +12,6 @@
 | **dashboard/ui** | `amonora-dashboard-ui.service` | `127.0.0.1:3001` | dashboard API |
 | **landing** | `amonora-landing.service` | через nginx | backend, PostgreSQL |
 | **n8n** | `amonora-n8n.service` | `127.0.0.1:5678` | Node.js |
-| **Grafana** | `amonora-grafana.service` (Estonia) | через nginx | tunnel к core PostgreSQL |
 
 nginx маршрутизирует внешний трафик на внутренние порты.
 
@@ -80,7 +79,6 @@ ssh ee-host "systemctl status 3x-ui"
 | nginx | `ops/nginx/` |
 | env templates | `ops/env/` |
 | backup scripts | `ops/backup/` |
-| Grafana | `ops/grafana/` |
 | n8n workflows | `ops/n8n/workflows/` |
 
 > **Примечание:** `amonora-n8n.service` и `amonora-dk-mtproxy.service` подтверждены на production, но unit-файлы ещё не добавлены в `ops/systemd/` (настроены напрямую на серверах).

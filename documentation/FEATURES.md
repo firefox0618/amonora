@@ -81,4 +81,4 @@
 - Device status: `🟢 Исправен / 🔴 Сломан` с причиной
 - Payment reconcile: auto-refresh Platega записей
 - Analytics: кампании, funnel, attribution, когорты
-- Grafana: pre-aggregated rollup tables, read-only datasource
+- Pre-aggregated analytics rollups и dashboard-аналитика

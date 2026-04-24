@@ -18,7 +18,7 @@ Canonical documentation updated and simplified (April 13, 2026):
 - Apr 11: `@amonora_bot` migrated to v2 UX router, promo codes + gift subscriptions MVP
 - Apr 10: Campaign analytics integrated, test-bot state-aware `/start` flow
 - Apr 7: Analytics event debounce, event-time attribution, promo disabled
-- Apr 5: Estonia = infra-only (later reverted), Grafana → Estonia host, request-trace, backup/restore live
+- Apr 5: Estonia = infra-only (later reverted), request-trace, backup/restore live
 - Mar 29: Estonia → AmneziaWG (later reverted), Denmark MTProxy migration
 - Mar 25: Test profiles (Android/iOS), test-bot rotation
 - Mar 21: Denmark golden-node hardening
@@ -28,7 +28,7 @@ Canonical documentation updated and simplified (April 13, 2026):
 Tasks 001–140+ completed. Full list in `ai/TASKS/`.
 
 ## What needs live verification
-- Grafana dashboard panels not building on restricted tables
+- Analytics/dashboard surfaces need periodic live verification on production data
 - Actual bot_url on client page (`@amonora_v_2_0_bot` vs `@amonora_bot`)
 - Backup governance maturity
 - Off-host backup replication

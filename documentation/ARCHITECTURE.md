@@ -11,7 +11,7 @@
 |------|-----------|
 | **Core** | `backend` (модели, схема БД), значимая логика в `bot`, `dashboard` |
 | **Interfaces** | `bot`, `support_bot`, `control_bot`, `landing`, `dashboard/ui` |
-| **Operations** | `ops` (systemd, nginx, backups, Grafana, n8n) |
+| **Operations** | `ops` (systemd, nginx, backups, n8n) |
 | **Infrastructure** | VPN-ноды на отдельных серверах |
 
 ## Зависимости
@@ -116,7 +116,6 @@ VPN-ноды вынесены отдельно от backend. На них не ж
 
 - **systemd** — запуск всех сервисов
 - **nginx** — маршрутизация внешнего трафика
-- **Grafana** — операторская аналитика (Estonia host, read-only)
 - **n8n** — автоматизация каналов (core host)
 - **backups** — server-side, вне git
 

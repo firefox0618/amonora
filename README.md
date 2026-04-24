@@ -181,7 +181,6 @@ VPN вынесен на отдельные сервера:
 - `dk.amonoraconnect.com` — основная VPN-нода Дании
 - `est.amonoraconnect.com` — reserve-регион Эстонии
 - `client.amonoraconnect.com/<token>` — персональная единая ссылка на подписку
-- `grafana.amonoraconnect.com` — операторская Grafana (Estonia infra-host)
 
 ## Платежный контур
 
@@ -312,7 +311,6 @@ python tests/test_region_integrity.py
 - автоматизации через `n8n` запущены на core host (`amonora-n8n.service`);
 - автоматическая оплата через `Platega` (СБП + крипто);
 - единая ссылка на подписку `client.amonoraconnect.com/<token>`;
-- Grafana операторская панель на Estonia infra-host;
 - промокоды и подарочные подписки.
 
 ## Важные ограничения на текущий момент

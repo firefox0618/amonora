@@ -20,7 +20,7 @@
 - [ai/TASKS/](ai/TASKS/) — задачи (230+ файлов)
 
 ## Operations
-- `ops/` — systemd, nginx, backups, Grafana, n8n
+- `ops/` — systemd, nginx, backups, n8n
 - [ops/DEPLOY_RULES.md](ops/DEPLOY_RULES.md)
 - [ops/ROLLBACK.md](ops/ROLLBACK.md)
 

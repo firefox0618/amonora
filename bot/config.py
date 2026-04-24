@@ -65,7 +65,6 @@ class Config:
     openai_api_key: str | None
     openai_channel_model: str
     amonora_internal_channel_webhook_secret: str | None
-    amonora_grafana_alerts_webhook_secret: str | None
     channel_default_post_hour: int
 
     db_host: str
@@ -215,7 +214,6 @@ config = Config(
     openai_api_key=get_optional_env("OPENAI_API_KEY", ""),
     openai_channel_model=get_env("OPENAI_CHANNEL_MODEL", "gpt-4.1-mini"),
     amonora_internal_channel_webhook_secret=get_optional_env("AMONORA_INTERNAL_CHANNEL_WEBHOOK_SECRET", ""),
-    amonora_grafana_alerts_webhook_secret=get_optional_env("AMONORA_GRAFANA_ALERTS_WEBHOOK_SECRET", ""),
     channel_default_post_hour=int(get_env("AMONORA_CHANNEL_DEFAULT_POST_HOUR", "12")),
     db_host=get_env("DB_HOST"),
     db_port=int(get_env("DB_PORT")),

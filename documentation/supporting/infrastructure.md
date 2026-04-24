@@ -102,7 +102,7 @@ IP: `185.88.37.71`
 
 - `XUI_URL_EE` и core-side `amonora-xui-tunnel-ee*` больше не являются актуальным runtime path;
 - на Estonia не должно ожидаться наличие `3x-ui` panel API или `x-ui.db`;
-- Estonia теперь используется как infra-host для `nginx + grafana-server + grafana DB tunnel`, а не как активная product VPN-нода;
+- Estonia больше не рассматривается как хост для отдельных операторских сервисов и не является активной product VPN-нодой;
 - текущий legacy VPN ingress на Estonia — только historical artifact, а не active product path.
 
 Это нужно для того, чтобы логин панели и служебные запросы между backend и VPN не шли открытым HTTP через интернет.

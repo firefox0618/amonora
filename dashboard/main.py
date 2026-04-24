@@ -765,86 +765,6 @@ def _require_internal_channel_secret(request: Request):
     return None
 
 
-def _require_internal_grafana_secret(secret: str):
-    expected = str(getattr(config, "amonora_grafana_alerts_webhook_secret", "") or "").strip()
-    if not expected:
-        return _api_error("Grafana alert webhook secret is not configured", 503)
-    if not secret or not hmac.compare_digest(str(secret).strip(), expected):
-        return _api_error("Недостаточно прав", 403)
-    return None
-
-
-def _grafana_alert_category(alert_class: str, alert_name: str) -> str:
-    normalized_class = str(alert_class or "").strip().lower()
-    normalized_name = str(alert_name or "").strip().lower()
-    if normalized_class == "revenue":
-        return "payments"
-    if normalized_name.startswith("node_"):
-        return "nodes"
-    if normalized_name.startswith("service_"):
-        return "errors"
-    if normalized_class == "ops":
-        return "access"
-    return "system"
-
-
-def _grafana_alert_text(payload: dict) -> tuple[str, str, str, str, str, dict]:
-    status = str(payload.get("status") or "firing").strip().lower() or "firing"
-    common_labels = payload.get("commonLabels") if isinstance(payload.get("commonLabels"), dict) else {}
-    common_annotations = payload.get("commonAnnotations") if isinstance(payload.get("commonAnnotations"), dict) else {}
-    alert_name = str(common_labels.get("alertname") or "grafana_alert").strip() or "grafana_alert"
-    alert_class = str(common_labels.get("alert_class") or "ops").strip().lower() or "ops"
-    severity = str(common_labels.get("severity") or "warning").strip().upper() or "WARNING"
-    summary = str(common_annotations.get("summary") or common_annotations.get("description") or alert_name).strip() or alert_name
-    description = str(common_annotations.get("description") or "").strip()
-    dashboard_url = str(common_annotations.get("dashboard_url") or "").strip()
-    panel_url = str(common_annotations.get("panel_url") or "").strip()
-    alerts = payload.get("alerts")
-    alerts_count = len(alerts) if isinstance(alerts, list) else 0
-    group_key = str(payload.get("groupKey") or common_labels.get("scope_key") or alert_name).strip() or alert_name
-    dedupe_key = f"grafana:{alert_class}:{alert_name}:{group_key}"[:255]
-
-    state_label = "Алерт сработал" if status == "firing" else "Алерт восстановился"
-    title = f"Grafana · {summary}"[:255]
-    lines = [
-        f"Класс: <b>{escape(alert_class)}</b>",
-        f"Severity: <b>{escape(severity)}</b>",
-        f"Правило: <code>{escape(alert_name)}</code>",
-        f"Состояние: <b>{escape(state_label)}</b>",
-    ]
-    if alerts_count:
-        lines.append(f"Алертов в группе: <b>{alerts_count}</b>")
-    if description and description != summary:
-        lines.append(f"Описание: {escape(description)}")
-    if dashboard_url:
-        lines.append(f"Dashboard: {escape(dashboard_url)}")
-    if panel_url:
-        lines.append(f"Panel: {escape(panel_url)}")
-
-    normalized = {
-        "status": status,
-        "alert_name": alert_name,
-        "alert_class": alert_class,
-        "severity": severity,
-        "summary": summary,
-        "description": description,
-        "alerts_count": alerts_count,
-        "group_key": group_key,
-        "dashboard_url": dashboard_url,
-        "panel_url": panel_url,
-        "common_labels": common_labels,
-        "common_annotations": common_annotations,
-    }
-    return (
-        _grafana_alert_category(alert_class, alert_name),
-        severity,
-        title,
-        "\n".join(lines),
-        dedupe_key,
-        normalized,
-    )
-
-
 async def _warm_dashboard_cache() -> None:
     try:
         await get_server_snapshots(force_refresh=True)
@@ -992,40 +912,6 @@ async def internal_daily_news_publish(
     except Exception as exc:
         return _api_error(str(exc), 500)
     return _api_ok(row)
-
-
-@app.post("/dashboard/api/internal/grafana/alerts/{secret}")
-async def internal_grafana_alerts(secret: str, request: Request):
-    if denial := _require_internal_grafana_secret(secret):
-        return denial
-    content_type = str(request.headers.get("content-type") or "").strip().lower()
-    if "application/json" not in content_type:
-        return _api_error("Grafana alert payload must be JSON", 415)
-    try:
-        payload = await request.json()
-    except Exception:
-        return _api_error("Grafana alert payload is invalid JSON", 400)
-    if not isinstance(payload, dict):
-        return _api_error("Grafana alert payload must be an object", 400)
-
-    category, severity, title, message, dedupe_key, normalized_payload = _grafana_alert_text(payload)
-    status = str(normalized_payload.get("status") or "firing").strip().lower()
-    try:
-        event = await create_control_event(
-            category=category,
-            severity=severity,
-            event_type=f"grafana_{str(normalized_payload.get('alert_name') or 'alert').strip().lower()}"[:100],
-            title=title,
-            message=message,
-            entity_type="grafana_alert",
-            entity_id=str(normalized_payload.get("alert_name") or "grafana_alert")[:255],
-            payload=normalized_payload,
-            dedupe_key=dedupe_key if status == "firing" else None,
-            resolve_dedupe_key=dedupe_key if status != "firing" else None,
-        )
-    except Exception as exc:
-        return _api_error(str(exc), 500)
-    return _api_ok({"status": status, "dedupe_key": dedupe_key, "event_id": getattr(event, "id", None)})
 
 
 @app.get("/", response_class=HTMLResponse)

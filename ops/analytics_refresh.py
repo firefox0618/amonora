@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Refresh lightweight Amonora analytics rollups for Grafana.",
+        description="Refresh lightweight Amonora analytics rollups for dashboard analytics.",
     )
     parser.add_argument(
         "--backfill",
