@@ -32,7 +32,12 @@ from bot.repair_reasons import (
     normalize_repair_reason,
     repair_reason_label,
 )
-from bot.utils.access import get_access_expires_at_from_user, get_access_status_from_user, get_device_limit_for_user
+from bot.utils.access import (
+    VIP_SUBSCRIPTION_SOURCES,
+    get_access_expires_at_from_user,
+    get_access_status_from_user,
+    get_device_limit_for_user,
+)
 from bot.utils.device_slots import DEFAULT_DEVICE_LIMIT
 from bot.utils.regions import get_country_name, normalize_country_code
 from bot.utils.texts import manual_payment_method_label
@@ -269,6 +274,22 @@ def _repair_action_guard(access_status: str, devices_count: int) -> tuple[bool, 
     if devices_count <= 0:
         return False, "manual_repair_no_devices"
     return True, None
+
+
+def _access_status_at(user: User, now: datetime) -> str:
+    if getattr(user, "is_blocked", False):
+        return "blocked"
+    subscription_expires_at = getattr(user, "subscription_expires_at", None)
+    if subscription_expires_at is not None and subscription_expires_at > now:
+        if (getattr(user, "subscription_source", None) or "") in VIP_SUBSCRIPTION_SOURCES:
+            return "vip_active"
+        return "paid_active"
+    trial_expires_at = getattr(user, "trial_expires_at", None)
+    if trial_expires_at is not None and trial_expires_at > now:
+        return "trial_active"
+    if getattr(user, "trial_used", False) or subscription_expires_at is not None:
+        return "expired"
+    return "inactive"
 
 def _format_datetime(value: datetime | None) -> str:
     return format_dashboard_datetime(value)
@@ -770,12 +791,22 @@ def _build_repair_attention_payload(
     device_counts: dict[int, int] | None = None,
 ) -> dict:
     now = utcnow()
+    if failed_repair_counts is None:
+        normalized_failed_repair_counts: dict[int, int] = {}
+    elif hasattr(failed_repair_counts, "get"):
+        normalized_failed_repair_counts = dict(failed_repair_counts)
+    else:
+        normalized_failed_repair_counts = Counter(
+            int(getattr(item, "user_id", 0) or 0)
+            for item in failed_repair_counts
+            if str(getattr(item, "result", "") or "").strip().lower() == "failed" and getattr(item, "user_id", None) is not None
+        )
     repair_needed_users = []
     repair_candidates = [item for item in users if getattr(item, "vpn_repair_needed", False) and not _is_synthetic_user(item)]
     for user in repair_candidates:
-        failed_attempts = int(failed_repair_counts.get(user.id, 0))
+        failed_attempts = int(normalized_failed_repair_counts.get(user.id, 0))
         is_payment_related = is_payment_related_repair_reason(getattr(user, "vpn_repair_reason", None))
-        access_status = get_access_status_from_user(user)
+        access_status = _access_status_at(user, now)
         devices_count = int((device_counts or {}).get(user.id, 0))
         can_repair, repair_block_reason = _repair_action_guard(access_status, devices_count)
         marked_at_raw = getattr(user, "vpn_repair_marked_at", None)

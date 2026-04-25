@@ -1441,35 +1441,8 @@ async def _managed_region_device_stats() -> dict[str, dict[str, int]]:
 
 async def _dashboard_region_capacity_error(country_code: str) -> str | None:
     normalized = normalize_country_code(country_code)
-    if is_retired_region(normalized):
+    if normalized == "ee" or is_retired_region(normalized):
         return "Регион Эстония выведен из продуктового контура. Создай устройство в Германии или Дании."
-    if normalized != "ee":
-        return None
-
-    rule = get_region_limit_rule(normalized)
-    snapshots = await get_server_snapshots(force_refresh=True)
-    snapshot = next((item for item in snapshots if item.get("country_code") == normalized), None)
-    if snapshot is None:
-        return "Сервер Эстония сейчас временно недоступен. Попробуй Германию."
-
-    if snapshot.get("status") != "active":
-        return "Сервер Эстония сейчас недоступен. Попробуй Германию."
-    if snapshot.get("host_status") not in {None, "ok"} or snapshot.get("ssh_status") not in {None, "active", "ok"}:
-        return "Сервер Эстония сейчас недоступен. Попробуй Германию."
-    if snapshot.get("xui_status") in {"error", "failed"}:
-        return "Сервер Эстония сейчас недоступен. Попробуй Германию."
-
-    active_devices = await count_region_vpn_clients(normalized, active_only=True)
-    reasons = region_soft_limit_reasons(
-        rule,
-        active_devices=active_devices,
-        cpu_used_percent=float(snapshot.get("cpu_percent") or 0),
-        memory_used_percent=float(snapshot.get("memory_used_percent") or 0),
-        disk_used_percent=float(snapshot.get("disk_used_percent") or 0),
-        load_average=parse_load_average(snapshot.get("load")),
-    )
-    if reasons or snapshot.get("overall_state") == "critical":
-        return "В данный момент сервер Эстония перегружен. Попробуй Германию."
     return None
 
 

@@ -12,13 +12,16 @@ class CompatibleTestClient:
         self.headers = httpx.Headers(kwargs.get("headers"))
 
     async def _request_async(self, method: str, url: str, **kwargs):
+        follow_redirects = kwargs.pop("follow_redirects", None)
+        if follow_redirects is None:
+            follow_redirects = method.upper() in {"GET", "HEAD", "OPTIONS"}
         transport = httpx.ASGITransport(app=self.app)
         async with httpx.AsyncClient(
             transport=transport,
             base_url=self.base_url,
             cookies=self.cookies,
             headers=self.headers,
-            follow_redirects=bool(kwargs.pop("follow_redirects", True)),
+            follow_redirects=bool(follow_redirects),
         ) as client:
             response = await client.request(method, url, **kwargs)
         self.cookies.update(response.cookies)

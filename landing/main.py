@@ -52,46 +52,46 @@ from dashboard.finance import sync_income_entry_for_payment_record
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DOCS_DIR = BASE_DIR.parent / "documentation"
+DOCS_DIR = BASE_DIR.parent / "docs"
 CLIENT_APP_STATIC_DIR = BASE_DIR / "static" / "client-app"
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 LEGAL_PAGES = {
     "contacts": {
         "title": "Контакты владельца и службы поддержки",
-        "slug": "contact-information.md",
+        "slug": "06-юридическое/контакты.md",
         "description": "Публичные контакты владельца сервиса Amonora и каналы для обращений пользователей.",
     },
     "privacy": {
         "title": "Политика обработки персональных данных",
-        "slug": "privacy-policy.md",
+        "slug": "06-юридическое/политика-конфиденциальности.md",
         "description": "Порядок обработки персональных данных пользователей Amonora.",
     },
     "terms": {
         "title": "Оферта / пользовательское соглашение",
-        "slug": "terms-of-service.md",
+        "slug": "06-юридическое/условия-использования.md",
         "description": "Условия использования сайта, Telegram-ботов и цифрового сервиса Amonora.",
     },
     "refunds": {
         "title": "Политика возврата и поддержки",
-        "slug": "refunds-support-policy.md",
+        "slug": "06-юридическое/возврат-и-поддержка.md",
         "description": "Порядок поддержки, возвратов, спорных оплат и урегулирования обращений.",
     },
     "license": {
         "title": "Лицензия и права на материалы",
-        "slug": "license-notice.md",
+        "slug": "06-юридическое/лицензия-и-права-на-материалы.md",
         "description": "Условия использования материалов сайта, текстов, дизайна и программных компонентов Amonora.",
     },
     "cookies": {
         "title": "Политика использования cookie",
-        "slug": "cookie-policy.md",
+        "slug": "06-юридическое/политика-cookie.md",
         "description": "Какие cookie использует Amonora, для чего они нужны и как управлять согласием.",
     },
 }
 
 MANUAL_PAGE = {
     "title": "Инструкция для пользователей Amonora",
-    "slug": "supporting/user-guide.md",
+    "slug": "01-обзор/инструкция-пользователя.md",
     "description": "Пошаговая инструкция для пользователей Amonora: старт, создание устройства, получение ключа, подключение и обращение в поддержку.",
     "eyebrow": "руководство пользователя",
 }

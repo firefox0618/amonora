@@ -18,6 +18,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Stre
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
 
 from bot.config import config
 from backend.core.promo_codes import create_promo_code
@@ -498,6 +499,42 @@ async def _hit_dashboard_auth_rate_limit(scope: str, request: Request, username:
     return False
 
 
+async def _get_dashboard_auth_lockout_state_safe(
+    scope: str,
+    username: str,
+    *,
+    ip_address: str | None = None,
+) -> dict[str, object]:
+    try:
+        return await get_dashboard_auth_lockout_state(scope, username, ip_address=ip_address)
+    except (OSError, PermissionError, SQLAlchemyError):
+        return {"locked": False, "failure_count": 0, "retry_after_seconds": 0}
+
+
+async def _record_dashboard_auth_failure_safe(
+    scope: str,
+    username: str,
+    *,
+    ip_address: str | None = None,
+) -> None:
+    try:
+        await record_dashboard_auth_failure(scope, username, ip_address=ip_address)
+    except (OSError, PermissionError, SQLAlchemyError):
+        return
+
+
+async def _clear_dashboard_auth_failures_safe(
+    scope: str,
+    username: str,
+    *,
+    ip_address: str | None = None,
+) -> None:
+    try:
+        await clear_dashboard_auth_failures(scope, username, ip_address=ip_address)
+    except (OSError, PermissionError, SQLAlchemyError):
+        return
+
+
 async def _delete_login_code_message(telegram_id: int | None, message_id: int | None, bot_key: str | None = None) -> None:
     if not telegram_id or not message_id:
         return
@@ -945,7 +982,7 @@ async def login_action(request: Request, username: str = Form(...), password: st
             username=normalized_username,
         )
         return _redirect("/login", error="Слишком много попыток. Подожди немного и попробуй снова.")
-    lockout = await get_dashboard_auth_lockout_state(
+    lockout = await _get_dashboard_auth_lockout_state_safe(
         "request_code",
         normalized_username,
         ip_address=_client_ip(request),
@@ -960,7 +997,7 @@ async def login_action(request: Request, username: str = Form(...), password: st
         return _redirect("/login", error="Вход временно заблокирован из-за серии неудачных попыток. Подожди и попробуй снова.")
     admin = await verify_admin_credentials(normalized_username, password)
     if admin is None:
-        await record_dashboard_auth_failure(
+        await _record_dashboard_auth_failure_safe(
             "request_code",
             normalized_username,
             ip_address=_client_ip(request),
@@ -971,7 +1008,7 @@ async def login_action(request: Request, username: str = Form(...), password: st
             username=normalized_username,
         )
         return _redirect("/login", error="Неверный логин или пароль")
-    await clear_dashboard_auth_failures(
+    await _clear_dashboard_auth_failures_safe(
         "request_code",
         admin.username,
         ip_address=_client_ip(request),
@@ -1005,12 +1042,12 @@ async def login_action(request: Request, username: str = Form(...), password: st
         )
         return _redirect("/login", error="Не удалось отправить код в Telegram. Убедись, что бот открыт у администратора.")
 
-    await clear_dashboard_auth_failures(
+    await _clear_dashboard_auth_failures_safe(
         "request_code",
         admin.username,
         ip_address=_client_ip(request),
     )
-    await clear_dashboard_auth_failures(
+    await _clear_dashboard_auth_failures_safe(
         "verify_code",
         admin.username,
         ip_address=_client_ip(request),
@@ -1048,7 +1085,7 @@ async def verify_action(request: Request, username: str = Form(...), code: str =
             username=normalized_username,
         )
         return _redirect(f"/verify?username={quote_plus(normalized_username)}", error="Слишком много попыток. Запроси новый код позже.")
-    lockout = await get_dashboard_auth_lockout_state(
+    lockout = await _get_dashboard_auth_lockout_state_safe(
         "verify_code",
         normalized_username,
         ip_address=_client_ip(request),
@@ -1078,7 +1115,7 @@ async def verify_action(request: Request, username: str = Form(...), code: str =
             }
             _PENDING_CODES[normalized_username] = pending
     if pending is None:
-        await record_dashboard_auth_failure(
+        await _record_dashboard_auth_failure_safe(
             "verify_code",
             normalized_username,
             ip_address=_client_ip(request),
@@ -1092,7 +1129,7 @@ async def verify_action(request: Request, username: str = Form(...), code: str =
     if not _code_matches(code, pending["code_hash"]):
         updated_pending = await increment_dashboard_login_code_attempts(normalized_username)
         pending["attempts"] = int(updated_pending.attempts if updated_pending is not None else int(pending.get("attempts") or 0) + 1)
-        await record_dashboard_auth_failure(
+        await _record_dashboard_auth_failure_safe(
             "verify_code",
             normalized_username,
             ip_address=_client_ip(request),
@@ -1119,12 +1156,12 @@ async def verify_action(request: Request, username: str = Form(...), code: str =
     token = generate_session_token()
     await create_session(pending["admin_id"], token)
     await _clear_pending_code(normalized_username, pending)
-    await clear_dashboard_auth_failures(
+    await _clear_dashboard_auth_failures_safe(
         "verify_code",
         normalized_username,
         ip_address=_client_ip(request),
     )
-    await clear_dashboard_auth_failures(
+    await _clear_dashboard_auth_failures_safe(
         "request_code",
         normalized_username,
         ip_address=_client_ip(request),
@@ -1633,7 +1670,7 @@ async def v2_auth_request_code(request: Request, payload: V2LoginRequest | None 
             username=normalized_username,
         )
         return _api_error("Слишком много попыток. Подожди немного и попробуй снова.", 429)
-    lockout = await get_dashboard_auth_lockout_state(
+    lockout = await _get_dashboard_auth_lockout_state_safe(
         "request_code",
         normalized_username,
         ip_address=_client_ip(request),
@@ -1648,7 +1685,7 @@ async def v2_auth_request_code(request: Request, payload: V2LoginRequest | None 
         return _api_error("Вход временно заблокирован из-за серии неудачных попыток.", 429)
     admin = await verify_admin_credentials(normalized_username, payload.password)
     if admin is None:
-        await record_dashboard_auth_failure(
+        await _record_dashboard_auth_failure_safe(
             "request_code",
             normalized_username,
             ip_address=_client_ip(request),
@@ -1659,7 +1696,7 @@ async def v2_auth_request_code(request: Request, payload: V2LoginRequest | None 
             username=normalized_username,
         )
         return _api_error("Неверный логин или пароль", 401)
-    await clear_dashboard_auth_failures(
+    await _clear_dashboard_auth_failures_safe(
         "request_code",
         admin.username,
         ip_address=_client_ip(request),
@@ -1693,12 +1730,12 @@ async def v2_auth_request_code(request: Request, payload: V2LoginRequest | None 
         )
         return _api_error("Не удалось отправить код в Telegram", 500)
 
-    await clear_dashboard_auth_failures(
+    await _clear_dashboard_auth_failures_safe(
         "request_code",
         admin.username,
         ip_address=_client_ip(request),
     )
-    await clear_dashboard_auth_failures(
+    await _clear_dashboard_auth_failures_safe(
         "verify_code",
         admin.username,
         ip_address=_client_ip(request),
@@ -1741,7 +1778,7 @@ async def v2_auth_verify(request: Request, payload: V2VerifyRequest | None = Bod
             username=username,
         )
         return _api_error("Слишком много попыток. Запроси новый код позже.", 429)
-    lockout = await get_dashboard_auth_lockout_state(
+    lockout = await _get_dashboard_auth_lockout_state_safe(
         "verify_code",
         username,
         ip_address=_client_ip(request),
@@ -1771,7 +1808,7 @@ async def v2_auth_verify(request: Request, payload: V2VerifyRequest | None = Bod
             }
             _PENDING_CODES[username] = pending
     if pending is None:
-        await record_dashboard_auth_failure(
+        await _record_dashboard_auth_failure_safe(
             "verify_code",
             username,
             ip_address=_client_ip(request),
@@ -1785,7 +1822,7 @@ async def v2_auth_verify(request: Request, payload: V2VerifyRequest | None = Bod
     if not _code_matches(payload.code, pending["code_hash"]):
         updated_pending = await increment_dashboard_login_code_attempts(username)
         pending["attempts"] = int(updated_pending.attempts if updated_pending is not None else int(pending.get("attempts") or 0) + 1)
-        await record_dashboard_auth_failure(
+        await _record_dashboard_auth_failure_safe(
             "verify_code",
             username,
             ip_address=_client_ip(request),
@@ -1812,12 +1849,12 @@ async def v2_auth_verify(request: Request, payload: V2VerifyRequest | None = Bod
     token = generate_session_token()
     await create_session(pending["admin_id"], token)
     await _clear_pending_code(username, pending)
-    await clear_dashboard_auth_failures(
+    await _clear_dashboard_auth_failures_safe(
         "verify_code",
         username,
         ip_address=_client_ip(request),
     )
-    await clear_dashboard_auth_failures(
+    await _clear_dashboard_auth_failures_safe(
         "request_code",
         username,
         ip_address=_client_ip(request),
@@ -2268,15 +2305,17 @@ async def v2_campaign_analytics(
     permission_error = _require_any_permission(admin, "manage_payments")
     if permission_error is not None:
         return permission_error
+    payload_kwargs = {"search": q}
+    if period_key:
+        payload_kwargs["period_key"] = period_key
+    if date_from:
+        payload_kwargs["date_from"] = date_from
+    if date_to:
+        payload_kwargs["date_to"] = date_to
     payload = await _get_v2_cached_payload(
         _cache_key("analytics-campaigns", q.strip().lower(), period_key, date_from, date_to, admin.id),
         10,
-        lambda: get_v2_campaign_analytics_payload(
-            search=q,
-            period_key=period_key,
-            date_from=date_from,
-            date_to=date_to,
-        ),
+        lambda: get_v2_campaign_analytics_payload(**payload_kwargs),
     )
     return _api_ok(payload)
 
@@ -2292,15 +2331,17 @@ async def v2_campaign_analytics_detail(
     permission_error = _require_any_permission(admin, "manage_payments")
     if permission_error is not None:
         return permission_error
+    payload_kwargs = {"campaign_id": campaign_id}
+    if period_key:
+        payload_kwargs["period_key"] = period_key
+    if date_from:
+        payload_kwargs["date_from"] = date_from
+    if date_to:
+        payload_kwargs["date_to"] = date_to
     payload = await _get_v2_cached_payload(
         _cache_key("analytics-campaign-detail", campaign_id, period_key, date_from, date_to, admin.id),
         10,
-        lambda: get_v2_campaign_analytics_detail_payload(
-            campaign_id,
-            period_key=period_key,
-            date_from=date_from,
-            date_to=date_to,
-        ),
+        lambda: get_v2_campaign_analytics_detail_payload(**payload_kwargs),
     )
     if payload is None:
         return _api_error("Кампания не найдена", 404)
