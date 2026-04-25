@@ -95,6 +95,18 @@ class BotMainRuntimeHandlerTests(IsolatedAsyncioTestCase):
         ensure_keyboard.assert_awaited_once_with(message)
         show_screen.assert_awaited_once_with(message, 77)
 
+    async def test_menu_command_routes_through_returning_user_screen(self) -> None:
+        message = SimpleNamespace(from_user=SimpleNamespace(id=77))
+
+        with (
+            patch.object(bot_router, "_ensure_home_reply_keyboard", new=AsyncMock()) as ensure_keyboard,
+            patch.object(bot_router, "_show_returning_user_screen", new=AsyncMock(return_value=True)) as show_screen,
+        ):
+            await bot_router.v2_menu_handler(message)
+
+        ensure_keyboard.assert_awaited_once_with(message)
+        show_screen.assert_awaited_once_with(message, 77)
+
     async def test_my_devices_callback_uses_key_menu_as_back_destination(self) -> None:
         callback = FakeCallback(data=bot_router.V2_MY_DEVICES_CALLBACK)
         summary = SimpleNamespace()

@@ -3048,7 +3048,9 @@ async def v2_show_agreement_callback(callback: CallbackQuery) -> None:
 @router.message(Command("menu"))
 async def v2_menu_handler(message: Message) -> None:
     await _ensure_home_reply_keyboard(message)
-    await _send_main_menu(message, int(message.from_user.id))
+    if await _show_returning_user_screen(message, int(message.from_user.id)):
+        return
+    await _send_screen(message, AGREEMENT_TEXT, _agreement_keyboard(), screen_key="agreement")
 
 
 @router.message(F.text == "Главный экран")
