@@ -3,7 +3,13 @@ import unittest
 from datetime import timedelta
 from types import SimpleNamespace
 
-from bot.utils.access import can_activate_trial_from_user, has_active_trial_from_user, utcnow
+from bot.utils.access import (
+    can_activate_trial_from_user,
+    get_access_status_from_user,
+    has_active_subscription_from_user,
+    has_active_trial_from_user,
+    utcnow,
+)
 
 
 class TrialAccessGuardTests(unittest.TestCase):
@@ -50,6 +56,21 @@ class TrialAccessGuardTests(unittest.TestCase):
         )
 
         self.assertTrue(can_activate_trial_from_user(user))
+
+    def test_future_paid_expiry_still_counts_as_active_even_if_status_is_stale(self) -> None:
+        user = SimpleNamespace(
+            is_blocked=False,
+            trial_used=False,
+            trial_expires_at=None,
+            trial_channel_unsubscribed_at=None,
+            subscription_status="inactive",
+            subscription_source="telegram_stars",
+            subscription_expires_at=utcnow() + timedelta(days=5),
+        )
+
+        self.assertTrue(has_active_subscription_from_user(user))
+        self.assertEqual(get_access_status_from_user(user), "paid_active")
+        self.assertFalse(can_activate_trial_from_user(user))
 
 
 if __name__ == "__main__":

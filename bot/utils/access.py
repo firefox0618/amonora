@@ -83,13 +83,8 @@ def has_active_trial_from_user(user) -> bool:
 def has_active_subscription_from_user(user) -> bool:
     if getattr(user, "is_blocked", False):
         return False
-    subscription_status = getattr(user, "subscription_status", None)
     subscription_expires_at = getattr(user, "subscription_expires_at", None)
-    return (
-        subscription_status == "active"
-        and subscription_expires_at is not None
-        and subscription_expires_at > utcnow()
-    )
+    return subscription_expires_at is not None and subscription_expires_at > utcnow()
 
 
 def has_active_access_from_user(user) -> bool:

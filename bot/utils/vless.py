@@ -183,7 +183,10 @@ def build_vless_link_from_metadata(
     if metadata.get("stream_mode"):
         query_parts.append(f"mode={quote(str(metadata.get('stream_mode')), safe='')}")
 
-    port = int(metadata.get("port") or 443)
+    try:
+        port = int(metadata.get("port") or 443)
+    except (TypeError, ValueError):
+        port = 443
     return (
         f"vless://{client_uuid}@{get_country_vpn_host(country_code)}:{port}"
         f"?{'&'.join(query_parts)}"

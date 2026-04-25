@@ -638,6 +638,33 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(entries[0]["uri"].startswith("vless://uuid-de@"))
         self.assertTrue(entries[1]["uri"].startswith("vless://uuid-dk@"))
 
+    def test_build_public_server_entries_falls_back_when_route_port_is_malformed(self) -> None:
+        routes = [
+            SimpleNamespace(
+                status="active",
+                country_code="de",
+                slot_index=1,
+                xui_client_id="uuid-de",
+                client_uuid="uuid-de",
+                email="device_feed_42_de_1",
+                client_data=json.dumps(
+                    {
+                        "port": "bad-port",
+                        "stream_network": "tcp",
+                        "reality_server_name": "www.microsoft.com",
+                        "reality_short_id": "primary01",
+                        "reality_public_key": "pubkey123",
+                    }
+                ),
+            ),
+        ]
+
+        entries = public_subscription_module._build_public_server_entries(routes)
+
+        self.assertGreaterEqual(len(entries), 1)
+        self.assertEqual(entries[0]["label"], "🇩🇪 #1 Германия")
+        self.assertIn("@ffconnect.amonoraconnect.com:443", entries[0]["uri"])
+
     async def test_feed_payload_skips_full_sync_when_slot_routes_are_ready(self) -> None:
         token = "abcdefghijklmnop"
         link = SimpleNamespace(id=9, user_id=42, token=token)
