@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from aiogram.types import ReplyKeyboardRemove
 from aiogram.exceptions import TelegramBadRequest
 
 
@@ -74,37 +75,37 @@ class BotMainRuntimeCopyTests(TestCase):
 
 
 class BotMainRuntimeHandlerTests(IsolatedAsyncioTestCase):
-    async def test_ensure_home_reply_keyboard_sends_persistent_button(self) -> None:
+    async def test_remove_legacy_reply_keyboard_sends_reply_keyboard_remove(self) -> None:
         message = SimpleNamespace(answer=AsyncMock())
 
-        await bot_router._ensure_home_reply_keyboard(message)
+        await bot_router._remove_legacy_reply_keyboard(message)
 
         message.answer.assert_awaited_once()
         _, kwargs = message.answer.await_args
-        self.assertEqual(kwargs["reply_markup"].keyboard[0][0].text, "Главный экран")
+        self.assertIsInstance(kwargs["reply_markup"], ReplyKeyboardRemove)
 
     async def test_reply_menu_text_routes_to_main_menu_screen(self) -> None:
         message = SimpleNamespace(from_user=SimpleNamespace(id=77))
 
         with (
-            patch.object(bot_router, "_ensure_home_reply_keyboard", new=AsyncMock()) as ensure_keyboard,
+            patch.object(bot_router, "_remove_legacy_reply_keyboard", new=AsyncMock()) as remove_keyboard,
             patch.object(bot_router, "_show_returning_user_screen", new=AsyncMock(return_value=True)) as show_screen,
         ):
             await bot_router.v2_reply_menu_handler(message)
 
-        ensure_keyboard.assert_awaited_once_with(message)
+        remove_keyboard.assert_awaited_once_with(message)
         show_screen.assert_awaited_once_with(message, 77)
 
     async def test_menu_command_routes_through_returning_user_screen(self) -> None:
         message = SimpleNamespace(from_user=SimpleNamespace(id=77))
 
         with (
-            patch.object(bot_router, "_ensure_home_reply_keyboard", new=AsyncMock()) as ensure_keyboard,
+            patch.object(bot_router, "_remove_legacy_reply_keyboard", new=AsyncMock()) as remove_keyboard,
             patch.object(bot_router, "_show_returning_user_screen", new=AsyncMock(return_value=True)) as show_screen,
         ):
             await bot_router.v2_menu_handler(message)
 
-        ensure_keyboard.assert_awaited_once_with(message)
+        remove_keyboard.assert_awaited_once_with(message)
         show_screen.assert_awaited_once_with(message, 77)
 
     async def test_my_devices_callback_uses_key_menu_as_back_destination(self) -> None:

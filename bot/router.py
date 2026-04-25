@@ -13,11 +13,10 @@ from aiogram.filters import BaseFilter, Command, CommandObject, CommandStart
 from aiogram.types import (
     BufferedInputFile,
     CallbackQuery,
-    KeyboardButton,
     InlineKeyboardMarkup,
     InputMediaPhoto,
     Message,
-    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
 )
 from sqlalchemy import select
 
@@ -245,12 +244,6 @@ from dashboard.models import PaymentRecord
 router = Router()
 logger = logging.getLogger(__name__)
 PROMO_INPUT_WAITERS: set[int] = set()
-HOME_REPLY_KEYBOARD = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton(text="Главный экран")]],
-    resize_keyboard=True,
-    is_persistent=True,
-    input_field_placeholder="Amonora",
-)
 
 
 class AwaitingPromoInputFilter(BaseFilter):
@@ -2770,10 +2763,10 @@ async def _send_screen(
     )
 
 
-async def _ensure_home_reply_keyboard(message: Message) -> None:
+async def _remove_legacy_reply_keyboard(message: Message) -> None:
     await message.answer(
-        "⬇️ Кнопка «Главный экран» закреплена снизу.",
-        reply_markup=HOME_REPLY_KEYBOARD,
+        "Интерфейс обновлён. Нижнее меню отключено.",
+        reply_markup=ReplyKeyboardRemove(),
     )
 
 
@@ -3034,7 +3027,7 @@ async def _ack_callback_quietly(callback: CallbackQuery) -> None:
 @router.message(CommandStart())
 async def v2_start_handler(message: Message, command: CommandObject | None = None) -> None:
     await _track_start_attribution(message.from_user, command)
-    await _ensure_home_reply_keyboard(message)
+    await _remove_legacy_reply_keyboard(message)
     if await _show_returning_user_screen(message, int(message.from_user.id)):
         return
     await _send_screen(message, AGREEMENT_TEXT, _agreement_keyboard(), screen_key="agreement")
@@ -3047,7 +3040,7 @@ async def v2_show_agreement_callback(callback: CallbackQuery) -> None:
 
 @router.message(Command("menu"))
 async def v2_menu_handler(message: Message) -> None:
-    await _ensure_home_reply_keyboard(message)
+    await _remove_legacy_reply_keyboard(message)
     if await _show_returning_user_screen(message, int(message.from_user.id)):
         return
     await _send_screen(message, AGREEMENT_TEXT, _agreement_keyboard(), screen_key="agreement")
@@ -3057,7 +3050,7 @@ async def v2_menu_handler(message: Message) -> None:
 @router.message(F.text == "Главное меню")
 @router.message(F.text == "Меню")
 async def v2_reply_menu_handler(message: Message) -> None:
-    await _ensure_home_reply_keyboard(message)
+    await _remove_legacy_reply_keyboard(message)
     if await _show_returning_user_screen(message, int(message.from_user.id)):
         return
     await _send_screen(message, AGREEMENT_TEXT, _agreement_keyboard(), screen_key="agreement")
