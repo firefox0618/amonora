@@ -114,6 +114,16 @@
 - Если меняешь `ops/`, `nginx`, `systemd`, backup или deployment-related код, отдельно укажи, что нужно проверить вручную.
 - Если тесты не запускались, явно сообщи об этом.
 
+## Tests policy
+
+- Never edit tests only to make them pass.
+- First determine whether failure is caused by production code, outdated test expectations, missing fixtures, missing generated assets, or local environment.
+- Prefer fixing production code when behavior is wrong.
+- Update tests only when expected behavior intentionally changed.
+- Do not delete, skip, or xfail tests unless explicitly requested.
+- Do not use empty stubs to satisfy tests.
+- After each fix, run the smallest relevant test first, then the full related test file.
+
 ## Запрещено
 
 - Не добавлять "новую версию" функции рядом со старой.

@@ -149,9 +149,10 @@ class Config:
 
     @property
     def database_url(self) -> str:
+        db_host = "127.0.0.1" if self.db_host.strip().lower() == "localhost" else self.db_host
         return (
             f"postgresql+asyncpg://{self.db_user}:{self.db_pass}"
-            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+            f"@{db_host}:{self.db_port}/{self.db_name}"
         )
 
 _admin_ids = parse_int_list(get_env("ADMIN_IDS"))

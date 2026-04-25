@@ -1,8 +1,7 @@
 import unittest
-
 from unittest.mock import patch
 
-from fastapi.testclient import TestClient
+import httpx
 
 import dashboard.main as dashboard_main
 import dashboard.services as dashboard_services
@@ -14,26 +13,30 @@ class DashboardApiV2AuditContractSmokeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.store = MemoryStore()
-        cls.startup_handlers = list(dashboard_main.app.router.on_startup)
-        dashboard_main.app.router.on_startup.clear()
-        cls.client_cm = TestClient(dashboard_main.app)
-        cls.client = cls.client_cm.__enter__()
 
     @classmethod
     def tearDownClass(cls) -> None:
-        cls.client_cm.__exit__(None, None, None)
-        dashboard_main.app.router.on_startup[:] = cls.startup_handlers
+        return None
 
     def setUp(self) -> None:
         self.store.reset()
-        self.client.cookies.clear()
+        self.cookies: dict[str, str] = {}
         dashboard_main._V2_READ_CACHE.clear()
 
     def fake_session_factory(self):
         return FakeAsyncSession(self.store)
 
     def set_session_cookie(self, token: str) -> None:
-        self.client.cookies.set(dashboard_settings()["cookie_name"], token)
+        self.cookies[dashboard_settings()["cookie_name"]] = token
+
+    async def _get(self, path: str):
+        transport = httpx.ASGITransport(app=dashboard_main.app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+            cookies=self.cookies,
+        ) as client:
+            return await client.get(path)
 
     async def fake_audit_payload(self, limit: int = 150):
         return {
@@ -62,7 +65,7 @@ class DashboardApiV2AuditContractSmokeTests(unittest.TestCase):
 
     def test_dashboard_api_v2_audit_returns_401_without_session(self) -> None:
         with patch.object(dashboard_services, "async_session", self.fake_session_factory):
-            response = self.client.get("/dashboard/api/v2/audit")
+            response = self._run(self._get("/dashboard/api/v2/audit"))
 
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()["error"], "unauthorized")
@@ -75,7 +78,7 @@ class DashboardApiV2AuditContractSmokeTests(unittest.TestCase):
         ):
             self._run(create_session(self.store.admin.id, token))
             self.set_session_cookie(token)
-            response = self.client.get("/dashboard/api/v2/audit?limit=120")
+            response = self._run(self._get("/dashboard/api/v2/audit?limit=120"))
 
         self.assertEqual(response.status_code, 200)
         payload = response.json()
@@ -93,7 +96,7 @@ class DashboardApiV2AuditContractSmokeTests(unittest.TestCase):
         ):
             self._run(create_session(self.store.admin.id, token))
             self.set_session_cookie(token)
-            response = self.client.get("/dashboard/api/v2/audit")
+            response = self._run(self._get("/dashboard/api/v2/audit"))
 
         self.assertEqual(response.status_code, 200)
         items = response.json()["data"]["items"]

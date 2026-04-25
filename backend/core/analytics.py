@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -145,6 +146,7 @@ ATTRIBUTION_ISSUE_EMPTY_SOURCE_KEY = "empty_source_key"
 ATTRIBUTION_ISSUE_ORGANIC_BOT = "organic_bot"
 ATTRIBUTION_ISSUE_INVALID_START_PARAM = "invalid_start_param"
 ATTRIBUTION_ISSUE_MISSING_SOURCE = "missing_source_attribution"
+SAFE_ANALYTICS_CALL_TIMEOUT_SECONDS = float(os.getenv("AMONORA_SAFE_ANALYTICS_CALL_TIMEOUT_SECONDS", "2.0"))
 
 
 @dataclass(frozen=True)
@@ -431,7 +433,17 @@ async def emit_analytics_event(
 
 async def safe_emit_analytics_event(**kwargs) -> AnalyticsEvent | None:
     try:
-        return await emit_analytics_event(**kwargs)
+        return await asyncio.wait_for(
+            emit_analytics_event(**kwargs),
+            timeout=SAFE_ANALYTICS_CALL_TIMEOUT_SECONDS,
+        )
+    except TimeoutError:
+        logger.exception(
+            "Analytics event emit timed out for event_name=%s dedupe_key=%s",
+            kwargs.get("event_name"),
+            kwargs.get("dedupe_key"),
+        )
+        return None
     except Exception:
         logger.exception(
             "Analytics event emit failed for event_name=%s dedupe_key=%s",

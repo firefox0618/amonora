@@ -1,0 +1,74 @@
+{
+  "schema_version": 2,
+  "pack_type": "routing-policy",
+  "target_client": "Streisand",
+  "name": "Amonora - Russia Direct Split Tunnel",
+  "preferred_region": "dk",
+  "fallback_region": "de",
+  "dns": {
+    "mode": "direct-domestic-remote-global",
+    "upstreams": [
+      "https+local://cloudflare-dns.com/dns-query",
+      "https+local://dns.sb/dns-query"
+    ]
+  },
+  "policy": {
+    "mode": "split-tunnel",
+    "blocked_protocols": [
+      "bittorrent"
+    ],
+    "default_outbound": "proxy",
+    "direct_domains": [
+      "geosite:category-ru",
+      "geosite:yandex",
+      "geosite:vk",
+      "domain:gosuslugi.ru",
+      "domain:nalog.gov.ru"
+    ],
+    "direct_ips": [
+      "geoip:ru",
+      "geoip:private"
+    ]
+  },
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules": [
+      {
+        "type": "field",
+        "domain": [
+          "geosite:category-ru",
+          "geosite:yandex",
+          "geosite:vk",
+          "domain:gosuslugi.ru",
+          "domain:nalog.gov.ru"
+        ],
+        "outboundTag": "direct"
+      },
+      {
+        "type": "field",
+        "ip": [
+          "geoip:ru",
+          "geoip:private"
+        ],
+        "outboundTag": "direct"
+      },
+      {
+        "type": "field",
+        "protocol": [
+          "bittorrent"
+        ],
+        "outboundTag": "blocked"
+      },
+      {
+        "type": "field",
+        "network": "tcp,udp",
+        "outboundTag": "proxy"
+      }
+    ]
+  },
+  "client_family": "sing-box-oriented",
+  "mtu": {
+    "default": 1400,
+    "fallback": 1420
+  }
+}

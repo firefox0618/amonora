@@ -7,6 +7,7 @@ from bot.config import config
 engine = create_async_engine(
     config.database_url,
     echo=False,
+    connect_args={"timeout": 5},
 )
 
 async_session = async_sessionmaker(
