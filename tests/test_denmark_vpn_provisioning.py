@@ -44,6 +44,10 @@ class DenmarkVpnProvisioningTests(unittest.TestCase):
         self.assertEqual(get_country_panel_url("ee"), "http://127.0.0.1:12054")
         self.assertEqual(get_country_vpn_host("ee"), "est.amonoraconnect.com")
 
+    def test_estonia_region_uses_explicit_configured_panel_url_without_legacy_remap(self) -> None:
+        with patch.object(config, "xui_url_ee", "http://est.amonoraconnect.com:2053/dashboard"):
+            self.assertEqual(get_country_panel_url("ee"), "http://est.amonoraconnect.com:2053/dashboard")
+
     def test_denmark_supports_vless_only(self) -> None:
         self.assertTrue(region_supports_protocol("dk", "vless"))
         self.assertFalse(region_supports_protocol("dk", "trojan"))

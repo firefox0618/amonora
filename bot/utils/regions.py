@@ -236,10 +236,7 @@ def get_country_panel_url(country_code: str | None) -> str | None:
     if code == "de" and config.xui_url_de:
         return config.xui_url_de
     if code == "ee" and config.xui_url_ee:
-        legacy_ee_panel_url = str(config.xui_url_ee).strip()
-        if legacy_ee_panel_url == "http://est.amonoraconnect.com:2053/dashboard":
-            return "http://127.0.0.1:12054"
-        return legacy_ee_panel_url
+        return str(config.xui_url_ee).strip()
     return config.xui_url
 
 
