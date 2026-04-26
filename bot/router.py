@@ -45,6 +45,7 @@ from bot.db import (
     get_open_payment_intent_for_user,
     get_payment_record_by_id,
     get_or_create_user,
+    get_user_balance_summary,
     get_user_by_telegram_id,
     delete_vpn_client_and_return,
     mark_manual_payment_record_submitted,
