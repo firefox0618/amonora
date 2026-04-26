@@ -1,7 +1,9 @@
 import asyncio
+import inspect
 
 import httpx
 import fastapi.testclient
+import pytest
 
 
 class CompatibleTestClient:
@@ -57,3 +59,20 @@ class CompatibleTestClient:
 
 
 fastapi.testclient.TestClient = CompatibleTestClient
+collect_ignore = ["test_db.py"]
+
+
+def pytest_collection_modifyitems(items) -> None:
+    for item in items:
+        test_obj = getattr(item, "obj", None)
+        if test_obj is not None and inspect.iscoroutinefunction(test_obj):
+            item.add_marker(pytest.mark.anyio)
+
+
+def pytest_pyfunc_call(pyfuncitem) -> bool | None:
+    test_obj = getattr(pyfuncitem, "obj", None)
+    if test_obj is None or not inspect.iscoroutinefunction(test_obj):
+        return None
+    funcargs = {name: pyfuncitem.funcargs[name] for name in pyfuncitem._fixtureinfo.argnames}
+    asyncio.run(test_obj(**funcargs))
+    return True

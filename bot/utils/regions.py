@@ -134,20 +134,21 @@ def get_country_import_name(country_code: str | None) -> str:
 
 def build_region_snapshot(country_code: str | None) -> dict[str, str]:
     region = get_region(country_code)
+    runtime_type = get_country_runtime_type(region.code)
     return {
         "country_code": region.code,
         "country_name": region.name_ru,
         "country_flag": region.flag,
         "import_name": region.import_name,
-        "provider_type": region.provider_type,
-        "runtime_type": get_country_runtime_type(region.code),
+        "provider_type": runtime_type,
+        "runtime_type": runtime_type,
         "runtime_service_name": get_country_runtime_service_name(region.code),
-        "anti_sharing_scope_label": get_region_anti_sharing_scope_label(region.code),
-        "anti_sharing_policy_summary": get_region_anti_sharing_policy_summary(region.code),
+        "anti_sharing_scope_label": get_region_anti_sharing_scope_label(region.code, provider_type=runtime_type),
+        "anti_sharing_policy_summary": get_region_anti_sharing_policy_summary(region.code, provider_type=runtime_type),
         "user_selectable": region.user_selectable,
         "admin_visible": region.admin_visible,
         "reserve_only": region.reserve_only,
-        "retired": region.retired,
+        "retired": runtime_type == "retired" or region.retired,
         "vpn_host": get_country_vpn_host(region.code),
         "panel_url": get_country_panel_url(region.code),
     }
@@ -235,7 +236,10 @@ def get_country_panel_url(country_code: str | None) -> str | None:
     if code == "de" and config.xui_url_de:
         return config.xui_url_de
     if code == "ee" and config.xui_url_ee:
-        return config.xui_url_ee
+        legacy_ee_panel_url = str(config.xui_url_ee).strip()
+        if legacy_ee_panel_url == "http://est.amonoraconnect.com:2053/dashboard":
+            return "http://127.0.0.1:12054"
+        return legacy_ee_panel_url
     return config.xui_url
 
 

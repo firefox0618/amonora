@@ -26,6 +26,7 @@ import psutil
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from sqlalchemy import String, cast, delete, func, or_, select, update
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.core.analytics import EVENT_PAYMENT_FAILED, EVENT_PAYMENT_STARTED, safe_emit_analytics_event
 from backend.core.database import async_session
@@ -4183,20 +4184,20 @@ async def get_user_detail(user_id: int) -> dict | None:
         return None
     active_extra_slots = await get_active_device_slot_counts_for_users([user.id])
     setattr(user, "active_device_slot_addons", int(active_extra_slots.get(user.id, 0)))
-    devices, public_routes, subscription_link, vpn_repair_events, payment_rows = await asyncio.gather(
+    devices, public_subscription_detail, vpn_repair_events, payment_rows = await asyncio.gather(
         get_user_vpn_clients(user.id),
-        get_public_subscription_routes_for_user(user.id),
-        get_active_public_subscription_link_for_user(user.id),
+        _get_public_subscription_detail_safe(user.id),
         list_vpn_repair_events(user.id, limit=5),
         get_payment_records(user_id=user.id),
     )
+    public_routes, subscription_link = public_subscription_detail
     subscription_link_url = (
         build_public_subscription_page_url(str(subscription_link.token))
         if subscription_link is not None
-        else await get_or_create_public_subscription_page_url_for_user(user.id)
+        else await _get_or_create_public_subscription_page_url_safe(user.id)
     )
     if subscription_link is None:
-        subscription_link = await get_active_public_subscription_link_for_user(user.id)
+        _, subscription_link = await _get_public_subscription_detail_safe(user.id)
     support_ticket_user_id = int(user.telegram_id)
     support_ticket = await get_ticket(support_ticket_user_id)
     support_history = await get_history(support_ticket_user_id) if support_ticket is not None else []
@@ -4246,6 +4247,24 @@ async def get_user_detail(user_id: int) -> dict | None:
         "support_ticket": support_ticket,
         "support_history": support_history[:6],
     }
+
+
+async def _get_public_subscription_detail_safe(user_id: int) -> tuple[list, object | None]:
+    try:
+        routes, link = await asyncio.gather(
+            get_public_subscription_routes_for_user(user_id),
+            get_active_public_subscription_link_for_user(user_id),
+        )
+    except (OSError, PermissionError, SQLAlchemyError):
+        return [], None
+    return routes, link
+
+
+async def _get_or_create_public_subscription_page_url_safe(user_id: int) -> str | None:
+    try:
+        return await get_or_create_public_subscription_page_url_for_user(user_id)
+    except (OSError, PermissionError, SQLAlchemyError):
+        return None
 
 
 async def get_user_device_status_payload(user_id: int, device_id: int) -> dict | None:

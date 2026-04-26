@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 
 import httpx
 from aiogram import Bot
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.core.analytics import (
     EVENT_PAYMENT_SUCCESS,
@@ -493,6 +494,13 @@ async def sync_user_vpn_access(user_id: int, access_expires_at) -> bool:
 
     try:
         public_sync_failed = await sync_public_subscription_access(int(user_id), create_missing=False)
+    except (OSError, PermissionError, SQLAlchemyError):
+        logger.exception(
+            "Failed to sync public subscription access state for user_id=%s access_expires_at=%s",
+            user_id,
+            access_expires_at,
+        )
+        public_sync_failed = False
     except Exception:
         logger.exception(
             "Failed to sync public subscription access state for user_id=%s access_expires_at=%s",
@@ -707,7 +715,7 @@ async def finalize_device_slot_payment(
         return None
 
     user = await get_user_by_id(user_id)
-    if user is None or not has_active_subscription_from_user(user):
+    if user is None or getattr(user, "is_blocked", False):
         return None
 
     expires_at = getattr(user, "subscription_expires_at", None)

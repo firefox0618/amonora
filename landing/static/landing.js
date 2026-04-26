@@ -200,76 +200,7 @@ const seedSakuraElements = () => {
 seedSakuraElements();
 
 const heroVisual = document.getElementById("heroVisual");
-const heroParticles = document.getElementById("heroParticles");
-const heroPetals = document.getElementById("heroPetals");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-const seedHeroVisualParticles = () => {
-  if (!heroParticles) {
-    return;
-  }
-  for (let index = 0; index < 18; index += 1) {
-    const particle = document.createElement("span");
-    particle.className = "hero-visual__particle";
-
-    const size = Math.random() * 3 + 2;
-    const left = Math.random() * 100;
-    const top = Math.random() * 100;
-    const duration = Math.random() * 8 + 8;
-    const delay = Math.random() * -12;
-
-    particle.style.width = `${size.toFixed(1)}px`;
-    particle.style.height = `${size.toFixed(1)}px`;
-    particle.style.left = `${left.toFixed(1)}%`;
-    particle.style.top = `${top.toFixed(1)}%`;
-    particle.style.animationDuration = `${duration.toFixed(1)}s`;
-    particle.style.animationDelay = `${delay.toFixed(1)}s`;
-
-    heroParticles.appendChild(particle);
-  }
-};
-
-const startHeroVisualPetals = () => {
-  if (!heroPetals || reduceMotion) {
-    return null;
-  }
-
-  const spawnPetal = () => {
-    const petal = document.createElement("span");
-    petal.className = "hero-visual__petal";
-
-    const startX = Math.random() * 100;
-    const duration = Math.random() * 5 + 8;
-    const delay = Math.random() * 2;
-    const scale = Math.random() * 0.6 + 0.7;
-    const blur = Math.random() * 0.8;
-    const opacity = Math.random() * 0.35 + 0.45;
-    const rotate = Math.random() * 360;
-
-    petal.style.left = `${startX.toFixed(1)}%`;
-    petal.style.top = "-8%";
-    petal.style.animationDuration = `${duration.toFixed(1)}s`;
-    petal.style.animationDelay = `${delay.toFixed(1)}s`;
-    petal.style.transform = `scale(${scale.toFixed(2)}) rotate(${rotate.toFixed(0)}deg)`;
-    petal.style.filter = `blur(${blur.toFixed(2)}px)`;
-    petal.style.opacity = opacity.toFixed(2);
-
-    heroPetals.appendChild(petal);
-
-    window.setTimeout(() => {
-      petal.remove();
-    }, (duration + delay) * 1000);
-  };
-
-  for (let index = 0; index < 10; index += 1) {
-    window.setTimeout(spawnPetal, index * 420);
-  }
-
-  return window.setInterval(spawnPetal, 550);
-};
-
-seedHeroVisualParticles();
-const heroPetalInterval = startHeroVisualPetals();
 
 if (heroVisual && finePointer && !reduceMotion) {
   heroVisual.addEventListener("mousemove", (event) => {
@@ -286,12 +217,6 @@ if (heroVisual && finePointer && !reduceMotion) {
     heroVisual.style.transform = "";
   });
 }
-
-window.addEventListener("beforeunload", () => {
-  if (heroPetalInterval) {
-    window.clearInterval(heroPetalInterval);
-  }
-});
 
 const setBridgePendingState = (pending) => {
   if (!bridgeRequestButton) {

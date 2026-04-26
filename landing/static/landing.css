@@ -2107,6 +2107,46 @@ body.is-scrolled .topbar {
   padding: clamp(24px, 3vw, 42px);
 }
 
+.error-404 {
+  min-height: clamp(320px, 48vh, 460px);
+  display: grid;
+  place-items: center;
+  gap: 18px;
+  text-align: center;
+  padding: clamp(20px, 4vw, 32px);
+}
+
+.error-404__code {
+  display: inline-block;
+  font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  font-size: clamp(5rem, 16vw, 9rem);
+  line-height: 0.9;
+  letter-spacing: -0.08em;
+  color: #ffe7f3;
+  text-shadow:
+    0 0 28px rgba(242, 180, 212, 0.18),
+    0 18px 54px rgba(12, 4, 14, 0.34);
+}
+
+.error-404__title {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1.05;
+}
+
+.error-404__text {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+
+.error-404__action {
+  margin-top: 6px;
+  min-width: min(100%, 240px);
+}
+
 .prose h1,
 .prose h2,
 .prose h3 {

@@ -817,7 +817,11 @@ async def _recover_vpn_repair_needed_users(state: dict, now_utc: datetime, *, li
             break
         if _is_synthetic_user(user) or not bool(getattr(user, "vpn_repair_needed", False)):
             continue
-        access_expires_at = get_access_expires_at_from_user(user)
+        access_expires_at = None
+        if _has_active_subscription(user, now_utc):
+            access_expires_at = getattr(user, "subscription_expires_at", None)
+        elif _has_active_trial(user, now_utc):
+            access_expires_at = getattr(user, "trial_expires_at", None)
         if access_expires_at is None:
             skipped += 1
             continue

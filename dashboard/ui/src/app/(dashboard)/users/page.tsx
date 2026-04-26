@@ -1073,7 +1073,7 @@ export default function UsersPage() {
                 className="w-full"
                 onClick={(event) => {
                   stopActionClick(event);
-                  if (confirmAction(`Удалить пользователя ${detail.user.username} (TG ${detail.user.telegram_id}) вместе с данными доступа?`)) {
+                  if (confirmAction("Удалить пользователя вместе с данными доступа?")) {
                     actionMutation.mutate(
                       { path: `/users/${detail.user.id}/delete` },
                       {

@@ -343,6 +343,57 @@ def _client_ip(request: Request) -> str:
     return "unknown"
 
 
+def _render_markdown_template(
+    request: Request,
+    *,
+    page_title: str,
+    page_description: str,
+    page_eyebrow: str,
+    document_html: str,
+    page_links: list[dict[str, str]] | None = None,
+    status_code: int = 200,
+) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request,
+        "legal.html",
+        {
+            **build_context(),
+            "canonical_url": _canonical_public_url(request),
+            "page_title": page_title,
+            "page_description": page_description,
+            "page_eyebrow": page_eyebrow,
+            "page_links": page_links or [],
+            "document_html": document_html,
+        },
+        status_code=status_code,
+    )
+
+
+def _resolve_docs_page(slug: str) -> Path | None:
+    candidate = (DOCS_DIR / slug).resolve()
+    try:
+        candidate.relative_to(DOCS_DIR.resolve())
+    except ValueError:
+        return None
+    return candidate if candidate.is_file() else None
+
+
+def _not_found_document_html(
+    *,
+    title: str,
+    description: str,
+    home_href: str = "/",
+) -> str:
+    return (
+        '<section class="error-404" aria-labelledby="error-404-title">'
+        '<span class="error-404__code">404</span>'
+        f'<h2 class="error-404__title" id="error-404-title">{title}</h2>'
+        f'<p class="error-404__text">{description}</p>'
+        f'<a href="{home_href}" class="button button-primary error-404__action">На главную</a>'
+        "</section>"
+    )
+
+
 def _plaintext_response_with_headers(
     content: str,
     *,
@@ -472,23 +523,33 @@ def render_markdown_page(
     page_links: list[dict[str, str]] | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
-    markdown_text = (DOCS_DIR / slug).read_text(encoding="utf-8")
+    markdown_path = _resolve_docs_page(slug)
+    if markdown_path is None:
+        return _render_markdown_template(
+            request,
+            page_title="Документ недоступен",
+            page_description="Запрошенный документ сейчас недоступен.",
+            page_eyebrow=page_eyebrow,
+            page_links=page_links,
+            document_html=_not_found_document_html(
+                title="Страница не найдена",
+                description="Запрошенный документ сейчас недоступен или был перемещён. Вернитесь на главную страницу и продолжите навигацию оттуда.",
+            ),
+            status_code=404,
+        )
+
+    markdown_text = markdown_path.read_text(encoding="utf-8")
     document_html = markdown.markdown(
         markdown_text,
         extensions=["extra", "fenced_code", "tables", "sane_lists"],
     )
-    return templates.TemplateResponse(
+    return _render_markdown_template(
         request,
-        "legal.html",
-        {
-            **build_context(),
-            "canonical_url": _canonical_public_url(request),
-            "page_title": page_title,
-            "page_description": page_description,
-            "page_eyebrow": page_eyebrow,
-            "page_links": page_links or [],
-            "document_html": document_html,
-        },
+        page_title=page_title,
+        page_description=page_description,
+        page_eyebrow=page_eyebrow,
+        page_links=page_links,
+        document_html=document_html,
         status_code=status_code,
     )
 
@@ -519,17 +580,15 @@ async def verification_file(filename: str):
 async def legal_page(request: Request, page_key: str):
     page = LEGAL_PAGES.get(page_key)
     if page is None:
-        return templates.TemplateResponse(
+        return _render_markdown_template(
             request,
-            "legal.html",
-            {
-                **build_context(),
-                "page_title": "Документ не найден",
-                "page_description": "Запрошенный юридический документ не найден.",
-                "page_eyebrow": "юридические документы",
-                "page_links": [],
-                "document_html": "<p>Документ не найден.</p>",
-            },
+            page_title="Документ не найден",
+            page_description="Запрошенный юридический документ не найден.",
+            page_eyebrow="юридические документы",
+            document_html=_not_found_document_html(
+                title="Страница не найдена",
+                description="Такой юридической страницы сейчас нет. Вернитесь на главную страницу и откройте нужный раздел заново.",
+            ),
             status_code=404,
         )
 

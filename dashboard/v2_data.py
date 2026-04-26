@@ -989,7 +989,7 @@ async def _build_selected_support_user_context(ticket_detail: dict | None, *, ad
         "user_href": f"/users?user_id={user_id}",
         "latest_payment_href": (
             f"/payments?record_id={latest_payment['id']}"
-            if latest_payment and latest_payment.get("id") and admin is not None and role_has_permission(admin.role, "manage_payments")
+            if latest_payment and latest_payment.get("id")
             else None
         ),
     }
@@ -2261,6 +2261,7 @@ async def get_v2_payments_payload(
     users_lookup = await _get_users_lookup(sorted(payment_user_ids))
     serialized_payments = [_serialize_payment_record(record, users_lookup) for record in payments]
     finance = await get_finance_dashboard(period_key=period_key)
+    finance_summary = await get_finance_summary(period_key=period_key)
     now = utcnow()
     selected_payment = None
     if record_id is not None:
@@ -2300,15 +2301,31 @@ async def get_v2_payments_payload(
     expired_records = [row for row in payments if row.payment_status == "expired"]
     disputed_records = [row for row in payments if row.payment_status == "disputed"]
     error_records = [row for row in payments if row.payment_status == "error"]
-    new_subscriptions = sum(1 for row in revenue_confirmed if (row.confirmed_at or row.created_at) >= now - timedelta(days=30))
     payment_methods = Counter(row.payment_method for row in payments)
 
     can_manage_finance = admin is None or role_has_permission(admin.role, "manage_finance") or role_has_permission(admin.role, "approve_finance")
 
+    computed_mrr = sum(
+        row.amount
+        for row in revenue_confirmed
+        if (row.confirmed_at or row.created_at) >= now - timedelta(days=30)
+    )
+    computed_new_subscriptions = sum(
+        1
+        for row in revenue_confirmed
+        if (row.confirmed_at or row.created_at) >= now - timedelta(days=30)
+    )
+    finance_income = int(finance_summary.get("income") or 0) if isinstance(finance_summary, dict) else 0
+    effective_new_subscriptions = computed_new_subscriptions or (
+        len(revenue_confirmed)
+        if finance_income > 0 and revenue_confirmed
+        else 0
+    )
+
     return _json_safe({
         "summary": {
-            "mrr": sum(row.amount for row in revenue_confirmed if (row.confirmed_at or row.created_at) >= now - timedelta(days=30)),
-            "new_subscriptions": new_subscriptions,
+            "mrr": finance_income or computed_mrr,
+            "new_subscriptions": effective_new_subscriptions,
             "refunds": 0,
             "failed_payments": len(failed),
             "manual_queue": len(manual_queue),
@@ -2330,7 +2347,7 @@ async def get_v2_payments_payload(
         },
         "payment_mix": [{"method": key, "count": value} for key, value in payment_methods.items()],
         "finance": {
-            "summary": await get_finance_summary(period_key=period_key),
+            "summary": finance_summary,
             "dashboard": {
                 **finance,
                 "entries": [_serialize_finance_entry(item) for item in finance["entries"]] if can_manage_finance else [],

@@ -303,8 +303,8 @@ def _display_name_for_user(user) -> str:
 
 def _page_status_payload(user) -> dict[str, object]:
     now = utcnow()
-    active_access = has_active_access_from_user(user)
-    access_expires_at = get_access_expires_at_from_user(user)
+    access_expires_at = _resolved_public_access_expires_at(user)
+    active_access = access_expires_at is not None or has_admin_complimentary_access_from_user(user)
     if getattr(user, "is_blocked", False):
         return {
             "status_key": "inactive",
@@ -799,7 +799,8 @@ def _sync_expiry_for_user(user) -> datetime | None:
 def _desired_public_slot_count_for_user(user) -> int:
     if getattr(user, "is_blocked", False):
         return 0
-    if not has_active_access_from_user(user):
+    has_resolved_access = _resolved_public_access_expires_at(user) is not None
+    if not has_resolved_access and not has_active_access_from_user(user) and not has_admin_complimentary_access_from_user(user):
         return 0
     return max(1, int(get_device_limit_for_user(user) or PUBLIC_SUBSCRIPTION_MAX_SLOTS))
 
@@ -1390,25 +1391,14 @@ def _build_public_server_entries(routes: list[object]) -> list[dict[str, str]]:
     routes_by_country = _active_public_routes_by_country(routes)
     entries: list[dict[str, str]] = []
 
-    for logical_country in PUBLIC_SUBSCRIPTION_COUNTRY_CODES:
-        selected_route = None
-        for candidate_country in _failover_chain_for_country(logical_country):
-            candidate_routes = routes_by_country.get(candidate_country) or []
-            if candidate_routes:
-                selected_route = candidate_routes[0]
-                break
-        if selected_route is None:
+    for country_code in PUBLIC_SUBSCRIPTION_COUNTRY_CODES:
+        candidate_routes = routes_by_country.get(country_code) or []
+        if not candidate_routes:
             continue
 
-        logical_label = _user_server_label(logical_country, 1)
-        logical_uri = _public_route_vless_uri(selected_route, label=logical_label)
-        if logical_uri:
-            entries.append({"label": logical_label, "uri": logical_uri})
-
-    for static_entry in PUBLIC_SUBSCRIPTION_EXTRA_SERVERS:
-        label = str(static_entry.get("label") or "").strip()
-        uri = str(static_entry.get("uri") or "").strip()
-        if label and uri:
+        label = _user_server_label(country_code, 1)
+        uri = _public_route_vless_uri(candidate_routes[0], label=label)
+        if uri:
             entries.append({"label": label, "uri": uri})
 
     return entries
@@ -1469,6 +1459,15 @@ def _humanize_public_traffic(value: int) -> str:
         amount /= 1024
         index += 1
     return f"{amount:.1f} {units[index]}".replace(".0 ", " ")
+
+
+def _resolved_public_access_expires_at(user) -> datetime | None:
+    expires_at = get_access_expires_at_from_user(user)
+    if expires_at is not None:
+        return expires_at
+    if str(getattr(user, "subscription_status", "") or "").strip().lower() == "active":
+        return getattr(user, "subscription_expires_at", None)
+    return getattr(user, "trial_expires_at", None)
 
 
 def _traffic_totals_from_routes(routes: list[object]) -> tuple[int, int]:
@@ -1690,7 +1689,7 @@ async def get_public_subscription_summary_by_token(token: str) -> dict | None:
     slot_limit = _desired_public_slot_count_for_user(user)
     # Do not block page rendering with heavy auto-repair.
     # Feed requests still run full sync if needed.
-    if not routes:
+    if not _has_ready_public_routes(routes, slot_limit=slot_limit):
         await sync_public_subscription_access(int(user.id), create_missing=True)
         routes = await get_public_subscription_routes_for_user(int(user.id))
     status = _page_status_payload(user)
@@ -1743,7 +1742,8 @@ async def get_public_subscription_feed_payload(
     if user is None:
         return None
 
-    if not has_active_access_from_user(user) or getattr(user, "is_blocked", False):
+    access_expires_at = _resolved_public_access_expires_at(user)
+    if access_expires_at is None or getattr(user, "is_blocked", False):
         return None
 
     routes = await get_public_subscription_routes_for_user(int(user.id))
@@ -1772,7 +1772,7 @@ async def get_public_subscription_feed_payload(
         _build_feed_headers(
             page_url=page_url,
             display_name=_display_name_for_user(user),
-            expires_at=get_access_expires_at_from_user(user),
+            expires_at=access_expires_at,
             upload_bytes=upload_bytes,
             download_bytes=download_bytes,
         ),
