@@ -14,6 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Red
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from aiogram import Bot
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.core.tracing import reset_current_trace_id, set_current_trace_id
 from bot.config import config
@@ -394,6 +395,64 @@ def _not_found_document_html(
     )
 
 
+def _render_not_found_page(
+    request: Request,
+    *,
+    page_title: str = "Страница не найдена",
+    page_description: str = "Страница не найдена или недоступна.",
+    page_eyebrow: str = "ошибка навигации",
+    document_title: str = "Страница не найдена или недоступна",
+    document_description: str = "Проверь адрес страницы или вернись на главную, чтобы продолжить навигацию по Amonora.",
+) -> HTMLResponse:
+    return _render_markdown_template(
+        request,
+        page_title=page_title,
+        page_description=page_description,
+        page_eyebrow=page_eyebrow,
+        document_html=_not_found_document_html(
+            title=document_title,
+            description=document_description,
+        ),
+        status_code=404,
+    )
+
+
+def _should_render_html_not_found(request: Request) -> bool:
+    path = request.url.path or "/"
+    if path.startswith("/static/") or path.startswith("/client-static/"):
+        return False
+    if path.startswith("/api/") or path.startswith("/webhooks/"):
+        return False
+    if Path(path).suffix.lower() in {
+        ".css",
+        ".gif",
+        ".ico",
+        ".jpeg",
+        ".jpg",
+        ".js",
+        ".json",
+        ".map",
+        ".png",
+        ".svg",
+        ".txt",
+        ".webp",
+    }:
+        return False
+    accept = str(request.headers.get("accept") or "").lower()
+    if "text/html" in accept:
+        return True
+    if "*/*" in accept and request.method in {"GET", "HEAD"}:
+        return True
+    return False
+
+
+@app.exception_handler(404)
+async def global_not_found_handler(request: Request, _: StarletteHTTPException):
+    if not _should_render_html_not_found(request):
+        return PlainTextResponse("Not Found", status_code=404)
+    return _render_not_found_page(request)
+
+
 def _plaintext_response_with_headers(
     content: str,
     *,
@@ -525,17 +584,12 @@ def render_markdown_page(
 ) -> HTMLResponse:
     markdown_path = _resolve_docs_page(slug)
     if markdown_path is None:
-        return _render_markdown_template(
+        return _render_not_found_page(
             request,
             page_title="Документ недоступен",
             page_description="Запрошенный документ сейчас недоступен.",
             page_eyebrow=page_eyebrow,
-            page_links=page_links,
-            document_html=_not_found_document_html(
-                title="Страница не найдена",
-                description="Запрошенный документ сейчас недоступен или был перемещён. Вернитесь на главную страницу и продолжите навигацию оттуда.",
-            ),
-            status_code=404,
+            document_description="Запрошенный документ сейчас недоступен или был перемещён. Вернитесь на главную страницу и продолжите навигацию оттуда.",
         )
 
     markdown_text = markdown_path.read_text(encoding="utf-8")
@@ -580,16 +634,12 @@ async def verification_file(filename: str):
 async def legal_page(request: Request, page_key: str):
     page = LEGAL_PAGES.get(page_key)
     if page is None:
-        return _render_markdown_template(
+        return _render_not_found_page(
             request,
             page_title="Документ не найден",
             page_description="Запрошенный юридический документ не найден.",
             page_eyebrow="юридические документы",
-            document_html=_not_found_document_html(
-                title="Страница не найдена",
-                description="Такой юридической страницы сейчас нет. Вернитесь на главную страницу и откройте нужный раздел заново.",
-            ),
-            status_code=404,
+            document_description="Такой юридической страницы сейчас нет. Вернитесь на главную страницу и откройте нужный раздел заново.",
         )
 
     return render_markdown_page(
@@ -643,7 +693,10 @@ async def _public_subscription_feed_response(
             return PlainTextResponse("Not Found", status_code=404)
         if str(binding.get("status") or "").strip().lower() == "limit_reached":
             return PlainTextResponse("Device limit reached", status_code=403)
-        slot_index = int(binding.get("slot_index") or 0) or None
+        try:
+            slot_index = int(binding.get("slot_index") or 0) or None
+        except (TypeError, ValueError):
+            return PlainTextResponse("Not Found", status_code=404)
 
     payload = await get_public_subscription_feed_payload(token, slot_index=slot_index)
     if payload is None:
@@ -813,7 +866,7 @@ async def crypto_pay_webhook(request: Request, secret: str):
 
     try:
         payload = json.loads(raw_body.decode("utf-8"))
-    except json.JSONDecodeError:
+    except (UnicodeDecodeError, json.JSONDecodeError):
         return JSONResponse({"ok": False, "error": "invalid json"}, status_code=400)
 
     if not crypto_pay_client.request_is_fresh(payload.get("request_date")):
@@ -903,12 +956,16 @@ async def platega_webhook(request: Request, secret: str):
         payload = platega_client.validate_callback(headers=dict(request.headers), body=raw_body)
     except PlategaError as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=401)
+    except Exception:
+        return JSONResponse({"ok": False, "error": "provider_unavailable"}, status_code=502)
 
     bot = Bot(config.bot_token)
     try:
         result = await handle_platega_callback_payload(payload, notify_user=True, bot=bot)
     except PlategaError as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+    except Exception:
+        return JSONResponse({"ok": False, "error": "provider_unavailable"}, status_code=502)
     finally:
         await bot.session.close()
 
@@ -929,6 +986,8 @@ async def platega_webhook(request: Request, secret: str):
 @app.get("/{token}", response_class=HTMLResponse)
 async def public_subscription_page(request: Request, token: str):
     if not _is_client_public_host(request):
+        if _should_render_html_not_found(request):
+            return _render_not_found_page(request)
         return PlainTextResponse("Not Found", status_code=404)
     if not is_valid_public_subscription_token(token):
         return PlainTextResponse("Not Found", status_code=404)
