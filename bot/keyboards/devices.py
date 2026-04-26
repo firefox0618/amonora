@@ -47,7 +47,7 @@ def devices_list_keyboard(
             [
                 InlineKeyboardButton(
                     text=device["title"],
-                    callback_data=f"device:view:{device['id']}",
+                    callback_data=device.get("callback_data") or f"device:view:{device['id']}",
                 )
             ]
         )
@@ -86,6 +86,15 @@ def device_card_keyboard(device_id: int, protocol: str = "vless") -> InlineKeybo
         ],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def public_device_card_keyboard(slot_index: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="♻ Освободить слот", callback_data=f"device:public:delete:{slot_index}")],
+            [InlineKeyboardButton(text="⬅ К списку устройств", callback_data="device:back")],
+        ]
+    )
 
 
 def device_settings_keyboard(device_id: int) -> InlineKeyboardMarkup:

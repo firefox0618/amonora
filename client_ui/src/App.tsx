@@ -50,6 +50,11 @@ type BoundDevice = {
   app_version: string | null;
   source_ip: string | null;
   bound_at: string | null;
+  country_name?: string | null;
+  source_label?: string | null;
+  status_key?: "active" | "inactive" | "expired" | string;
+  status_label?: string | null;
+  connection_uri?: string | null;
 };
 
 type SubscriptionServer = {
@@ -159,6 +164,23 @@ function formatExpiry(isoValue: string | null): string {
   }).format(value);
 }
 
+function formatDeviceDate(isoValue: string | null): string {
+  if (!isoValue) {
+    return "—";
+  }
+  const value = new Date(isoValue);
+  if (Number.isNaN(value.getTime())) {
+    return isoValue;
+  }
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(value);
+}
+
 function statusTone(status: SubscriptionSummary["status"]): "green" | "orange" | "red" {
   if (status === "active") {
     return "green";
@@ -167,6 +189,19 @@ function statusTone(status: SubscriptionSummary["status"]): "green" | "orange" |
     return "orange";
   }
   return "red";
+}
+
+function deviceStatusTone(status: BoundDevice["status_key"]): "green" | "orange" | "red" | "gray" {
+  if (status === "active") {
+    return "green";
+  }
+  if (status === "expired") {
+    return "orange";
+  }
+  if (status === "inactive") {
+    return "red";
+  }
+  return "gray";
 }
 
 function App() {
@@ -746,7 +781,7 @@ function App() {
                 <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                   {accountDevices.map((device) => (
                     <Paper key={`${device.kind}-${device.id}`} className="client-device-item" radius={22} p="lg">
-                      <Stack gap={10}>
+                      <Stack gap={14}>
                         <Group justify="space-between" align="flex-start" gap="md">
                           <div>
                             <Text fw={700} size="lg">
@@ -756,16 +791,39 @@ function App() {
                               {device.os_name || "Устройство"} {device.os_version && device.os_version !== "—" ? `• ${device.os_version}` : ""}
                             </Text>
                           </div>
-                          {device.kind === "public_slot" ? (
-                            <Badge variant="light" color="grape" radius="xl">
-                              {locale.deviceSlotLabel} {device.slot_index}
+                          <Stack gap={8} align="flex-end">
+                            <Badge variant="light" color={deviceStatusTone(device.status_key)} radius="xl">
+                              {device.status_label || (device.kind === "public_slot" ? locale.active : locale.active)}
                             </Badge>
-                          ) : (
-                            <Badge variant="light" color="gray" radius="xl">
-                              {locale.deviceLegacyLabel}
-                            </Badge>
-                          )}
+                            {device.kind === "public_slot" ? (
+                              <Badge variant="light" color="grape" radius="xl">
+                                {locale.deviceSlotLabel} {device.slot_index}
+                              </Badge>
+                            ) : (
+                              <Badge variant="light" color="gray" radius="xl">
+                                {locale.deviceLegacyLabel}
+                              </Badge>
+                            )}
+                          </Stack>
                         </Group>
+                        <div className="client-device-meta">
+                          <div className="client-device-meta__item">
+                            <Text className="client-device-meta__label">Источник</Text>
+                            <Text className="client-device-meta__value">{device.source_label || (device.kind === "public_slot" ? "Happ / единая ссылка" : "Классический ключ")}</Text>
+                          </div>
+                          <div className="client-device-meta__item">
+                            <Text className="client-device-meta__label">Регион</Text>
+                            <Text className="client-device-meta__value">{device.country_name || "—"}</Text>
+                          </div>
+                          <div className="client-device-meta__item">
+                            <Text className="client-device-meta__label">Добавлено</Text>
+                            <Text className="client-device-meta__value">{formatDeviceDate(device.bound_at)}</Text>
+                          </div>
+                          <div className="client-device-meta__item">
+                            <Text className="client-device-meta__label">IP</Text>
+                            <Text className="client-device-meta__value">{device.source_ip || "—"}</Text>
+                          </div>
+                        </div>
                       </Stack>
                     </Paper>
                   ))}

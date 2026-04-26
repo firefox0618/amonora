@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.types import Message
 
-from bot.db import count_user_vpn_clients, get_user_by_telegram_id
+from bot.db import count_user_account_devices, get_user_by_telegram_id
 from bot.keyboards.home import home_keyboard_for_user
 from bot.keyboards.tariffs import tariffs_keyboard
 from bot.utils.access import has_active_access_from_user
@@ -19,7 +19,7 @@ async def cabinet_handler(message: Message):
         await message.answer("Пользователь не найден.")
         return
 
-    devices_count = await count_user_vpn_clients(user.id)
+    devices_count = await count_user_account_devices(user.id)
     await message.answer(
         cabinet_text(user, devices_count),
         parse_mode="HTML",

@@ -2,7 +2,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from sqlalchemy import func, select, update
+from sqlalchemy import cast, func, select, update
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -1608,6 +1609,13 @@ async def bind_public_subscription_device_slot(
         user = await _lock_user_row(session, int(user_id))
         if user is None:
             raise ValueError("User not found")
+        legacy_clients_count = int(
+            (
+                await session.execute(
+                    select(func.count()).select_from(VpnClient).where(VpnClient.user_id == int(user_id))
+                )
+            ).scalar_one()
+        )
 
         routes = list(
             (
@@ -1634,14 +1642,22 @@ async def bind_public_subscription_device_slot(
                 break
 
         created = False
+        occupied_slots: set[int] = set()
+        for slot_index, slot_routes in slot_rows.items():
+            for route in slot_routes:
+                metadata = _safe_route_metadata(route)
+                if str(metadata.get("feed_device_fingerprint_hash") or "").strip():
+                    occupied_slots.add(int(slot_index))
+                    break
         if selected_slot is None:
-            occupied_slots: set[int] = set()
-            for slot_index, slot_routes in slot_rows.items():
-                for route in slot_routes:
-                    metadata = _safe_route_metadata(route)
-                    if str(metadata.get("feed_device_fingerprint_hash") or "").strip():
-                        occupied_slots.add(int(slot_index))
-                        break
+            occupied_account_devices = legacy_clients_count + len(occupied_slots)
+            if occupied_account_devices >= max(int(max_slots or 1), 1):
+                return {
+                    "status": "limit_reached",
+                    "created": False,
+                    "slot_index": 0,
+                    "active_devices": occupied_account_devices,
+                }
             for candidate in range(1, max(int(max_slots or 1), 1) + 1):
                 if candidate not in slot_rows:
                     continue
@@ -1656,7 +1672,7 @@ async def bind_public_subscription_device_slot(
                 "status": "limit_reached",
                 "created": False,
                 "slot_index": 0,
-                "active_devices": len(slot_rows),
+                "active_devices": legacy_clients_count + len(occupied_slots),
             }
 
         current = utcnow()
@@ -1674,19 +1690,13 @@ async def bind_public_subscription_device_slot(
             updated_count += 1
 
         await session.commit()
+        occupied_public_slots = set(occupied_slots)
+        occupied_public_slots.add(int(selected_slot))
         return {
             "status": "ok",
             "created": created,
             "slot_index": int(selected_slot),
-            "active_devices": len(
-                [
-                    slot_index
-                    for slot_index, slot_routes in slot_rows.items()
-                    if any(str(_safe_route_metadata(route).get("feed_device_fingerprint_hash") or "").strip() for route in slot_routes)
-                ]
-            )
-            if routes
-            else int(bool(updated_count)),
+            "active_devices": legacy_clients_count + len(occupied_public_slots),
         }
 
 
@@ -1803,10 +1813,30 @@ async def create_vpn_client(
             raise ValueError("User not found")
         active_slots = await _active_device_slot_count_for_user(session, user_id)
         setattr(user, "active_device_slot_addons", active_slots)
+        occupied_public_slots = (
+            select(func.count(func.distinct(PublicSubscriptionRoute.slot_index)))
+            .where(PublicSubscriptionRoute.user_id == int(user_id))
+            .where(PublicSubscriptionRoute.slot_index.is_not(None))
+            .where(
+                func.length(
+                    func.trim(
+                        func.coalesce(
+                            cast(PublicSubscriptionRoute.client_data, JSONB)["feed_device_fingerprint_hash"].astext,
+                            "",
+                        )
+                    )
+                )
+                > 0
+            )
+            .scalar_subquery()
+        )
         active_clients = int(
             (
                 await session.execute(
-                    select(func.count()).select_from(VpnClient).where(VpnClient.user_id == int(user_id))
+                    select(
+                        select(func.count()).select_from(VpnClient).where(VpnClient.user_id == int(user_id)).scalar_subquery()
+                        + occupied_public_slots
+                    )
                 )
             ).scalar_one()
         )
@@ -3550,6 +3580,44 @@ async def count_user_vpn_clients(user_id: int) -> int:
             select(func.count()).select_from(VpnClient).where(VpnClient.user_id == user_id)
         )
         return int(result.scalar_one())
+
+
+async def count_user_account_devices(user_id: int) -> int:
+    await ensure_schema()
+
+    async with async_session() as session:
+        legacy_count = int(
+            (
+                await session.execute(
+                    select(func.count()).select_from(VpnClient).where(VpnClient.user_id == int(user_id))
+                )
+            ).scalar_one()
+        )
+        routes = list(
+            (
+                await session.execute(
+                    select(PublicSubscriptionRoute).where(PublicSubscriptionRoute.user_id == int(user_id))
+                )
+            ).scalars().all()
+        )
+
+    occupied_slots: set[int] = set()
+    for route in routes:
+        slot_index = int(getattr(route, "slot_index", 0) or 0)
+        if slot_index <= 0:
+            continue
+        raw_value = str(getattr(route, "client_data", "") or "").strip()
+        if not raw_value:
+            continue
+        try:
+            metadata = json.loads(raw_value)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(metadata, dict):
+            continue
+        if str(metadata.get("feed_device_fingerprint_hash") or "").strip():
+            occupied_slots.add(slot_index)
+    return legacy_count + len(occupied_slots)
 
 
 async def count_region_vpn_clients(country_code: str, *, active_only: bool = False) -> int:

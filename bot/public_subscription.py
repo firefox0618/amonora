@@ -1490,7 +1490,32 @@ def _traffic_totals_from_routes(routes: list[object]) -> tuple[int, int]:
     return upload_bytes, download_bytes
 
 
-def _bound_public_devices_from_routes(routes: list[object]) -> tuple[dict[str, object], ...]:
+def _account_device_status_fields(status: Mapping[str, object] | None) -> dict[str, str]:
+    payload = status or {}
+    status_key = str(payload.get("status_key") or "inactive").strip().lower() or "inactive"
+    status_label = str(payload.get("status_label") or "Не активна").strip() or "Не активна"
+    return {
+        "status_key": status_key,
+        "status_label": status_label,
+    }
+
+
+def _legacy_device_connection_uri(device, metadata: Mapping[str, object]) -> str | None:
+    raw_link = str(
+        metadata.get("connection_uri")
+        or metadata.get("vless_link")
+        or metadata.get("trojan_link")
+        or ""
+    ).strip()
+    return raw_link or None
+
+
+def _bound_public_devices_from_routes(
+    routes: list[object],
+    *,
+    status: Mapping[str, object] | None = None,
+) -> tuple[dict[str, object], ...]:
+    status_fields = _account_device_status_fields(status)
     slot_rows: dict[int, list[object]] = {}
     for route in routes:
         slot_index = int(getattr(route, "slot_index", 0) or 0)
@@ -1532,12 +1557,20 @@ def _bound_public_devices_from_routes(routes: list[object]) -> tuple[dict[str, o
                 "app_version": str(bound_metadata.get("app_version") or "").strip() or None,
                 "source_ip": str(bound_metadata.get("source_ip") or "").strip() or None,
                 "bound_at": str(bound_metadata.get("feed_device_bound_at") or "").strip() or None,
+                "country_name": "Единая подписка",
+                "source_label": "Happ / единая ссылка",
+                **status_fields,
             }
         )
     return tuple(devices)
 
 
-def _legacy_public_devices_from_vpn_clients(devices: list[object]) -> tuple[dict[str, object], ...]:
+def _legacy_public_devices_from_vpn_clients(
+    devices: list[object],
+    *,
+    status: Mapping[str, object] | None = None,
+) -> tuple[dict[str, object], ...]:
+    status_fields = _account_device_status_fields(status)
     serialized: list[dict[str, object]] = []
     for device in devices:
         metadata = {}
@@ -1583,9 +1616,26 @@ def _legacy_public_devices_from_vpn_clients(devices: list[object]) -> tuple[dict
                 "app_version": str(metadata.get("app_version") or "").strip() or None,
                 "source_ip": str(metadata.get("source_ip") or "").strip() or None,
                 "bound_at": created_at.isoformat() if isinstance(created_at, datetime) else None,
+                "country_name": str(metadata.get("country_name") or metadata.get("country_code") or "Классический ключ").strip()
+                or "Классический ключ",
+                "source_label": "Классический ключ",
+                "connection_uri": _legacy_device_connection_uri(device, metadata),
+                **status_fields,
             }
         )
     return tuple(serialized)
+
+
+def _build_account_devices_payload(
+    user,
+    *,
+    routes: list[object],
+    legacy_devices: list[object],
+) -> tuple[dict[str, object], ...]:
+    status = _page_status_payload(user)
+    bound_devices = _bound_public_devices_from_routes(routes, status=status)
+    legacy_rows = _legacy_public_devices_from_vpn_clients(legacy_devices, status=status)
+    return (*bound_devices, *legacy_rows)
 
 
 def _active_public_route_keys(routes: list[object]) -> set[tuple[str, int]]:
@@ -1670,6 +1720,17 @@ async def get_public_subscription_bound_devices_for_user(user_id: int) -> tuple[
     return _bound_public_devices_from_routes(routes)
 
 
+async def get_account_devices_for_user(user_id: int) -> tuple[dict[str, object], ...]:
+    user = await get_user_by_id(int(user_id))
+    if user is None:
+        return ()
+    routes, legacy_devices = await asyncio.gather(
+        get_public_subscription_routes_for_user(int(user.id)),
+        get_user_vpn_clients(int(user.id)),
+    )
+    return _build_account_devices_payload(user, routes=routes, legacy_devices=legacy_devices)
+
+
 async def get_public_subscription_summary_by_token(token: str) -> dict | None:
     if not is_valid_public_subscription_token(token):
         return None
@@ -1697,8 +1758,8 @@ async def get_public_subscription_summary_by_token(token: str) -> dict | None:
     feed_url = page_url
     upload_bytes, download_bytes = _traffic_totals_from_routes(routes)
     traffic_total_bytes = upload_bytes + download_bytes
-    bound_devices = list(_bound_public_devices_from_routes(routes))
-    account_devices = [*bound_devices, *_legacy_public_devices_from_vpn_clients(legacy_devices)]
+    account_devices = list(_build_account_devices_payload(user, routes=routes, legacy_devices=legacy_devices))
+    bound_devices = [device for device in account_devices if str(device.get("kind") or "").strip().lower() == "public_slot"]
     server_entries = _build_public_server_entries(routes)
 
     return {

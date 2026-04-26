@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from math import ceil
 
 from backend.core.promo_codes import get_user_pending_discount
@@ -9,15 +8,12 @@ from bot.db import (
     get_user_balance_summary,
     get_user_by_telegram_id,
     get_user_referral_stats,
-    get_user_vpn_clients,
     get_vpn_client_by_id,
 )
 from bot.public_subscription import (
-    _normalize_device_type,
-    _normalize_public_os_version,
     build_public_subscription_happ_wrapper_url,
+    get_account_devices_for_user,
     get_or_create_public_subscription_page_url_for_user,
-    get_public_subscription_bound_devices_for_user,
 )
 from bot.utils.access import (
     get_access_expires_at_from_user,
@@ -88,86 +84,6 @@ async def _subscription_billing_summary_for_user(user) -> tuple[str, str | None]
             manual_label = humanize_extension_duration(extension_days)
     return tariff_title, manual_label
 
-
-def _normalize_connection_uri(value: str | None) -> str | None:
-    payload = str(value or "").strip()
-    return payload or None
-
-
-def _device_metadata(device) -> dict:
-    raw_value = getattr(device, "client_data", None)
-    if not raw_value:
-        return {}
-    try:
-        value = json.loads(raw_value)
-    except json.JSONDecodeError:
-        return {}
-    return value if isinstance(value, dict) else {}
-
-
-def _device_connection_uri(device, metadata: dict) -> str | None:
-    if not metadata:
-        return None
-    if device.protocol == "trojan":
-        return _normalize_connection_uri(metadata.get("connection_uri") or metadata.get("trojan_link"))
-    return _normalize_connection_uri(metadata.get("connection_uri") or metadata.get("vless_link"))
-
-
-def _device_display_row(device, metadata: dict) -> dict:
-    device_name = str(metadata.get("device_name") or getattr(device, "email", f"Устройство #{device.id}"))
-    country_name = str(metadata.get("country_name") or metadata.get("country_code") or "—")
-    protocol = str(metadata.get("protocol") or getattr(device, "protocol", "vless")).upper()
-    connection_uri = _device_connection_uri(device, metadata)
-    device_type = _normalize_device_type(str(metadata.get("device_type") or "other").strip().lower()) or "other"
-    device_model = str(
-        metadata.get("device_model")
-        or metadata.get("model")
-        or metadata.get("hardware_model")
-        or metadata.get("device_name")
-        or getattr(device, "email", f"Устройство #{device.id}")
-    )
-    raw_os_version = (
-        metadata.get("os_version")
-        or metadata.get("platform_version")
-        or metadata.get("system_version")
-        or metadata.get("os_build")
-    )
-    os_version = str(
-        _normalize_public_os_version(
-            device_type=device_type,
-            os_version=raw_os_version,
-            user_agent=metadata.get("user_agent"),
-        )
-        or "—"
-    )
-    return {
-        "kind": "vpn_client",
-        "id": int(device.id),
-        "title": device_name,
-        "country_name": country_name,
-        "protocol": protocol,
-        "connection_uri": connection_uri,
-        "device_type": device_type,
-        "device_model": device_model,
-        "os_version": os_version,
-    }
-
-
-def _public_subscription_device_row(device: dict) -> dict:
-    device_title = str(device.get("title") or device.get("device_model") or f"Happ #{device.get('id') or '?'}").strip()
-    return {
-        "kind": "public_slot",
-        "id": int(device.get("id") or 0),
-        "title": device_title or f"Happ #{device.get('id') or '?'}",
-        "country_name": "Единая ссылка",
-        "protocol": "SUB",
-        "connection_uri": None,
-        "device_type": str(device.get("device_type") or "other").strip().lower() or "other",
-        "device_model": str(device.get("device_model") or device_title or "Happ device").strip() or "Happ device",
-        "os_version": str(device.get("os_version") or "—").strip() or "—",
-    }
-
-
 async def _load_test_user_summary(telegram_id: int) -> TestUserSummary:
     user = await get_user_by_telegram_id(int(telegram_id))
     if user is None:
@@ -200,21 +116,8 @@ async def _load_test_user_summary(telegram_id: int) -> TestUserSummary:
     setattr(user, "active_device_slot_addons", int(active_slot_counts.get(int(user.id), 0)))
     device_limit = get_device_limit_for_user(user)
     balance_summary = await get_user_balance_summary(int(user.id))
-    raw_vpn_devices = await get_user_vpn_clients(int(user.id))
-    raw_vpn_devices = sorted(
-        raw_vpn_devices,
-        key=lambda item: (
-            str(getattr(item, "created_at", "") or ""),
-            int(getattr(item, "id", 0)),
-        ),
-    )
-    vpn_devices = tuple(_device_display_row(device, _device_metadata(device)) for device in raw_vpn_devices)
-    public_devices = tuple(
-        _public_subscription_device_row(device)
-        for device in await get_public_subscription_bound_devices_for_user(int(user.id))
-    )
-    devices = vpn_devices + public_devices
-    single_connection_uri = devices[0]["connection_uri"] if len(devices) == 1 else None
+    devices = tuple(await get_account_devices_for_user(int(user.id)))
+    single_connection_uri = devices[0].get("connection_uri") if len(devices) == 1 else None
     return TestUserSummary(
         telegram_id=int(telegram_id),
         access_active=has_active_access_from_user(user),

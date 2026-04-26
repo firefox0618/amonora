@@ -890,10 +890,15 @@ def devices_overview_text(
 
 
 def device_list_summary_line(index: int, device_name: str, protocol: str, metadata: dict | None = None) -> str:
-    del protocol, metadata
+    payload = metadata or {}
+    status_label = str(payload.get("status_label") or "Активно").strip() or "Активно"
+    source_label = str(payload.get("source_label") or "").strip()
+    country_name = str(payload.get("country_name") or "").strip()
+    details = " • ".join(part for part in (source_label, country_name) if part)
     return (
         f"{index}. <b>{_safe(device_name)}</b>\n"
-        "   🟢 Активно"
+        f"   🟢 {_safe(status_label)}"
+        + (f"\n   {_safe(details)}" if details else "")
     )
 
 

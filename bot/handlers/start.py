@@ -12,7 +12,7 @@ from bot.config import config
 from bot.db import (
     activate_trial,
     bind_referrer_by_token,
-    count_user_vpn_clients,
+    count_user_account_devices,
     get_or_create_user,
     get_user_balance_summary,
     get_user_by_telegram_id,
@@ -82,7 +82,7 @@ async def _send_home(message: Message, telegram_id: int) -> None:
         await message.answer("Пользователь не найден. Нажми /start")
         return
 
-    devices_count = await count_user_vpn_clients(user.id)
+    devices_count = await count_user_account_devices(user.id)
     await message.answer(
         home_text(user, devices_count),
         reply_markup=home_keyboard_for_user(user),
@@ -295,7 +295,7 @@ async def home_cabinet_callback(callback: CallbackQuery) -> None:
         await callback.answer()
         return
 
-    devices_count = await count_user_vpn_clients(user.id)
+    devices_count = await count_user_account_devices(user.id)
     await callback.message.edit_text(
         home_text(user, devices_count),
         parse_mode="HTML",

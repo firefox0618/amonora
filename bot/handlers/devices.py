@@ -23,14 +23,14 @@ from backend.core.tracing import current_or_new_trace_id
 from bot.device_compensation import enqueue_finalize_created_device_job
 from bot.config import config
 from bot.db import (
+    clear_public_subscription_device_slot_binding,
     count_region_vpn_clients,
-    count_user_vpn_clients,
+    count_user_account_devices,
     create_vpn_client,
     delete_vpn_client_and_return,
     get_active_device_slot_counts_for_users,
     get_access_expires_at,
     get_user_by_telegram_id,
-    get_user_vpn_clients,
     get_vpn_client_by_id,
     mark_trial_technical_engagement,
     update_vpn_client_metadata,
@@ -49,6 +49,7 @@ from bot.keyboards.devices import (
     device_protocol_keyboard_for_existing,
     device_settings_keyboard,
     devices_list_keyboard,
+    public_device_card_keyboard,
 )
 from bot.keyboards.tariffs import tariffs_keyboard
 from bot.keyboards.home import blocked_home_keyboard
@@ -78,6 +79,7 @@ from bot.utils.regions import (
 from bot.vpn_provisioning import get_vless_provisioner
 from bot.utils.access import get_device_limit_for_user, has_active_access_from_user, has_active_subscription_from_user
 from bot.utils.device_slots import DEFAULT_DEVICE_LIMIT, MAX_DEVICE_LIMIT, device_slot_unit_price_rub, remaining_device_slot_capacity
+from bot.public_subscription import get_account_devices_for_user
 from bot.utils.qr import generate_qr_image
 from bot.utils.routing import build_split_routing_pack_for_device, dumps_pack
 from bot.utils.texts import (
@@ -598,7 +600,7 @@ async def _show_devices_list(message: Message, user) -> None:
         )
         return
 
-    devices = await get_user_vpn_clients(user.id)
+    devices = list(await get_account_devices_for_user(int(user.id)))
     devices_count = len(devices)
 
     if not has_active_access_from_user(user):
@@ -614,16 +616,21 @@ async def _show_devices_list(message: Message, user) -> None:
     device_rows = []
     device_lines = []
     for device in devices:
-        metadata = _device_metadata(device)
-        device_name = metadata.get("device_name", device.email)
-        protocol = metadata.get("protocol", device.protocol)
+        device_kind = str(device.get("kind") or "legacy_device").strip().lower()
+        device_name = str(device.get("title") or device.get("device_model") or f"Устройство #{device.get('id') or '?'}").strip()
+        protocol = str(device.get("protocol") or "sub").strip().lower()
         device_rows.append(
             {
-                "id": device.id,
+                "id": int(device.get("id") or 0),
                 "title": device_list_title(
                     device_name,
-                    metadata.get("device_type", "other"),
+                    str(device.get("device_type") or "other"),
                     protocol,
+                ),
+                "callback_data": (
+                    f"device:public:view:{int(device.get('id') or 0)}"
+                    if device_kind == "public_slot"
+                    else f"device:view:{int(device.get('id') or 0)}"
                 ),
             }
         )
@@ -632,7 +639,7 @@ async def _show_devices_list(message: Message, user) -> None:
                 len(device_lines) + 1,
                 device_name,
                 protocol,
-                metadata,
+                device,
             )
         )
 
@@ -670,6 +677,26 @@ async def _show_user_home_from_callback(callback: CallbackQuery) -> None:
     except TelegramBadRequest:
         pass
     await callback.answer()
+
+
+def _public_slot_card_text(device_data: dict, expires_text: str) -> str:
+    device_name = str(device_data.get("device_model") or device_data.get("title") or "Happ device").strip() or "Happ device"
+    slot_index = int(device_data.get("slot_index") or device_data.get("id") or 0)
+    os_name = str(device_data.get("os_name") or "Устройство").strip() or "Устройство"
+    os_version = str(device_data.get("os_version") or "—").strip() or "—"
+    source_label = str(device_data.get("source_label") or "Happ / единая ссылка").strip() or "Happ / единая ссылка"
+    bound_at = str(device_data.get("bound_at") or "—").strip() or "—"
+    return (
+        f"📱 <b>{device_name}</b>\n"
+        "────────────\n"
+        f"🔗 Источник: <b>{source_label}</b>\n"
+        f"🎛 Слот: <b>{slot_index}</b>\n"
+        f"🖥 Платформа: <b>{os_name}</b>{'' if os_version == '—' else f' • {os_version}'}\n"
+        f"🕒 Привязано: <b>{bound_at}</b>\n"
+        f"⏳ Доступ до: <b>{expires_text}</b>\n"
+        "────────────\n"
+        "Это устройство использует единую ссылку подписки. Ниже можно освободить слот, если устройство больше не используется."
+    )
 
 
 async def _send_vless_config(message_target, device, metadata, expires_text: str) -> None:
@@ -895,6 +922,39 @@ async def _show_device_card(callback: CallbackQuery, device_id: int) -> None:
     )
 
 
+async def _show_public_slot_card(callback: CallbackQuery, slot_index: int) -> None:
+    user = await get_user_by_telegram_id(callback.from_user.id)
+    if user is not None and getattr(user, "is_blocked", False):
+        await callback.message.answer(blocked_user_action_text(), parse_mode=ParseMode.HTML, reply_markup=blocked_home_keyboard)
+        await callback.answer()
+        return
+    if user is None:
+        await callback.message.answer(USER_NOT_FOUND_TEXT, parse_mode=ParseMode.HTML)
+        return
+
+    account_devices = await get_account_devices_for_user(int(user.id))
+    device = next(
+        (
+            item
+            for item in account_devices
+            if str(item.get("kind") or "").strip().lower() == "public_slot"
+            and int(item.get("id") or 0) == int(slot_index)
+        ),
+        None,
+    )
+    if device is None:
+        await callback.message.answer(delete_device_not_found_text(), parse_mode=ParseMode.HTML)
+        return
+
+    access_expires_at = await get_access_expires_at(int(user.id))
+    expires_text = access_expires_at.strftime("%Y-%m-%d %H:%M:%S") if access_expires_at else "—"
+    await _edit_or_send(
+        callback.message,
+        _public_slot_card_text(device, expires_text),
+        reply_markup=public_device_card_keyboard(int(slot_index)),
+    )
+
+
 @router.message(F.text == "📱 Устройства")
 @router.message(F.text == "Устройства")
 async def devices_handler(message: Message):
@@ -923,7 +983,7 @@ async def add_device_callback(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
 
-    devices_count = await count_user_vpn_clients(user.id)
+    devices_count = await count_user_account_devices(user.id)
     limit_state = await _device_limit_state(user, devices_count)
     device_limit = limit_state["device_limit"]
     if devices_count >= device_limit:
@@ -1529,6 +1589,13 @@ async def device_view_callback(callback: CallbackQuery):
     await callback.answer()
 
 
+@router.callback_query(F.data.startswith("device:public:view:"))
+async def device_public_view_callback(callback: CallbackQuery):
+    slot_index = int(callback.data.split(":")[3])
+    await _show_public_slot_card(callback, slot_index)
+    await callback.answer()
+
+
 @router.callback_query(F.data == "device:back")
 async def device_back_callback(callback: CallbackQuery):
     await _show_user_home_from_callback(callback)
@@ -2041,3 +2108,42 @@ async def delete_device_callback(callback: CallbackQuery):
         await callback.message.answer(PANEL_OPERATION_ERROR_TEXT, parse_mode=ParseMode.HTML)
     finally:
         await callback.answer()
+
+
+@router.callback_query(F.data.startswith("device:public:delete:"))
+async def delete_public_device_callback(callback: CallbackQuery):
+    slot_index = int(callback.data.split(":")[3])
+    user = await get_user_by_telegram_id(callback.from_user.id)
+    if not user:
+        await callback.message.answer(USER_NOT_FOUND_TEXT, parse_mode=ParseMode.HTML)
+        await callback.answer()
+        return
+
+    cleared = await clear_public_subscription_device_slot_binding(
+        int(user.id),
+        slot_index=slot_index,
+        binding_keys={
+            "feed_device_fingerprint_hash",
+            "feed_device_label",
+            "device_name",
+            "device_model",
+            "device_type",
+            "platform_name",
+            "os_name",
+            "os_version",
+            "app_version",
+            "source_ip",
+            "user_agent",
+            "install_id",
+            "feed_device_bound_at",
+            "feed_device_last_seen_at",
+            "subscription_client",
+        },
+    )
+    if not cleared:
+        await callback.message.answer(delete_device_not_found_text(), parse_mode=ParseMode.HTML)
+        await callback.answer()
+        return
+
+    await _show_devices_list(callback.message, user)
+    await callback.answer()
