@@ -51,7 +51,7 @@ class LandingClientSubscriptionSurfaceTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("happ://add/https://client.amonoraconnect.com/abcdefghijklmnop", response.text)
+        self.assertIn("happ://add/https://client.amonoraconnect.com/abcdefghijklmnop?feed=1", response.text)
         self.assertIn("Скопировать ссылку", response.text)
         self.assertIn("Открыть страницу подписки", response.text)
 
@@ -98,7 +98,7 @@ class LandingClientSubscriptionSurfaceTests(unittest.TestCase):
             "days_left": 10,
             "traffic_used": "0 МБ",
             "traffic_limit": "∞",
-            "feed_url": "https://client.amonoraconnect.com/abcdefghijklmnop",
+            "feed_url": "https://client.amonoraconnect.com/abcdefghijklmnop?feed=1",
             "page_url": "https://client.amonoraconnect.com/abcdefghijklmnop",
             "bot_url": "https://t.me/amonora_v_2_0_bot",
             "is_active": True,

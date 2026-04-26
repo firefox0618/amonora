@@ -114,7 +114,7 @@ def build_public_subscription_page_url(token: str) -> str:
 
 
 def build_public_subscription_feed_url(token: str) -> str:
-    return build_public_subscription_page_url(token)
+    return f"{build_public_subscription_page_url(token)}?feed=1"
 
 
 def extract_public_subscription_token_from_url(value: str | None) -> str | None:
@@ -1391,15 +1391,25 @@ def _build_public_server_entries(routes: list[object]) -> list[dict[str, str]]:
     routes_by_country = _active_public_routes_by_country(routes)
     entries: list[dict[str, str]] = []
 
-    for country_code in PUBLIC_SUBSCRIPTION_COUNTRY_CODES:
-        candidate_routes = routes_by_country.get(country_code) or []
-        if not candidate_routes:
-            continue
+    for logical_country in PUBLIC_SUBSCRIPTION_COUNTRY_CODES:
+        label = _user_server_label(logical_country, 1)
+        for candidate_country in _failover_chain_for_country(logical_country):
+            candidate_routes = routes_by_country.get(candidate_country) or []
+            if not candidate_routes:
+                continue
+            uri = _public_route_vless_uri(candidate_routes[0], label=label)
+            if uri:
+                if candidate_country != logical_country:
+                    uri = _rewrite_public_vless_uri(uri, label=label)
+                entries.append({"label": label, "uri": uri})
+            break
 
-        label = _user_server_label(country_code, 1)
-        uri = _public_route_vless_uri(candidate_routes[0], label=label)
-        if uri:
-            entries.append({"label": label, "uri": uri})
+    for extra_entry in PUBLIC_SUBSCRIPTION_EXTRA_SERVERS:
+        label = str(extra_entry.get("label") or "").strip()
+        uri = str(extra_entry.get("uri") or "").strip()
+        if not label or not uri:
+            continue
+        entries.append({"label": label, "uri": uri})
 
     return entries
 
@@ -1755,7 +1765,7 @@ async def get_public_subscription_summary_by_token(token: str) -> dict | None:
         routes = await get_public_subscription_routes_for_user(int(user.id))
     status = _page_status_payload(user)
     page_url = build_public_subscription_page_url(token)
-    feed_url = page_url
+    feed_url = build_public_subscription_feed_url(token)
     upload_bytes, download_bytes = _traffic_totals_from_routes(routes)
     traffic_total_bytes = upload_bytes + download_bytes
     account_devices = list(_build_account_devices_payload(user, routes=routes, legacy_devices=legacy_devices))

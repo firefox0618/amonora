@@ -33,6 +33,7 @@ from bot.payment_flow import finalize_subscription_payment, notify_payment_succe
 from bot.public_subscription import (
     PUBLIC_CLIENT_HOST,
     bind_public_subscription_request_slot,
+    build_public_subscription_feed_url,
     build_public_subscription_happ_wrapper_url,
     build_public_subscription_request_context,
     build_public_subscription_page_url,
@@ -745,6 +746,7 @@ async def public_subscription_happ_wrapper(request: Request):
         return PlainTextResponse("Not Found", status_code=404)
 
     page_url = build_public_subscription_page_url(token)
+    feed_url = build_public_subscription_feed_url(token)
     return templates.TemplateResponse(
         request,
         "client_happ_wrapper.html",
@@ -754,8 +756,8 @@ async def public_subscription_happ_wrapper(request: Request):
             "page_description": "Amonora помогает открыть Happ и добавить готовую подписку через собственный безопасный wrapper.",
             "canonical_url": build_public_subscription_happ_wrapper_url(page_url),
             "page_url": page_url,
-            "feed_url": page_url,
-            "happ_deep_link": f"happ://add/{page_url}",
+            "feed_url": feed_url,
+            "happ_deep_link": f"happ://add/{feed_url}",
             "asset_version": "20260410-client-sakura-v5",
         },
     )

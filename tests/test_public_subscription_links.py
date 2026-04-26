@@ -120,8 +120,49 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
                 {"label": "🇩🇪 #1 Германия", "uri": "vless://uuid-de@ffconnect.amonoraconnect.com:443?type=tcp&security=reality#de-old"},
                 {"label": "🇩🇰 #1 Дания", "uri": "vless://uuid-dk@dk.amonoraconnect.com:443?type=xhttp&security=reality#dk-old"},
                 {"label": "🇪🇪 #1 Эстония", "uri": "vless://uuid-ee@est.amonoraconnect.com:443?type=tcp&security=reality&flow=xtls-rprx-vision#ee-old"},
+                {"label": "#1 Обход белых списков", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[0]["uri"]},
             ],
         )
+
+    def test_public_server_entries_use_failover_and_keep_extra_server(self) -> None:
+        routes = [
+            SimpleNamespace(
+                status="active",
+                protocol="vless",
+                country_code="de",
+                slot_index=1,
+                xui_client_id="uuid-de",
+                client_uuid="uuid-de",
+                email="device_feed_42_de_1",
+                client_data=json.dumps(
+                    {
+                        "vless_link": "vless://uuid-de@ffconnect.amonoraconnect.com:443?type=tcp&security=reality#de-old",
+                    }
+                ),
+            ),
+            SimpleNamespace(
+                status="active",
+                protocol="vless",
+                country_code="dk",
+                slot_index=1,
+                xui_client_id="uuid-dk",
+                client_uuid="uuid-dk",
+                email="device_feed_42_dk_1",
+                client_data=json.dumps(
+                    {
+                        "vless_link": "vless://uuid-dk@dk.amonoraconnect.com:443?type=xhttp&security=reality#dk-old",
+                    }
+                ),
+            ),
+        ]
+
+        entries = public_subscription_module._build_public_server_entries(routes)
+
+        self.assertEqual(
+            [entry["label"] for entry in entries],
+            ["🇩🇪 #1 Германия", "🇩🇰 #1 Дания", "🇪🇪 #1 Эстония", "#1 Обход белых списков"],
+        )
+        self.assertIn("#%F0%9F%87%AA%F0%9F%87%AA%20%231%20%D0%AD%D1%81%D1%82%D0%BE%D0%BD%D0%B8%D1%8F", entries[2]["uri"])
 
     async def test_bind_request_slot_recovers_missing_public_slot_before_returning_limit_error(self) -> None:
         link = SimpleNamespace(user_id=42)
@@ -369,7 +410,7 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["telegram_id"], 145)
         self.assertEqual(payload["status"], "active")
         self.assertEqual(payload["status_label"], "Активна")
-        self.assertEqual(payload["feed_url"], "https://client.amonoraconnect.com/abcdefghijklmnop")
+        self.assertEqual(payload["feed_url"], "https://client.amonoraconnect.com/abcdefghijklmnop?feed=1")
         self.assertEqual(payload["traffic_limit"], "∞")
         self.assertEqual(payload["traffic_used"], "0 МБ")
         self.assertEqual(payload["devices_limit"], 10)
@@ -382,6 +423,8 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
             [
                 {"label": "🇩🇪 #1 Германия"},
                 {"label": "🇩🇰 #1 Дания"},
+                {"label": "🇪🇪 #1 Эстония"},
+                {"label": "#1 Обход белых списков"},
             ],
         )
         self.assertEqual(len(payload["install_links"]), 7)
@@ -585,11 +628,14 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         assert payload is not None
         content, headers = payload
         lines = [line for line in content.splitlines() if line.strip()]
-        self.assertEqual(len(lines), 2)
+        self.assertEqual(len(lines), 4)
         self.assertTrue(lines[0].startswith("vless://uuid-1@"))
         self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 1))}", lines[0])
         self.assertTrue(lines[1].startswith("vless://uuid-2@"))
         self.assertIn(f"#{quote(public_subscription_module._user_server_label('dk', 1))}", lines[1])
+        self.assertTrue(lines[2].startswith("vless://uuid-2@"))
+        self.assertIn(f"#{quote(public_subscription_module._user_server_label('ee', 1))}", lines[2])
+        self.assertIn("158.160.20.200:8443", lines[3])
         self.assertEqual(headers["profile-web-page-url"], f"https://client.amonoraconnect.com/{token}")
         self.assertEqual(headers["profile-update-interval"], "12")
         self.assertEqual(headers["profile-title"], "Amonora")
@@ -633,7 +679,7 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             [entry["label"] for entry in entries],
-            ["🇩🇪 #1 Германия", "🇩🇰 #1 Дания"],
+            ["🇩🇪 #1 Германия", "🇩🇰 #1 Дания", "🇪🇪 #1 Эстония", "#1 Обход белых списков"],
         )
         self.assertTrue(entries[0]["uri"].startswith("vless://uuid-de@"))
         self.assertTrue(entries[1]["uri"].startswith("vless://uuid-dk@"))
