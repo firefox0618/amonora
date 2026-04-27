@@ -859,58 +859,66 @@ async def public_subscription_json(request: Request, token: str):
 
     content, _ = payload
 
-    first_link = content.split("\n")[0]
+    from urllib.parse import urlparse, parse_qs
+
+    links = content.split("\n")
+    outbounds = []
+
+    for i, link in enumerate(links):
+        if not link.strip():
+            continue
+
+        parsed = urlparse(link)
+        qs = parse_qs(parsed.query)
+
+        security = qs.get("security", ["none"])[0]
+
+        stream_settings = {
+            "network": qs.get("type", ["tcp"])[0],
+            "security": security
+        }
+
+        if security == "reality":
+            stream_settings["realitySettings"] = {
+                "serverName": qs.get("sni", [""])[0]
+            }
+
+        outbounds.append({
+            "protocol": "vless",
+            "tag": "proxy" if i == 0 else f"node-{i}",
+            "settings": {
+                "vnext": [{
+                    "address": parsed.hostname,
+                    "port": parsed.port,
+                    "users": [{
+                        "id": parsed.username,
+                        "encryption": "none"
+                    }]
+                }]
+            },
+            "streamSettings": stream_settings
+        })
 
     return {
-        "log": {
-            "loglevel": "warning"
-        },
+        "log": {"loglevel": "warning"},
         "dns": {
-            "servers": [
-                "1.1.1.1",
-                "8.8.8.8"
-            ]
+            "servers": ["1.1.1.1", "8.8.8.8"]
         },
         "routing": {
             "domainStrategy": "IPIfNonMatch",
             "rules": [
-                {
-                    "type": "field",
-                    "domain": ["geosite:ru"],
-                    "outboundTag": "direct"
-                },
-                {
-                    "type": "field",
-                    "ip": ["geoip:ru"],
-                    "outboundTag": "direct"
-                },
-                {
-                    "type": "field",
-                    "domain": ["geosite:category-ads-all"],
-                    "outboundTag": "block"
-                },
-                {
-                    "type": "field",
-                    "network": "tcp,udp",
-                    "outboundTag": "proxy"
-                }
+                {"type": "field", "domain": ["geosite:ru"], "outboundTag": "direct"},
+                {"type": "field", "ip": ["geoip:ru"], "outboundTag": "direct"},
+                {"type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block"},
+                {"type": "field", "network": "tcp,udp", "outboundTag": "proxy"}
             ]
         },
-        "outbounds": [
-            {
-                "protocol": "freedom",
-                "tag": "direct"
-            },
-            {
-                "protocol": "freedom",
-                "tag": "proxy"
-            },
-            {
-                "protocol": "blackhole",
-                "tag": "block"
-            }
+        "outbounds": outbounds + [
+            {"protocol": "freedom", "tag": "direct"},
+            {"protocol": "freedom", "tag": "proxy"},
+            {"protocol": "blackhole", "tag": "block"}
         ],
-        "remarks": "Amonora routing test"
+        "remarks": "Amonora"
     }
 
 @app.get("/happ/add", response_class=HTMLResponse)
@@ -1172,7 +1180,7 @@ async def public_subscription_page(request: Request, token: str):
     if not is_valid_public_subscription_token(token):
         return PlainTextResponse("Not Found", status_code=404)
     if is_public_subscription_client_request(request.headers, query_params=request.query_params):
-        return await _public_subscription_feed_response(request, token, force_client_binding=True)
+        return await public_subscription_json(request, token)
     return templates.TemplateResponse(
         request,
         "client_subscription_shell.html",
