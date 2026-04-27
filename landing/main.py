@@ -881,6 +881,11 @@ async def public_subscription_json(request: Request, token: str):
                 },
                 {
                     "type": "field",
+                    "ip": ["geoip:ru"],
+                    "outboundTag": "direct"
+                },
+                {
+                    "type": "field",
                     "domain": ["geosite:category-ads-all"],
                     "outboundTag": "block"
                 },
