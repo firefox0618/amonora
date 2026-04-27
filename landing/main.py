@@ -8,7 +8,6 @@ import json
 import logging
 from pathlib import Path
 from uuid import uuid4
-from urllib.parse import unquote
 
 import markdown
 import uvicorn
@@ -851,124 +850,6 @@ async def public_subscription_feed(request: Request, token: str):
     return await _public_subscription_feed_response(request, token, force_client_binding=False)
 
 
-@app.get("/sub-json/{token}", response_class=JSONResponse)
-async def public_subscription_json(request: Request, token: str):
-
-    payload = await get_public_subscription_feed_payload(token)
-    if payload is None:
-        return JSONResponse({"error": "not found"}, status_code=404)
-
-    content, meta = payload
-
-    # 👉 ПРОВЕРКА ПОДПИСКИ (тут адаптируй под себя)
-    if meta and meta.get("expired"):
-        return {
-            "dns": {"servers": ["1.1.1.1", "8.8.8.8"]},
-            "outbounds": [],
-            "routing": {},
-            "remarks": "🚨 Ваша подписка истекла 🚨",
-            "servers": [
-                {
-                    "tag": "🚨 Подписка истекла",
-                    "protocol": "vless",
-                    "settings": {}
-                },
-                {
-                    "tag": "💬 Продлить: @amonora_bot",
-                    "protocol": "vless",
-                    "settings": {}
-                },
-                {
-                    "tag": "🔄 После оплаты обновите",
-                    "protocol": "vless",
-                    "settings": {}
-                }
-            ]
-        }
-
-    from urllib.parse import urlparse, parse_qs
-
-    links = [l.strip() for l in content.split("\n") if l.strip()]
-    outbounds = []
-
-    for i, link in enumerate(links):
-        parsed = urlparse(link)
-        qs = parse_qs(parsed.query)
-
-        # 👉 имя сервера
-        name = unquote(parsed.fragment) if parsed.fragment else parsed.hostname or f"node-{i}"
-
-        # 👉 флаги по домену (по желанию)
-        name = unquote(parsed.fragment) if parsed.fragment else parsed.hostname or f"node-{i}"
-
-        security = qs.get("security", ["none"])[0]
-        network = qs.get("type", ["tcp"])[0]
-
-        stream_settings = {
-            "network": network,
-            "security": security
-        }
-
-        if security == "reality":
-            stream_settings["realitySettings"] = {
-                "serverName": qs.get("sni", [""])[0],
-                "publicKey": qs.get("pbk", [""])[0],
-                "shortId": qs.get("sid", [""])[0],
-                "fingerprint": qs.get("fp", ["chrome"])[0]
-            }
-
-        if network == "xhttp":
-            stream_settings["xhttpSettings"] = {
-                "mode": "packet-up",
-                "path": qs.get("path", ["/"])[0]
-            }
-            stream_settings["tlsSettings"] = {
-                "alpn": ["h3", "h2", "http/1.1"]
-            }
-
-        outbounds.append({
-            "protocol": "vless",
-            "tag": name,
-            "settings": {
-                "vnext": [{
-                    "address": parsed.hostname,
-                    "port": parsed.port or 443,
-                    "users": [{
-                        "id": parsed.username,
-                        "encryption": "none"
-                    }]
-                }]
-            },
-            "streamSettings": stream_settings
-        })
-
-    return {
-    "log": {"loglevel": "warning"},
-    "dns": {
-        "servers": ["1.1.1.1", "8.8.8.8"]
-    },
-    "routing": {
-        "domainStrategy": "IPIfNonMatch",
-        "rules": [
-            {"type": "field", "domain": ["geosite:ru"], "outboundTag": "direct"},
-            {"type": "field", "ip": ["geoip:ru"], "outboundTag": "direct"},
-            {"type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block"},
-            {"type": "field", "network": "tcp,udp", "outboundTag": "proxy"}
-        ]
-    },
-    "outbounds": outbounds + [
-        {
-            "protocol": "selector",
-            "tag": "proxy",
-            "outbounds": [o["tag"] for o in outbounds]
-        },
-        {"protocol": "freedom", "tag": "direct"},
-        {"protocol": "blackhole", "tag": "block"}
-    ],
-    "remarks": "Amonora",
-    "version": 1
-}
-
 @app.get("/happ/add", response_class=HTMLResponse)
 async def public_subscription_happ_wrapper(request: Request):
     if not _is_client_public_host(request):
@@ -1228,7 +1109,7 @@ async def public_subscription_page(request: Request, token: str):
     if not is_valid_public_subscription_token(token):
         return PlainTextResponse("Not Found", status_code=404)
     if is_public_subscription_client_request(request.headers, query_params=request.query_params):
-        return await public_subscription_json(request, token)
+        return await _public_subscription_feed_response(request, token, force_client_binding=True)
     return templates.TemplateResponse(
         request,
         "client_subscription_shell.html",
