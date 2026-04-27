@@ -945,18 +945,28 @@ async def public_subscription_json(request: Request, token: str):
         })
 
     return {
+    "log": {"loglevel": "warning"},
     "dns": {
         "servers": ["1.1.1.1", "8.8.8.8"]
     },
-    "servers": outbounds,
     "routing": {
         "domainStrategy": "IPIfNonMatch",
         "rules": [
             {"type": "field", "domain": ["geosite:ru"], "outboundTag": "direct"},
             {"type": "field", "ip": ["geoip:ru"], "outboundTag": "direct"},
-            {"type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block"}
+            {"type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block"},
+            {"type": "field", "network": "tcp,udp", "outboundTag": "proxy"}
         ]
     },
+    "outbounds": outbounds + [
+        {
+            "protocol": "selector",
+            "tag": "proxy",
+            "outbounds": [o["tag"] for o in outbounds]
+        },
+        {"protocol": "freedom", "tag": "direct"},
+        {"protocol": "blackhole", "tag": "block"}
+    ],
     "remarks": "Amonora",
     "version": 1
 }
