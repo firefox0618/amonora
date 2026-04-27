@@ -953,14 +953,14 @@ async def public_subscription_json(request: Request, token: str):
             {"type": "field", "domain": ["geosite:ru"], "outboundTag": "direct"},
             {"type": "field", "ip": ["geoip:ru"], "outboundTag": "direct"},
             {"type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block"},
-            {"type": "field", "network": "tcp,udp", "outboundTag": "auto"}
+            {"type": "field", "network": "tcp,udp", "outboundTag": "proxy"}
         ]
     },
     "outbounds": outbounds + [
         {
             "protocol": "selector",
-            "tag": "auto",
-            "outbounds": ["proxy"]
+            "tag": "proxy",
+            "outbounds": [o["tag"] for o in outbounds]
         },
         {"protocol": "freedom", "tag": "direct"},
         {"protocol": "blackhole", "tag": "block"}
