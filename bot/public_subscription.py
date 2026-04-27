@@ -1120,7 +1120,7 @@ async def get_or_create_public_subscription_link_for_user(user_id: int):
 
 async def get_or_create_public_subscription_page_url_for_user(user_id: int) -> str:
     link = await get_or_create_public_subscription_link_for_user(int(user_id))
-    return build_public_subscription_page_url(link.token)
+    return build_public_subscription_feed_url(link.token)
 
 
 async def get_or_create_public_subscription_happ_wrapper_url_for_user(user_id: int) -> str:
