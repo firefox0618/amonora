@@ -59,6 +59,46 @@ PUBLIC_SUBSCRIPTION_PROFILE_TITLE = "Amonora 💛"
 PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES = 0
 PUBLIC_SUBSCRIPTION_SERVER_DESCRIPTION = "VLESS | Amonora"
 PUBLIC_SUBSCRIPTION_PROVIDER_ID = "fDXrJFcd"
+PUBLIC_SUBSCRIPTION_COLOR_PROFILE = json.dumps(
+    {
+        "backgroundGradientRotationAngle": 37.1,
+        "serverRowBackgroundColor": "#21003D67",
+        "subsHeaderColor": "#42296DFF",
+        "profileWebPageIconColor": "#A2B8FFFF",
+        "selectedServerRowColor": "#3E2F62B5",
+        "disclosureSubHeaderTextColor": "#C1C2E2FF",
+        "buttonTextColor": "#FFFFFFFF",
+        "buttonTimerColor": "#FFFFFFFF",
+        "subscriptionInfoBackgroundColor": "#21003CFF",
+        "backgroundColors": [
+            "#3D2A7DFF",
+            "#6557BAFF",
+            "#9377FF7F",
+        ],
+        "disclosureHeaderTextColor": "#FFFFFFFF",
+        "backgroundGradientColorIntensity": 1,
+        "additionalOptionsButtonColor": "#FFFFFFFF",
+        "buttonImageType": "light",
+        "serverRowSubTitleTextColor": "#C1C2E2FF",
+        "supportIconColor": "#FFFFFFFF",
+        "topBarButtonsColor": "#FFFFFFFF",
+        "subscriptionTrafficBackgroundColor": "#533EA7FF",
+        "subHeaderButtonColor": "#FFFFFFFF",
+        "buttonColor": "#9377FFFF",
+        "powerIconColor": "#3D2A7DFF",
+        "subscriptionInfoTextColor": "#FFFFFFFF",
+        "serverRowTitleTextColor": "#FFFFFFFF",
+        "backgroundImageType": "system",
+        "elipseColors": [
+            "#00B460FF",
+            "#CF72FFE0",
+            "#FFDD00FF",
+        ],
+        "serverRowChevronColor": "#FFFFFFFF",
+    },
+    ensure_ascii=False,
+    separators=(",", ":"),
+)
 
 PUBLIC_SUBSCRIPTION_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 PUBLIC_SUBSCRIPTION_FORCE_FEED_VALUES = {"1", "true", "yes", "sub", "subscription", "feed", "raw"}
@@ -941,6 +981,7 @@ def _build_feed_headers(
         "content-disposition": 'attachment; filename="amonora"',
         "providerid": PUBLIC_SUBSCRIPTION_PROVIDER_ID,
         "profile-title": PUBLIC_SUBSCRIPTION_PROFILE_TITLE,
+        "color-profile": PUBLIC_SUBSCRIPTION_COLOR_PROFILE,
         "profile-update-interval": str(PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS),
         "profile-web-page-url": page_url,
         "support-url": SUPPORT_URL,
@@ -973,6 +1014,7 @@ def _build_happ_feed_preamble(
         f"#providerid {PUBLIC_SUBSCRIPTION_PROVIDER_ID}"
         "#hide-settings: true",
         f"#profile-title: {PUBLIC_SUBSCRIPTION_PROFILE_TITLE}",
+        f"#color-profile: {PUBLIC_SUBSCRIPTION_COLOR_PROFILE}",
         f"#profile-update-interval: {PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS}",
         (
             "#subscription-userinfo: "
