@@ -9,7 +9,6 @@ import math
 import re
 import secrets
 from datetime import datetime, timedelta
-import token
 from typing import Mapping
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
@@ -57,7 +56,7 @@ PUBLIC_SUBSCRIPTION_FAILOVER_ORDER: dict[str, tuple[str, ...]] = {
 PUBLIC_SUBSCRIPTION_MAX_SLOTS = 3
 PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS = 12
 PUBLIC_SUBSCRIPTION_PROFILE_TITLE = "Amonora 💛"
-PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES = 5 * 1024 * 1024 * 1024
+PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES = 0
 PUBLIC_SUBSCRIPTION_SERVER_DESCRIPTION = "VLESS | Amonora"
 
 PUBLIC_SUBSCRIPTION_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
@@ -69,14 +68,46 @@ PUBLIC_SUBSCRIPTION_CLIENT_MARKERS = (
     "happ-proxy-utility",
 )
 PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT = "Отличного настроения 💛"
-PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE = "on"
+PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE = "bypass"
 PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST = (
-    "org.telegram.messenger,"
-    "org.thunderdog.challegram,"
-    "com.instagram.android,"
-    "com.whatsapp,"
-    "com.google.android.youtube,"
-    "com.google.android.apps.youtube.music"
+    "ru.rostel,"
+    "ru.minsvyaz.goskey,"
+    "ru.rostel.gosuslugi.autodor,"
+    "ru.mos.mosru,"
+    "ru.pochta.android,"
+    "ru.sberbankmobile,"
+    "ru.sberbank.sbbol,"
+    "ru.alfabank.mobile.android,"
+    "ru.vtb24.mobilebanking.android,"
+    "ru.vtb.mobilebank,"
+    "com.idamob.tinkoff.android,"
+    "ru.gazprombank.android.mobilebank.app,"
+    "ru.mirpay,"
+    "ru.dublgis.dgismobile,"
+    "ru.yandex.yandexmaps,"
+    "ru.yandex.yandexnavi,"
+    "ru.yandex.taxi,"
+    "ru.yandex.metro,"
+    "ru.yandex.mobile.drive,"
+    "ru.tutu.tutu_emp,"
+    "ru.rzd.pass,"
+    "ru.aeroflot.mobile,"
+    "ru.pobeda.airlines,"
+    "ru.taximaxim.client,"
+    "ru.dellin.app,"
+    "ru.sbcs.store,"
+    "ru.samokat.store,"
+    "com.wildberries.ru,"
+    "ru.ozon.app.android,"
+    "ru.sberbank.sberkids,"
+    "ru.sberbank.sberinvestor,"
+    "ru.sberbank.sberbusiness,"
+    "ru.sberbank.spasibo,"
+    "ru.sberdevices.smartmarket,"
+    "ru.mts.mymts,"
+    "ru.beeline.services,"
+    "ru.megafon.mlk,"
+    "ru.tele2.mytele2"
 )
 PUBLIC_SUBSCRIPTION_COMPLIMENTARY_DAYS = 3650
 PUBLIC_SUBSCRIPTION_EXTRA_SERVERS: tuple[dict[str, str], ...] = (
@@ -923,7 +954,7 @@ def _build_feed_headers(
         "per-app-proxy-mode": PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE,
         "per-app-proxy-list": PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST,
         "ping-result": "icon",
-        "routing": _build_happ_routing_link(),
+        "routing": "happ://routing/off",
     }
 
 
@@ -953,7 +984,7 @@ def _build_happ_feed_preamble(
         f"#per-app-proxy-mode: {PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE}",
         f"#per-app-proxy-list: {PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST}",
         "#ping-result: icon",
-        _build_happ_routing_link(),
+        "happ://routing/off",
     ]
 
 
