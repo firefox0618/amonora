@@ -58,6 +58,7 @@ PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS = 12
 PUBLIC_SUBSCRIPTION_PROFILE_TITLE = "Amonora 💛"
 PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES = 0
 PUBLIC_SUBSCRIPTION_SERVER_DESCRIPTION = "VLESS | Amonora"
+PUBLIC_SUBSCRIPTION_PROVIDER_ID = "fDXrJFcd"
 
 PUBLIC_SUBSCRIPTION_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 PUBLIC_SUBSCRIPTION_FORCE_FEED_VALUES = {"1", "true", "yes", "sub", "subscription", "feed", "raw"}
@@ -930,6 +931,7 @@ def _build_feed_headers(
     expires_at: datetime | None,
     upload_bytes: int = 0,
     download_bytes: int = 0,
+    
 ) -> dict[str, str]:
     expire_ts = int(expires_at.timestamp()) if expires_at is not None else 0
     del display_name
@@ -937,6 +939,7 @@ def _build_feed_headers(
         "Cache-Control": "no-store",
         "Pragma": "no-cache",
         "content-disposition": 'attachment; filename="amonora"',
+        "providerid": PUBLIC_SUBSCRIPTION_PROVIDER_ID,
         "profile-title": PUBLIC_SUBSCRIPTION_PROFILE_TITLE,
         "profile-update-interval": str(PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS),
         "profile-web-page-url": page_url,
@@ -967,6 +970,7 @@ def _build_happ_feed_preamble(
 ) -> list[str]:
     expire_ts = int(expires_at.timestamp()) if expires_at is not None else 0
     return [
+        f"#providerid {PUBLIC_SUBSCRIPTION_PROVIDER_ID}"
         "#hide-settings: true",
         f"#profile-title: {PUBLIC_SUBSCRIPTION_PROFILE_TITLE}",
         f"#profile-update-interval: {PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS}",
