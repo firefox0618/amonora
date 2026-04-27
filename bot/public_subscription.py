@@ -1628,7 +1628,9 @@ def _legacy_public_devices_from_vpn_clients(
                 "bound_at": created_at.isoformat() if isinstance(created_at, datetime) else None,
                 "country_name": str(metadata.get("country_name") or metadata.get("country_code") or "Классический ключ").strip()
                 or "Классический ключ",
-                "source_label": "Классический ключ",
+                "source_label": "Legacy-клиент / классический ключ",
+                "legacy_status": "soft_migration_pending",
+                "legacy_status_label": "Работает в legacy-режиме",
                 "connection_uri": _legacy_device_connection_uri(device, metadata),
                 **status_fields,
             }

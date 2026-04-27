@@ -6,6 +6,47 @@
   <title>{{ product_name }} — private network access for the Amonora ecosystem</title>
   <meta name="description" content="Amonora — частная цифровая сеть экосистемы Amonora с быстрым запуском через Telegram и двумя активными точками сети: Германия и Дания.">
   <link rel="canonical" href="{{ canonical_url }}">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Amonora — частная сеть экосистемы">
+  <meta property="og:description" content="Подключай устройство, получай готовый маршрут и управляй доступом через Telegram и веб-интерфейсы сервиса.">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:site_name" content="Amonora">
+  <meta property="og:image" content="{{ canonical_url }}/static/og-image.png">
+  <meta property="og:locale" content="ru_RU">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Amonora — частная сеть экосистемы">
+  <meta name="twitter:description" content="Подключай устройство, получай готовый маршрут и управляй доступом через Telegram и веб-интерфейсы сервиса.">
+  <meta name="twitter:image" content="{{ canonical_url }}/static/og-image.png">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Amonora",
+    "description": "Частная цифровая сеть экосистемы Amonora с быстрым запуском через Telegram.",
+    "url": "https://www.amonoraconnect.com",
+    "applicationCategory": "CommunicationApplication",
+    "operatingSystem": "iOS, Android, macOS, Windows, Linux",
+    "offers": {
+      "@type": "AggregateOffer",
+      "priceCurrency": "RUB",
+      "lowPrice": "299",
+      "highPrice": "1990"
+    },
+    "provider": {
+      "@type": "Organization",
+      "name": "Amonora",
+      "url": "https://www.amonoraconnect.com",
+      "email": "amonoraconnect@yandex.ru"
+    }
+  }
+  </script>
+
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v={{ asset_version }}">
   <script>
     (() => {

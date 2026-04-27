@@ -67,6 +67,7 @@ from bot.services.user.summary import (
     _load_test_user_summary,
     _subscription_connection_uri,
 )
+from bot.public_subscription import PUBLIC_SUBSCRIPTION_BINDING_METADATA_KEYS
 from bot.ui.keyboards.inline.user import (
     _after_install_keyboard,
     _agreement_keyboard,
@@ -3353,23 +3354,7 @@ async def v2_my_device_delete_callback(callback: CallbackQuery) -> None:
         cleared = await clear_public_subscription_device_slot_binding(
             int(user.id),
             slot_index=device_id,
-            binding_keys={
-                "feed_device_fingerprint_hash",
-                "feed_device_label",
-                "device_name",
-                "device_model",
-                "device_type",
-                "platform_name",
-                "os_name",
-                "os_version",
-                "app_version",
-                "source_ip",
-                "user_agent",
-                "install_id",
-                "feed_device_bound_at",
-                "feed_device_last_seen_at",
-                "subscription_client",
-            },
+            binding_keys=PUBLIC_SUBSCRIPTION_BINDING_METADATA_KEYS,
         )
         if not cleared:
             await callback.answer(delete_device_not_found_text(), show_alert=True)

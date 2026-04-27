@@ -7,6 +7,22 @@
     <meta name="description" content="{{ page_description }}">
     <link rel="canonical" href="{{ canonical_url }}">
     <meta name="theme-color" content="#100913">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ page_title }}">
+    <meta property="og:description" content="{{ page_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta property="og:site_name" content="Amonora">
+    <meta property="og:image" content="{{ canonical_url }}/static/og-image.png">
+    <meta property="og:locale" content="ru_RU">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ page_title }}">
+    <meta name="twitter:description" content="{{ page_description }}">
+    <meta name="twitter:image" content="{{ canonical_url }}/static/og-image.png">
+
     <link rel="icon" href="/static/favicon.svg?v={{ asset_version }}">
     <link rel="stylesheet" href="/client-static/assets/app.css?v={{ asset_version }}">
   </head>

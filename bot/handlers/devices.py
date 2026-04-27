@@ -79,7 +79,7 @@ from bot.utils.regions import (
 from bot.vpn_provisioning import get_vless_provisioner
 from bot.utils.access import get_device_limit_for_user, has_active_access_from_user, has_active_subscription_from_user
 from bot.utils.device_slots import DEFAULT_DEVICE_LIMIT, MAX_DEVICE_LIMIT, device_slot_unit_price_rub, remaining_device_slot_capacity
-from bot.public_subscription import get_account_devices_for_user
+from bot.public_subscription import PUBLIC_SUBSCRIPTION_BINDING_METADATA_KEYS, get_account_devices_for_user
 from bot.utils.qr import generate_qr_image
 from bot.utils.routing import build_split_routing_pack_for_device, dumps_pack
 from bot.utils.texts import (
@@ -210,6 +210,34 @@ async def _get_owned_device_for_telegram(telegram_id: int, device_id: int):
     if device is None or device.user_id != user.id:
         return user, None
     return user, device
+
+
+def _callback_kind_to_device_kind(raw_kind: str | None) -> str:
+    normalized = str(raw_kind or "").strip().lower()
+    if normalized in {"public", "public_slot", "slot"}:
+        return "public_slot"
+    return "legacy_device"
+
+
+def _device_callback_suffix(device_kind: str | None) -> str:
+    return "public" if _callback_kind_to_device_kind(device_kind) == "public_slot" else "vpn"
+
+
+def _parse_device_target_callback(data: str | None, *, action: str) -> tuple[str, int] | None:
+    parts = str(data or "").split(":")
+    if len(parts) < 3 or parts[0] != "device":
+        return None
+
+    try:
+        if parts[1] == "public" and len(parts) >= 4 and parts[2] == action:
+            return "public_slot", int(parts[3])
+        if parts[1] != action:
+            return None
+        if len(parts) == 3:
+            return "legacy_device", int(parts[2])
+        return _callback_kind_to_device_kind(parts[2]), int(parts[3])
+    except (TypeError, ValueError):
+        return None
 
 
 async def _emit_credential_delivery_event(
@@ -627,11 +655,7 @@ async def _show_devices_list(message: Message, user) -> None:
                     str(device.get("device_type") or "other"),
                     protocol,
                 ),
-                "callback_data": (
-                    f"device:public:view:{int(device.get('id') or 0)}"
-                    if device_kind == "public_slot"
-                    else f"device:view:{int(device.get('id') or 0)}"
-                ),
+                "callback_data": f"device:view:{_device_callback_suffix(device_kind)}:{int(device.get('id') or 0)}",
             }
         )
         device_lines.append(
@@ -1584,8 +1608,16 @@ async def device_guide_callback(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("device:view:"))
 async def device_view_callback(callback: CallbackQuery):
-    device_id = int(callback.data.split(":")[2])
-    await _show_device_card(callback, device_id)
+    parsed = _parse_device_target_callback(callback.data, action="view")
+    if parsed is None:
+        await callback.answer(delete_device_not_found_text(), show_alert=True)
+        return
+
+    device_kind, device_id = parsed
+    if device_kind == "public_slot":
+        await _show_public_slot_card(callback, device_id)
+    else:
+        await _show_device_card(callback, device_id)
     await callback.answer()
 
 
@@ -2050,7 +2082,33 @@ async def device_qr_callback(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("device:delete:"))
 async def delete_device_callback(callback: CallbackQuery):
-    device_id = int(callback.data.split(":")[2])
+    parsed = _parse_device_target_callback(callback.data, action="delete")
+    if parsed is None:
+        await callback.message.answer(delete_device_not_found_text(), parse_mode=ParseMode.HTML)
+        await callback.answer()
+        return
+
+    device_kind, device_id = parsed
+    if device_kind == "public_slot":
+        user = await get_user_by_telegram_id(callback.from_user.id)
+        if not user:
+            await callback.message.answer(USER_NOT_FOUND_TEXT, parse_mode=ParseMode.HTML)
+            await callback.answer()
+            return
+
+        cleared = await clear_public_subscription_device_slot_binding(
+            int(user.id),
+            slot_index=device_id,
+            binding_keys=PUBLIC_SUBSCRIPTION_BINDING_METADATA_KEYS,
+        )
+        if not cleared:
+            await callback.message.answer(delete_device_not_found_text(), parse_mode=ParseMode.HTML)
+            await callback.answer()
+            return
+
+        await _show_devices_list(callback.message, user)
+        await callback.answer()
+        return
 
     user, vpn_client = await _get_owned_device_for_telegram(callback.from_user.id, device_id)
     if not user:
@@ -2112,7 +2170,8 @@ async def delete_device_callback(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("device:public:delete:"))
 async def delete_public_device_callback(callback: CallbackQuery):
-    slot_index = int(callback.data.split(":")[3])
+    parsed = _parse_device_target_callback(callback.data, action="delete")
+    slot_index = parsed[1] if parsed is not None else int(callback.data.split(":")[3])
     user = await get_user_by_telegram_id(callback.from_user.id)
     if not user:
         await callback.message.answer(USER_NOT_FOUND_TEXT, parse_mode=ParseMode.HTML)
@@ -2122,23 +2181,7 @@ async def delete_public_device_callback(callback: CallbackQuery):
     cleared = await clear_public_subscription_device_slot_binding(
         int(user.id),
         slot_index=slot_index,
-        binding_keys={
-            "feed_device_fingerprint_hash",
-            "feed_device_label",
-            "device_name",
-            "device_model",
-            "device_type",
-            "platform_name",
-            "os_name",
-            "os_version",
-            "app_version",
-            "source_ip",
-            "user_agent",
-            "install_id",
-            "feed_device_bound_at",
-            "feed_device_last_seen_at",
-            "subscription_client",
-        },
+        binding_keys=PUBLIC_SUBSCRIPTION_BINDING_METADATA_KEYS,
     )
     if not cleared:
         await callback.message.answer(delete_device_not_found_text(), parse_mode=ParseMode.HTML)

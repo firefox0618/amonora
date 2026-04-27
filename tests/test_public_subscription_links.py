@@ -546,6 +546,9 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(payload["account_devices"]), 2)
         self.assertEqual(payload["account_devices"][0]["kind"], "public_slot")
         self.assertEqual(payload["account_devices"][1]["kind"], "legacy_device")
+        self.assertEqual(payload["account_devices"][1]["legacy_status"], "soft_migration_pending")
+        self.assertEqual(payload["account_devices"][1]["legacy_status_label"], "Работает в legacy-режиме")
+        self.assertIn("Legacy", payload["account_devices"][1]["source_label"])
 
     async def test_feed_payload_builds_headers_and_route_body(self) -> None:
         token = "abcdefghijklmnop"

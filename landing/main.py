@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 import asyncio
 from datetime import datetime, timedelta
+import functools
 import hashlib
 import hmac
 import json
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -16,6 +18,7 @@ from fastapi.templating import Jinja2Templates
 from aiogram import Bot
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from backend.core.database import async_session
 from backend.core.tracing import reset_current_trace_id, set_current_trace_id
 from bot.config import config
 from bot.crypto_pay import CryptoPayClient, CryptoPayError
@@ -130,6 +133,7 @@ crypto_pay_client = CryptoPayClient()
 platega_client = PlategaClient()
 
 
+@functools.cache
 def build_context() -> dict:
     tariff_notes = {
         "1m": "Быстрый старт",
@@ -320,6 +324,87 @@ async def canonical_public_host_middleware(request: Request, call_next):
     if _should_redirect_public_request(request):
         return RedirectResponse(_canonical_public_url(request), status_code=308)
     return await call_next(request)
+
+
+_LANDING_LOGGER = logging.getLogger("landing")
+
+
+# ─── Security headers ─────────────────────────────────────────────────────────
+
+SECURITY_HEADERS: dict[str, str] = {
+    "X-Frame-Options": "SAMEORIGIN",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "accelerometer=(), camera=(), geolocation=(), microphone=()",
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'self'; "
+        "base-uri 'self'; "
+        "form-action 'self';"
+    ),
+}
+
+
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    for name, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(name, value)
+    return response
+
+
+# ─── Static file caching ─────────────────────────────────────────────────────
+
+STATIC_CACHE_HEADERS: dict[str, str] = {
+    "Cache-Control": "public, max-age=31536000, immutable",
+}
+
+
+@app.middleware("http")
+async def static_cache_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/") or request.url.path.startswith("/client-static/"):
+        for name, value in STATIC_CACHE_HEADERS.items():
+            response.headers.setdefault(name, value)
+    return response
+
+
+# ─── Global exception handler ─────────────────────────────────────────────────
+
+SAFE_ERROR_MESSAGE = "Внутренняя ошибка сервера. Попробуйте обновить страницу."
+SAFE_ERROR_HTML = (
+    '<!doctype html><html lang="ru"><head><meta charset="utf-8">'
+    '<title>Ошибка</title></head><body style="font-family:sans-serif;padding:2rem;text-align:center">'
+    f"<h1>Ошибка</h1><p>{SAFE_ERROR_MESSAGE}</p></body></html>"
+)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    request_id = getattr(request.state, "request_id", "unknown")
+    _LANDING_LOGGER.exception(
+        "Unhandled exception",
+        extra={
+            "request_id": request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "client_ip": _client_ip(request),
+            "exc_type": type(exc).__name__,
+            "exc_message": str(exc),
+        },
+    )
+    accept = str(request.headers.get("accept", "")).lower()
+    if "application/json" in accept or request.url.path.startswith("/api/") or request.url.path.startswith("/webhooks/"):
+        return JSONResponse(
+            {"ok": False, "error": "internal_server_error", "message": SAFE_ERROR_MESSAGE},
+            status_code=500,
+        )
+    return HTMLResponse(SAFE_ERROR_HTML, status_code=500)
 
 
 @app.middleware("http")
@@ -532,16 +617,27 @@ async def _release_bridge_rate_limit(client_ip: str) -> None:
 
 
 async def _issue_bridge_vless_key(user_id: int, access_expires_at: datetime) -> dict:
-    errors: list[str] = []
-    for country_code in BRIDGE_ACCESS_REGION_ORDER:
+    # Parallel health check across all regions
+    async def check_region(cc: str) -> tuple[str, bool]:
+        provisioner = get_vless_provisioner(cc)
+        try:
+            return (cc, await provisioner.health_check())
+        finally:
+            await provisioner.close()
+
+    results = await asyncio.gather(*[_check_region(cc) for cc in BRIDGE_ACCESS_REGION_ORDER], return_exceptions=True)
+
+    for result in results:
+        if isinstance(result, Exception):
+            continue
+        country_code, healthy = result
+        if not healthy:
+            continue
+
         provisioner = get_vless_provisioner(country_code)
         try:
-            if not await provisioner.health_check():
-                errors.append(f"{country_code}:health_check_failed")
-                continue
-
             email = f"landing_bridge_{user_id}_{uuid4().hex[:10]}"
-            result = await provisioner.provision_vless_client(
+            provision_result = await provisioner.provision_vless_client(
                 user_id=user_id,
                 email=email,
                 access_expires_at=access_expires_at,
@@ -557,20 +653,18 @@ async def _issue_bridge_vless_key(user_id: int, access_expires_at: datetime) -> 
                 "bridge_source": "landing",
                 "bridge_expires_at": access_expires_at.isoformat(),
                 **build_region_snapshot(country_code),
-                **result.metadata,
+                **provision_result.metadata,
             }
-            await update_vpn_client_metadata(result.vpn_client_id, metadata)
+            await update_vpn_client_metadata(provision_result.vpn_client_id, metadata)
             return {
                 "country_code": country_code,
                 "country_name": metadata["country_name"],
                 "metadata": metadata,
             }
-        except Exception as exc:
-            errors.append(f"{country_code}:{exc}")
         finally:
             await provisioner.close()
 
-    raise RuntimeError("; ".join(errors) or "bridge_provisioning_failed")
+    raise RuntimeError("all regions unavailable")
 
 
 def render_markdown_page(
@@ -673,7 +767,46 @@ async def manual_page(request: Request):
 
 @app.get("/health", response_class=JSONResponse)
 async def healthcheck():
-    return {"ok": True, "service": "amonora-landing"}
+    checks: dict[str, str | float] = {"service": "amonora-landing"}
+
+    # Database
+    try:
+        async with async_session() as session:
+            import sqlalchemy as sa
+            result = await session.execute(sa.text("SELECT 1"))
+            result.scalar()
+        checks["db"] = "ok"
+    except Exception as exc:
+        checks["db"] = str(exc)[:64]
+
+    # VPN provisioners (DK, DE)
+    vpn_checks: list[dict] = []
+    provisioner_tasks = [
+        _check_provisioner_health("dk"),
+        _check_provisioner_health("de"),
+    ]
+    results = await asyncio.gather(*provisioner_tasks, return_exceptions=True)
+    for cc, ok in results:
+        if isinstance(ok, Exception):
+            vpn_checks.append({"region": cc, "status": f"error: {type(ok).__name__}"})
+        else:
+            vpn_checks.append({"region": cc, "status": "ok" if ok else "unhealthy"})
+    checks["vpn_regions"] = vpn_checks
+
+    all_ok = checks.get("db") == "ok"
+    checks["ok"] = all_ok
+    return JSONResponse(checks, status_code=200 if all_ok else 503)
+
+
+async def _check_provisioner_health(country_code: str) -> tuple[str, bool | Exception]:
+    try:
+        provisioner = get_vless_provisioner(country_code)
+        try:
+            return (country_code, await provisioner.health_check())
+        finally:
+            await provisioner.close()
+    except Exception as exc:
+        return (country_code, exc)
 
 
 async def _public_subscription_feed_response(

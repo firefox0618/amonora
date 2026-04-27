@@ -47,7 +47,7 @@ def devices_list_keyboard(
             [
                 InlineKeyboardButton(
                     text=device["title"],
-                    callback_data=device.get("callback_data") or f"device:view:{device['id']}",
+                    callback_data=device.get("callback_data") or f"device:view:vpn:{device['id']}",
                 )
             ]
         )
@@ -91,7 +91,7 @@ def device_card_keyboard(device_id: int, protocol: str = "vless") -> InlineKeybo
 def public_device_card_keyboard(slot_index: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="♻ Освободить слот", callback_data=f"device:public:delete:{slot_index}")],
+            [InlineKeyboardButton(text="♻ Освободить слот", callback_data=f"device:delete:public:{slot_index}")],
             [InlineKeyboardButton(text="⬅ К списку устройств", callback_data="device:back")],
         ]
     )
@@ -104,7 +104,7 @@ def device_settings_keyboard(device_id: int) -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🖥 Сменить ОС", callback_data=f"device:oschange:{device_id}"),
         ],
         [
-            InlineKeyboardButton(text="🗑 Удалить устройство", callback_data=f"device:delete:{device_id}"),
+            InlineKeyboardButton(text="🗑 Удалить устройство", callback_data=f"device:delete:vpn:{device_id}"),
         ],
         [
             InlineKeyboardButton(text="❌ Закрыть настройки", callback_data=f"device:settings:close:{device_id}"),
@@ -162,7 +162,7 @@ def device_happ_question_keyboard(device_id: int) -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="✅ Да, установлен", callback_data=f"device:happ:installed:{device_id}")],
             [InlineKeyboardButton(text="📲 Нет, не установлен", callback_data=f"device:happ:notinstalled:{device_id}")],
-            [InlineKeyboardButton(text="↩ К устройству", callback_data=f"device:view:{device_id}")],
+            [InlineKeyboardButton(text="↩ К устройству", callback_data=f"device:view:vpn:{device_id}")],
         ]
     )
 
@@ -191,7 +191,7 @@ def device_instruction_keyboard(device_id: int, protocol: str = "vless") -> Inli
             ],
             [InlineKeyboardButton(text="📘 Полная инструкция", url=MANUAL_URL)],
             [InlineKeyboardButton(text="🧭 Маршруты РФ", callback_data=f"device:routing:{device_id}")],
-            [InlineKeyboardButton(text="↩ К устройству", callback_data=f"device:view:{device_id}")],
+            [InlineKeyboardButton(text="↩ К устройству", callback_data=f"device:view:vpn:{device_id}")],
         ]
     )
 
