@@ -871,13 +871,19 @@ async def public_subscription_json(request: Request, token: str):
         parsed = urlparse(link)
         qs = parse_qs(parsed.query)
 
+        # защита
+        if not parsed.hostname:
+            continue
+
         security = qs.get("security", ["none"])[0]
+        network = qs.get("type", ["tcp"])[0]
 
         stream_settings = {
-            "network": qs.get("type", ["tcp"])[0],
+            "network": network,
             "security": security
         }
 
+        # ✅ REALITY
         if security == "reality":
             stream_settings["realitySettings"] = {
                 "serverName": qs.get("sni", [""])[0],
@@ -886,15 +892,28 @@ async def public_subscription_json(request: Request, token: str):
                 "fingerprint": qs.get("fp", ["chrome"])[0]
             }
 
+        # ✅ XHTTP (КРИТИЧНО для DK)
+        if network == "xhttp":
+            stream_settings["xhttpSettings"] = {
+                "path": qs.get("path", ["/"])[0],
+                "mode": "packet-up"
+            }
+
+        # иногда нужен ALPN
+        if "alpn" in qs:
+            stream_settings["tlsSettings"] = {
+                "alpn": qs.get("alpn", [])
+            }
+
         outbounds.append({
             "protocol": "vless",
             "tag": "proxy" if i == 0 else f"node-{i}",
             "settings": {
                 "vnext": [{
                     "address": parsed.hostname,
-                    "port": parsed.port,
+                    "port": parsed.port or 443,
                     "users": [{
-                        "id": parsed.username,
+                        "id": parsed.username or "",
                         "encryption": "none"
                     }]
                 }]
@@ -903,10 +922,13 @@ async def public_subscription_json(request: Request, token: str):
         })
 
     return {
-        "log": {"loglevel": "warning"},
+        "version": 1,  # важно для Happ
+        "remarks": "Amonora",
+
         "dns": {
             "servers": ["1.1.1.1", "8.8.8.8"]
         },
+
         "routing": {
             "domainStrategy": "IPIfNonMatch",
             "rules": [
@@ -916,12 +938,9 @@ async def public_subscription_json(request: Request, token: str):
                 {"type": "field", "network": "tcp,udp", "outboundTag": "proxy"}
             ]
         },
-        "outbounds": outbounds + [
-            {"protocol": "freedom", "tag": "direct"},
-            {"protocol": "freedom", "tag": "proxy"},
-            {"protocol": "blackhole", "tag": "block"}
-        ],
-        "remarks": "Amonora"
+
+        # 🔥 ключевое — НЕ outbounds, а servers
+        "servers": outbounds
     }
 
 @app.get("/happ/add", response_class=HTMLResponse)
