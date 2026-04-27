@@ -11,7 +11,7 @@ from uuid import uuid4
 
 import markdown
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -159,6 +159,7 @@ def build_context() -> dict:
         "brand": "Amonora",
         "product_name": "Amonora",
         "public_web_base_url": PUBLIC_WEB_BASE_URL,
+        "og_image_url": _public_static_url("og-image.png"),
         "asset_version": asset_version,
         "owner_name": "Иван Сергеевич Ковалёв",
         "support_email": "amonoraconnect@yandex.ru",
@@ -310,6 +311,11 @@ def _canonical_public_url(request: Request) -> str:
     return f"{PUBLIC_WEB_BASE_URL}{path}{query}"
 
 
+def _public_static_url(path: str) -> str:
+    """Return canonical /static/ URL, e.g. _public_static_url('og-image.png') → 'https://www.amonoraconnect.com/static/og-image.png'."""
+    return f"{PUBLIC_WEB_BASE_URL}/static/{path.lstrip('/')}"
+
+
 def _should_redirect_public_request(request: Request) -> bool:
     if request.method not in {"GET", "HEAD"}:
         return False
@@ -330,49 +336,6 @@ _LANDING_LOGGER = logging.getLogger("landing")
 
 
 # ─── Security headers ─────────────────────────────────────────────────────────
-
-SECURITY_HEADERS: dict[str, str] = {
-    "X-Frame-Options": "SAMEORIGIN",
-    "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "accelerometer=(), camera=(), geolocation=(), microphone=()",
-    "Content-Security-Policy": (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: https:; "
-        "font-src 'self' data:; "
-        "connect-src 'self'; "
-        "frame-ancestors 'self'; "
-        "base-uri 'self'; "
-        "form-action 'self';"
-    ),
-}
-
-
-@app.middleware("http")
-async def security_headers_middleware(request: Request, call_next):
-    response = await call_next(request)
-    for name, value in SECURITY_HEADERS.items():
-        response.headers.setdefault(name, value)
-    return response
-
-
-# ─── Static file caching ─────────────────────────────────────────────────────
-
-STATIC_CACHE_HEADERS: dict[str, str] = {
-    "Cache-Control": "public, max-age=31536000, immutable",
-}
-
-
-@app.middleware("http")
-async def static_cache_headers_middleware(request: Request, call_next):
-    response = await call_next(request)
-    if request.url.path.startswith("/static/") or request.url.path.startswith("/client-static/"):
-        for name, value in STATIC_CACHE_HEADERS.items():
-            response.headers.setdefault(name, value)
-    return response
-
 
 # ─── Global exception handler ─────────────────────────────────────────────────
 
@@ -418,6 +381,14 @@ async def landing_request_id_middleware(request: Request, call_next):
     finally:
         reset_current_trace_id(token)
     response.headers.setdefault("X-Request-ID", request_id)
+    return response
+
+
+@app.middleware("http")
+async def static_cache_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/") or request.url.path.startswith("/client-static/"):
+        response.headers.setdefault("Cache-Control", "public, max-age=31536000, immutable")
     return response
 
 
@@ -703,9 +674,13 @@ def render_markdown_page(
     )
 
 
+def _should_redirect_landing(request: Request) -> bool:
+    return _is_client_public_host(request) and request.method in {"GET", "HEAD"}
+
+
 @app.get("/", response_class=HTMLResponse)
 async def landing_index(request: Request):
-    if _is_client_public_host(request):
+    if _should_redirect_landing(request):
         return RedirectResponse(PUBLIC_WEB_BASE_URL, status_code=302)
     return templates.TemplateResponse(
         request,
@@ -715,6 +690,13 @@ async def landing_index(request: Request):
             "canonical_url": _canonical_public_url(request),
         },
     )
+
+
+@app.head("/")
+async def landing_head(request: Request):
+    if _should_redirect_landing(request):
+        return RedirectResponse(PUBLIC_WEB_BASE_URL, status_code=302)
+    return Response(status_code=200, media_type="text/html")
 
 
 @app.get("/{filename}.txt", response_class=PlainTextResponse)
