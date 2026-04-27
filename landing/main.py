@@ -850,6 +850,64 @@ async def public_subscription_feed(request: Request, token: str):
     return await _public_subscription_feed_response(request, token, force_client_binding=False)
 
 
+@app.get("/sub-json/{token}", response_class=JSONResponse)
+async def public_subscription_json(request: Request, token: str):
+
+    payload = await get_public_subscription_feed_payload(token)
+    if payload is None:
+        return JSONResponse({"error": "not found"}, status_code=404)
+
+    content, _ = payload
+
+    first_link = content.split("\n")[0]
+
+    return {
+        "log": {
+            "loglevel": "warning"
+        },
+        "dns": {
+            "servers": [
+                "1.1.1.1",
+                "8.8.8.8"
+            ]
+        },
+        "routing": {
+            "domainStrategy": "IPIfNonMatch",
+            "rules": [
+                {
+                    "type": "field",
+                    "domain": ["geosite:ru"],
+                    "outboundTag": "direct"
+                },
+                {
+                    "type": "field",
+                    "domain": ["geosite:category-ads-all"],
+                    "outboundTag": "block"
+                },
+                {
+                    "type": "field",
+                    "network": "tcp,udp",
+                    "outboundTag": "proxy"
+                }
+            ]
+        },
+        "outbounds": [
+            {
+                "protocol": "freedom",
+                "tag": "direct"
+            },
+            {
+                "protocol": "freedom",
+                "tag": "proxy"
+            },
+            {
+                "protocol": "blackhole",
+                "tag": "block"
+            }
+        ],
+        "remarks": "Amonora routing test"
+    }
+
 @app.get("/happ/add", response_class=HTMLResponse)
 async def public_subscription_happ_wrapper(request: Request):
     if not _is_client_public_host(request):
