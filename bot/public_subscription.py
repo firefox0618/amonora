@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import json
 import logging
@@ -8,6 +9,7 @@ import math
 import re
 import secrets
 from datetime import datetime, timedelta
+import token
 from typing import Mapping
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
@@ -54,6 +56,10 @@ PUBLIC_SUBSCRIPTION_FAILOVER_ORDER: dict[str, tuple[str, ...]] = {
 }
 PUBLIC_SUBSCRIPTION_MAX_SLOTS = 3
 PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS = 12
+PUBLIC_SUBSCRIPTION_PROFILE_TITLE = "Amonora 💛"
+PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES = 5 * 1024 * 1024 * 1024
+PUBLIC_SUBSCRIPTION_SERVER_DESCRIPTION = "VLESS | Amonora"
+
 PUBLIC_SUBSCRIPTION_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 PUBLIC_SUBSCRIPTION_FORCE_FEED_VALUES = {"1", "true", "yes", "sub", "subscription", "feed", "raw"}
 PUBLIC_SUBSCRIPTION_CLIENT_MARKERS = (
@@ -62,7 +68,16 @@ PUBLIC_SUBSCRIPTION_CLIENT_MARKERS = (
     "happ proxy",
     "happ-proxy-utility",
 )
-PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT = "Все самое лучшее для Вас 😊"
+PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT = "Отличного настроения 💛"
+PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE = "on"
+PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST = (
+    "org.telegram.messenger,"
+    "org.thunderdog.challegram,"
+    "com.instagram.android,"
+    "com.whatsapp,"
+    "com.google.android.youtube,"
+    "com.google.android.apps.youtube.music"
+)
 PUBLIC_SUBSCRIPTION_COMPLIMENTARY_DAYS = 3650
 PUBLIC_SUBSCRIPTION_EXTRA_SERVERS: tuple[dict[str, str], ...] = (
     {
@@ -388,6 +403,13 @@ def _load_route_metadata(route) -> dict:
     return payload if isinstance(payload, dict) else {}
 
 
+def _server_description_fragment(label: str) -> str:
+    description = base64.b64encode(
+        PUBLIC_SUBSCRIPTION_SERVER_DESCRIPTION.encode("utf-8")
+    ).decode("ascii")
+    return f"{label}?serverDescription={description}"
+
+
 def _rewrite_public_vless_uri(
     uri: str,
     *,
@@ -431,7 +453,7 @@ def _rewrite_public_vless_uri(
             parsed.netloc,
             parsed.path,
             urlencode(rewritten_query, doseq=True, safe=","),
-            quote(label),
+            quote(_server_description_fragment(label), safe="?="),
         )
     )
 
@@ -820,6 +842,56 @@ def _augment_route_metadata(
     return payload
 
 
+def _build_happ_routing_profile() -> dict[str, object]:
+    return {
+        "Name": "Amonora",
+        "GlobalProxy": "true",
+        "RemoteDNSType": "DoH",
+        "RemoteDNSDomain": "https://cloudflare-dns.com/dns-query",
+        "RemoteDNSIP": "1.1.1.1",
+        "DomesticDNSType": "DoH",
+        "DomesticDNSDomain": "https://dns.google/dns-query",
+        "DomesticDNSIP": "8.8.8.8",
+        "Geoipurl": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat",
+        "Geositeurl": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat",
+        "LastUpdated": str(int(utcnow().timestamp())),
+        "DnsHosts": {
+            "cloudflare-dns.com": "1.1.1.1",
+            "dns.google": "8.8.8.8",
+        },
+        "DirectSites": [
+            "geosite:private",
+        ],
+        "DirectIp": [
+            "geoip:private",
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "169.254.0.0/16",
+            "224.0.0.0/4",
+            "255.255.255.255",
+        ],
+        "ProxySites": [],
+        "ProxyIp": [],
+        "BlockSites": [
+            "geosite:category-ads-all",
+        ],
+        "BlockIp": [],
+        "DomainStrategy": "IPIfNonMatch",
+        "FakeDNS": "false",
+    }
+
+
+def _build_happ_routing_link() -> str:
+    raw_json = json.dumps(
+        _build_happ_routing_profile(),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    encoded = base64.b64encode(raw_json.encode("utf-8")).decode("ascii")
+    return f"happ://routing/onadd/{encoded}"
+
+
 def _build_feed_headers(
     *,
     page_url: str,
@@ -833,13 +905,56 @@ def _build_feed_headers(
     return {
         "Cache-Control": "no-store",
         "Pragma": "no-cache",
-        "profile-title": "Amonora",
+        "content-disposition": 'attachment; filename="amonora"',
+        "profile-title": PUBLIC_SUBSCRIPTION_PROFILE_TITLE,
         "profile-update-interval": str(PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS),
         "profile-web-page-url": page_url,
-        "support-url": PUBLIC_SUBSCRIPTION_BOT_URL,
-        "subscription-userinfo": f"upload={int(upload_bytes)}; download={int(download_bytes)}; total=0; expire={expire_ts}",
+        "support-url": SUPPORT_URL,
+        "subscription-userinfo": (
+            f"upload={int(upload_bytes)}; "
+            f"download={int(download_bytes)}; "
+            f"total={PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES}; "
+            f"expire={expire_ts}"
+        ),
         "announce": PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT,
+        "notification-subs-expire": "1",
+        "hide-settings": "1",
+        "subscription-auto-update-enable": "1",
+        "per-app-proxy-mode": PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE,
+        "per-app-proxy-list": PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST,
+        "ping-result": "icon",
+        "routing": _build_happ_routing_link(),
     }
+
+
+def _build_happ_feed_preamble(
+    *,
+    page_url: str,
+    expires_at: datetime | None,
+    upload_bytes: int,
+    download_bytes: int,
+) -> list[str]:
+    expire_ts = int(expires_at.timestamp()) if expires_at is not None else 0
+    return [
+        f"#profile-title: {PUBLIC_SUBSCRIPTION_PROFILE_TITLE}",
+        f"#profile-update-interval: {PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS}",
+        (
+            "#subscription-userinfo: "
+            f"upload={int(upload_bytes)}; "
+            f"download={int(download_bytes)}; "
+            f"total={PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES}; "
+            f"expire={expire_ts}"
+        ),
+        f"#support-url: {SUPPORT_URL}",
+        f"#profile-web-page-url: {page_url}",
+        "#notification-subs-expire: 1",
+        "#hide-settings: 1",
+        "#subscription-auto-update-enable: 1",
+        f"#per-app-proxy-mode: {PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE}",
+        f"#per-app-proxy-list: {PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST}",
+        "#ping-result: icon",
+        _build_happ_routing_link(),
+    ]
 
 
 def _slot_device_payload(request_context: Mapping[str, object]) -> dict[str, object]:
@@ -1871,8 +1986,17 @@ async def get_public_subscription_feed_payload(
     await touch_public_subscription_surface(token, feed_access=True)
     page_url = build_public_subscription_page_url(token)
     upload_bytes, download_bytes = _traffic_totals_from_routes(routes)
+
+    preamble = _build_happ_feed_preamble(
+        page_url=page_url,
+        expires_at=access_expires_at,
+        upload_bytes=upload_bytes,
+        download_bytes=download_bytes,
+    )
+    feed_lines = [*preamble, *uris]
+
     return (
-        "\n".join(uris).strip() + "\n",
+        "\n".join(line for line in feed_lines if str(line or "").strip()).strip() + "\n",
         _build_feed_headers(
             page_url=page_url,
             display_name=_display_name_for_user(user),
