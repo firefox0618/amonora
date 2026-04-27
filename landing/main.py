@@ -852,115 +852,114 @@ async def public_subscription_feed(request: Request, token: str):
 
 @app.get("/sub-json/{token}", response_class=JSONResponse)
 async def public_subscription_json(request: Request, token: str):
+
     payload = await get_public_subscription_feed_payload(token)
     if payload is None:
         return JSONResponse({"error": "not found"}, status_code=404)
 
-    content, _ = payload
+    content, meta = payload
+
+    # 👉 ПРОВЕРКА ПОДПИСКИ (тут адаптируй под себя)
+    if meta and meta.get("expired"):
+        return {
+            "dns": {"servers": ["1.1.1.1", "8.8.8.8"]},
+            "outbounds": [],
+            "routing": {},
+            "remarks": "🚨 Ваша подписка истекла 🚨",
+            "servers": [
+                {
+                    "tag": "🚨 Подписка истекла",
+                    "protocol": "vless",
+                    "settings": {}
+                },
+                {
+                    "tag": "💬 Продлить: @amonora_bot",
+                    "protocol": "vless",
+                    "settings": {}
+                },
+                {
+                    "tag": "🔄 После оплаты обновите",
+                    "protocol": "vless",
+                    "settings": {}
+                }
+            ]
+        }
 
     from urllib.parse import urlparse, parse_qs
 
-    links = [line.strip() for line in content.split("\n") if line.strip()]
-    if not links:
-        return JSONResponse({"error": "no servers"}, status_code=404)
+    links = [l.strip() for l in content.split("\n") if l.strip()]
+    outbounds = []
 
-    link = links[0]
+    for i, link in enumerate(links):
+        parsed = urlparse(link)
+        qs = parse_qs(parsed.query)
 
-    parsed = urlparse(link)
-    qs = parse_qs(parsed.query)
+        # 👉 имя сервера
+        name = parsed.fragment or parsed.hostname or f"node-{i}"
 
-    security = qs.get("security", ["none"])[0]
-    network = qs.get("type", ["tcp"])[0]
+        # 👉 флаги по домену (по желанию)
+        if "dk" in name:
+            name = "🇩🇰 " + name
+        elif "est" in name:
+            name = "🇪🇪 " + name
 
-    stream_settings = {
-        "network": network,
-        "security": security,
-    }
+        security = qs.get("security", ["none"])[0]
+        network = qs.get("type", ["tcp"])[0]
 
-    if security == "reality":
-        stream_settings["realitySettings"] = {
-            "serverName": qs.get("sni", [""])[0],
-            "publicKey": qs.get("pbk", [""])[0],
-            "shortId": qs.get("sid", [""])[0],
-            "fingerprint": qs.get("fp", ["chrome"])[0],
+        stream_settings = {
+            "network": network,
+            "security": security
         }
 
-    if network == "xhttp":
-        stream_settings["xhttpSettings"] = {
-            "path": qs.get("path", ["/"])[0],
-            "mode": "packet-up",
-        }
+        if security == "reality":
+            stream_settings["realitySettings"] = {
+                "serverName": qs.get("sni", [""])[0],
+                "publicKey": qs.get("pbk", [""])[0],
+                "shortId": qs.get("sid", [""])[0],
+                "fingerprint": qs.get("fp", ["chrome"])[0]
+            }
+
+        if network == "xhttp":
+            stream_settings["xhttpSettings"] = {
+                "mode": "packet-up",
+                "path": qs.get("path", ["/"])[0]
+            }
+            stream_settings["tlsSettings"] = {
+                "alpn": ["h3", "h2", "http/1.1"]
+            }
+
+        outbounds.append({
+            "protocol": "vless",
+            "tag": name,
+            "settings": {
+                "vnext": [{
+                    "address": parsed.hostname,
+                    "port": parsed.port or 443,
+                    "users": [{
+                        "id": parsed.username,
+                        "encryption": "none"
+                    }]
+                }]
+            },
+            "streamSettings": stream_settings
+        })
 
     return {
         "dns": {
-            "queryStrategy": "UseIP",
-            "servers": ["1.1.1.1", "8.8.8.8"],
+            "servers": ["1.1.1.1", "8.8.8.8"]
         },
-        "inbounds": [
-            {
-                "listen": "127.0.0.1",
-                "port": 10808,
-                "protocol": "socks",
-                "settings": {"auth": "noauth", "udp": True},
-                "tag": "socks",
-            },
-            {
-                "listen": "127.0.0.1",
-                "port": 10809,
-                "protocol": "http",
-                "settings": {"allowTransparent": False},
-                "tag": "http",
-            },
-        ],
-        "outbounds": [
-            {
-                "protocol": "vless",
-                "tag": "proxy",
-                "settings": {
-                    "vnext": [
-                        {
-                            "address": parsed.hostname,
-                            "port": parsed.port or 443,
-                            "users": [
-                                {
-                                    "id": parsed.username,
-                                    "encryption": "none",
-                                }
-                            ],
-                        }
-                    ]
-                },
-                "streamSettings": stream_settings,
-            },
-            {"protocol": "freedom", "tag": "direct"},
-            {"protocol": "blackhole", "tag": "block"},
-        ],
+        "outbounds": outbounds,
         "routing": {
             "domainStrategy": "IPIfNonMatch",
             "rules": [
-                {
-                    "type": "field",
-                    "domain": ["geosite:ru"],
-                    "outboundTag": "direct",
-                },
-                {
-                    "type": "field",
-                    "ip": ["geoip:ru"],
-                    "outboundTag": "direct",
-                },
-                {
-                    "type": "field",
-                    "domain": ["geosite:category-ads-all"],
-                    "outboundTag": "block",
-                },
-                {
-                    "type": "field",
-                    "network": "tcp,udp",
-                    "outboundTag": "proxy",
-                },
-            ],
+                {"type": "field", "domain": ["geosite:ru"], "outboundTag": "direct"},
+                {"type": "field", "ip": ["geoip:ru"], "outboundTag": "direct"},
+                {"type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block"},
+                {"type": "field", "network": "tcp,udp", "outboundTag": outbounds[0]["tag"] if outbounds else "direct"}
+            ]
         },
         "remarks": "Amonora",
+        "version": 1
     }
 
 @app.get("/happ/add", response_class=HTMLResponse)
