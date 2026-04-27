@@ -945,22 +945,21 @@ async def public_subscription_json(request: Request, token: str):
         })
 
     return {
-        "dns": {
-            "servers": ["1.1.1.1", "8.8.8.8"]
-        },
-        "outbounds": outbounds,
-        "routing": {
-            "domainStrategy": "IPIfNonMatch",
-            "rules": [
-                {"type": "field", "domain": ["geosite:ru"], "outboundTag": "direct"},
-                {"type": "field", "ip": ["geoip:ru"], "outboundTag": "direct"},
-                {"type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block"},
-                {"type": "field", "network": "tcp,udp", "outboundTag": outbounds[0]["tag"] if outbounds else "direct"}
-            ]
-        },
-        "remarks": "Amonora",
-        "version": 1
-    }
+    "dns": {
+        "servers": ["1.1.1.1", "8.8.8.8"]
+    },
+    "servers": outbounds,
+    "routing": {
+        "domainStrategy": "IPIfNonMatch",
+        "rules": [
+            {"type": "field", "domain": ["geosite:ru"], "outboundTag": "direct"},
+            {"type": "field", "ip": ["geoip:ru"], "outboundTag": "direct"},
+            {"type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block"}
+        ]
+    },
+    "remarks": "Amonora",
+    "version": 1
+}
 
 @app.get("/happ/add", response_class=HTMLResponse)
 async def public_subscription_happ_wrapper(request: Request):
