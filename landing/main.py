@@ -939,8 +939,11 @@ async def public_subscription_json(request: Request, token: str):
             ]
         },
 
-        # 🔥 ключевое — НЕ outbounds, а servers
-        "servers": outbounds
+        "outbounds": outbounds + [
+            {"protocol": "freedom", "tag": "direct"},
+            {"protocol": "freedom", "tag": "proxy"},
+            {"protocol": "blackhole", "tag": "block"}
+        ]
     }
 
 @app.get("/happ/add", response_class=HTMLResponse)
