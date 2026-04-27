@@ -633,11 +633,11 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         lines = [line for line in content.splitlines() if line.strip()]
         self.assertEqual(len(lines), 4)
         self.assertTrue(lines[0].startswith("vless://uuid-1@"))
-        self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 1))}", lines[0])
+        self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 2))}", lines[0])
         self.assertTrue(lines[1].startswith("vless://uuid-2@"))
-        self.assertIn(f"#{quote(public_subscription_module._user_server_label('dk', 1))}", lines[1])
+        self.assertIn(f"#{quote(public_subscription_module._user_server_label('dk', 2))}", lines[1])
         self.assertTrue(lines[2].startswith("vless://uuid-2@"))
-        self.assertIn(f"#{quote(public_subscription_module._user_server_label('ee', 1))}", lines[2])
+        self.assertIn(f"#{quote(public_subscription_module._user_server_label('ee', 2))}", lines[2])
         self.assertIn("158.160.20.200:8443", lines[3])
         self.assertEqual(headers["profile-web-page-url"], f"https://client.amonoraconnect.com/{token}")
         self.assertEqual(headers["profile-update-interval"], "12")
@@ -784,6 +784,109 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNotNone(payload)
         sync_mock.assert_not_awaited()
+
+    async def test_feed_payload_without_slot_index_exposes_all_active_slots(self) -> None:
+        token = "abcdefghijklmnop"
+        link = SimpleNamespace(id=9, user_id=42, token=token)
+        user = SimpleNamespace(
+            id=42,
+            username=None,
+            telegram_id=987654321,
+            is_blocked=False,
+            subscription_status="active",
+            subscription_expires_at=datetime(2026, 4, 25, 10, 0, 0),
+            trial_expires_at=None,
+        )
+        routes = [
+            SimpleNamespace(
+                id=1,
+                user_id=42,
+                country_code="de",
+                slot_index=1,
+                status="active",
+                protocol="vless",
+                client_uuid="uuid-1",
+                xui_client_id="uuid-1",
+                email="device_feed_42_de_1",
+                client_data=json.dumps({"vless_link": "vless://uuid-1@de.example:443?type=tcp#one"}),
+            ),
+            SimpleNamespace(
+                id=2,
+                user_id=42,
+                country_code="dk",
+                slot_index=1,
+                status="active",
+                protocol="vless",
+                client_uuid="uuid-2",
+                xui_client_id="uuid-2",
+                email="device_feed_42_dk_1",
+                client_data=json.dumps({"vless_link": "vless://uuid-2@dk.example:443?type=tcp#two"}),
+            ),
+            SimpleNamespace(
+                id=3,
+                user_id=42,
+                country_code="de",
+                slot_index=2,
+                status="active",
+                protocol="vless",
+                client_uuid="uuid-3",
+                xui_client_id="uuid-3",
+                email="device_feed_42_de_2",
+                client_data=json.dumps({"vless_link": "vless://uuid-3@de2.example:443?type=tcp#three"}),
+            ),
+            SimpleNamespace(
+                id=4,
+                user_id=42,
+                country_code="dk",
+                slot_index=2,
+                status="active",
+                protocol="vless",
+                client_uuid="uuid-4",
+                xui_client_id="uuid-4",
+                email="device_feed_42_dk_2",
+                client_data=json.dumps({"vless_link": "vless://uuid-4@dk2.example:443?type=tcp#four"}),
+            ),
+        ]
+
+        with (
+            patch.object(
+                public_subscription_module,
+                "get_public_subscription_link_by_token",
+                new=AsyncMock(return_value=link),
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_user_by_id",
+                new=AsyncMock(return_value=user),
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_public_subscription_routes_for_user",
+                new=AsyncMock(return_value=routes),
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_device_limit_for_user",
+                return_value=2,
+            ),
+            patch.object(
+                public_subscription_module,
+                "sync_public_subscription_access",
+                new=AsyncMock(return_value=False),
+            ),
+            patch.object(
+                public_subscription_module,
+                "touch_public_subscription_surface",
+                new=AsyncMock(return_value=True),
+            ),
+        ):
+            payload = await public_subscription_module.get_public_subscription_feed_payload(token)
+
+        self.assertIsNotNone(payload)
+        body, _ = payload
+        self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 1))}", body)
+        self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 2))}", body)
+        self.assertIn(f"#{quote(public_subscription_module._user_server_label('dk', 2))}", body)
 
     async def test_feed_payload_syncs_only_requested_slot_when_slot_routes_are_missing(self) -> None:
         token = "abcdefghijklmnop"

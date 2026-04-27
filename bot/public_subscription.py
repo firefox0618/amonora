@@ -1416,8 +1416,39 @@ def _build_public_server_entries(routes: list[object]) -> list[dict[str, str]]:
 
 def _build_feed_uris(routes: list[object]) -> list[str]:
     uris: list[str] = []
-    for entry in _build_public_server_entries(routes):
-        _append_labeled_uri(uris, entry.get("uri") or "", label=str(entry.get("label") or "").strip())
+
+    active_routes_by_key: dict[tuple[str, int], object] = {}
+    active_slots: set[int] = set()
+    for route in routes:
+        if str(getattr(route, "status", "") or "").strip().lower() != "active":
+            continue
+        country_code = normalize_country_code(getattr(route, "country_code", None))
+        slot_index = int(getattr(route, "slot_index", 0) or 0)
+        if country_code not in PUBLIC_SUBSCRIPTION_COUNTRY_CODES or slot_index <= 0:
+            continue
+        active_routes_by_key[(country_code, slot_index)] = route
+        active_slots.add(slot_index)
+
+    for slot_index in sorted(active_slots):
+        for logical_country in PUBLIC_SUBSCRIPTION_COUNTRY_CODES:
+            label = _user_server_label(logical_country, slot_index)
+            for candidate_country in _failover_chain_for_country(logical_country):
+                route = active_routes_by_key.get((candidate_country, slot_index))
+                if route is None:
+                    continue
+                uri = _public_route_vless_uri(route, label=label)
+                if uri:
+                    if candidate_country != logical_country:
+                        uri = _rewrite_public_vless_uri(uri, label=label)
+                    _append_labeled_uri(uris, uri, label=label)
+                break
+
+    for entry in PUBLIC_SUBSCRIPTION_EXTRA_SERVERS:
+        _append_labeled_uri(
+            uris,
+            str(entry.get("uri") or "").strip(),
+            label=str(entry.get("label") or "").strip(),
+        )
     return uris
 
 
