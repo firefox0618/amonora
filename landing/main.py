@@ -8,6 +8,7 @@ import json
 import logging
 from pathlib import Path
 from uuid import uuid4
+from urllib.parse import unquote
 
 import markdown
 import uvicorn
@@ -895,13 +896,10 @@ async def public_subscription_json(request: Request, token: str):
         qs = parse_qs(parsed.query)
 
         # 👉 имя сервера
-        name = parsed.fragment or parsed.hostname or f"node-{i}"
+        name = unquote(parsed.fragment) if parsed.fragment else parsed.hostname or f"node-{i}"
 
         # 👉 флаги по домену (по желанию)
-        if "dk" in name:
-            name = "🇩🇰 " + name
-        elif "est" in name:
-            name = "🇪🇪 " + name
+        name = unquote(parsed.fragment) if parsed.fragment else parsed.hostname or f"node-{i}"
 
         security = qs.get("security", ["none"])[0]
         network = qs.get("type", ["tcp"])[0]
