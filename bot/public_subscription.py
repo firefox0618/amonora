@@ -949,7 +949,7 @@ def _build_feed_headers(
         ),
         "announce": PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT,
         "notification-subs-expire": "1",
-        "hide-settings": "1",
+        "hide-settings": "true",
         "subscription-auto-update-enable": "1",
         "per-app-proxy-mode": PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE,
         "per-app-proxy-list": PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST,
@@ -967,6 +967,7 @@ def _build_happ_feed_preamble(
 ) -> list[str]:
     expire_ts = int(expires_at.timestamp()) if expires_at is not None else 0
     return [
+        "#hide-settings: true",
         f"#profile-title: {PUBLIC_SUBSCRIPTION_PROFILE_TITLE}",
         f"#profile-update-interval: {PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS}",
         (
@@ -979,8 +980,7 @@ def _build_happ_feed_preamble(
         f"#support-url: {SUPPORT_URL}",
         f"#profile-web-page-url: {page_url}",
         "#notification-subs-expire: 1",
-        "#hide-settings: 1",
-        "#subscription-auto-update-enable: 1",
+        "#subscription-auto-update-en`able: 1",
         f"#per-app-proxy-mode: {PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE}",
         f"#per-app-proxy-list: {PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST}",
         "#ping-result: icon",
