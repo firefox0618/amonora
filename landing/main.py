@@ -852,7 +852,6 @@ async def public_subscription_feed(request: Request, token: str):
 
 @app.get("/sub-json/{token}", response_class=JSONResponse)
 async def public_subscription_json(request: Request, token: str):
-
     payload = await get_public_subscription_feed_payload(token)
     if payload is None:
         return JSONResponse({"error": "not found"}, status_code=404)
@@ -861,92 +860,107 @@ async def public_subscription_json(request: Request, token: str):
 
     from urllib.parse import urlparse, parse_qs
 
-    links = content.split("\n")
+    links = [line.strip() for line in content.split("\n") if line.strip()]
+    if not links:
+        return JSONResponse({"error": "no servers"}, status_code=404)
 
-    outbounds = []
-    node_tags = []
+    link = links[0]
 
-    for i, link in enumerate(links):
-        if not link.strip():
-            continue
+    parsed = urlparse(link)
+    qs = parse_qs(parsed.query)
 
-        parsed = urlparse(link)
-        qs = parse_qs(parsed.query)
+    security = qs.get("security", ["none"])[0]
+    network = qs.get("type", ["tcp"])[0]
 
-        tag = f"node-{i}"
-        node_tags.append(tag)
+    stream_settings = {
+        "network": network,
+        "security": security,
+    }
 
-        security = qs.get("security", ["none"])[0]
-
-        stream_settings = {
-            "network": qs.get("type", ["tcp"])[0],
-            "security": security
+    if security == "reality":
+        stream_settings["realitySettings"] = {
+            "serverName": qs.get("sni", [""])[0],
+            "publicKey": qs.get("pbk", [""])[0],
+            "shortId": qs.get("sid", [""])[0],
+            "fingerprint": qs.get("fp", ["chrome"])[0],
         }
 
-        if security == "reality":
-            stream_settings["realitySettings"] = {
-                "serverName": qs.get("sni", [""])[0],
-                "publicKey": qs.get("pbk", [""])[0],
-                "shortId": qs.get("sid", [""])[0],
-                "fingerprint": qs.get("fp", ["chrome"])[0]
-            }
-
-        # xhttp поддержка
-        if qs.get("type", [""])[0] == "xhttp":
-            stream_settings["xhttpSettings"] = {
-                "mode": "packet-up",
-                "path": qs.get("path", ["/"])[0]
-            }
-            stream_settings["tlsSettings"] = {
-                "alpn": ["h3", "h2", "http/1.1"]
-            }
-
-        outbounds.append({
-            "protocol": "vless",
-            "tag": tag,
-            "settings": {
-                "vnext": [{
-                    "address": parsed.hostname,
-                    "port": parsed.port,
-                    "users": [{
-                        "id": parsed.username,
-                        "encryption": "none"
-                    }]
-                }]
-            },
-            "streamSettings": stream_settings
-        })
-
-    # 🔥 ВАЖНО: selector (как у норм VPN)
-    outbounds.append({
-        "protocol": "selector",
-        "tag": "proxy",
-        "outbounds": node_tags
-    })
-
-    # системные
-    outbounds += [
-        {"protocol": "freedom", "tag": "direct"},
-        {"protocol": "blackhole", "tag": "block"}
-    ]
+    if network == "xhttp":
+        stream_settings["xhttpSettings"] = {
+            "path": qs.get("path", ["/"])[0],
+            "mode": "packet-up",
+        }
 
     return {
-        "log": {"loglevel": "warning"},
         "dns": {
-            "servers": ["1.1.1.1", "8.8.8.8"]
+            "queryStrategy": "UseIP",
+            "servers": ["1.1.1.1", "8.8.8.8"],
         },
+        "inbounds": [
+            {
+                "listen": "127.0.0.1",
+                "port": 10808,
+                "protocol": "socks",
+                "settings": {"auth": "noauth", "udp": True},
+                "tag": "socks",
+            },
+            {
+                "listen": "127.0.0.1",
+                "port": 10809,
+                "protocol": "http",
+                "settings": {"allowTransparent": False},
+                "tag": "http",
+            },
+        ],
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "tag": "proxy",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": parsed.hostname,
+                            "port": parsed.port or 443,
+                            "users": [
+                                {
+                                    "id": parsed.username,
+                                    "encryption": "none",
+                                }
+                            ],
+                        }
+                    ]
+                },
+                "streamSettings": stream_settings,
+            },
+            {"protocol": "freedom", "tag": "direct"},
+            {"protocol": "blackhole", "tag": "block"},
+        ],
         "routing": {
             "domainStrategy": "IPIfNonMatch",
             "rules": [
-                {"type": "field", "domain": ["geosite:ru"], "outboundTag": "direct"},
-                {"type": "field", "ip": ["geoip:ru"], "outboundTag": "direct"},
-                {"type": "field", "domain": ["geosite:category-ads-all"], "outboundTag": "block"},
-                {"type": "field", "network": "tcp,udp", "outboundTag": "proxy"}
-            ]
+                {
+                    "type": "field",
+                    "domain": ["geosite:ru"],
+                    "outboundTag": "direct",
+                },
+                {
+                    "type": "field",
+                    "ip": ["geoip:ru"],
+                    "outboundTag": "direct",
+                },
+                {
+                    "type": "field",
+                    "domain": ["geosite:category-ads-all"],
+                    "outboundTag": "block",
+                },
+                {
+                    "type": "field",
+                    "network": "tcp,udp",
+                    "outboundTag": "proxy",
+                },
+            ],
         },
-        "outbounds": outbounds,
         "remarks": "Amonora",
-        "version": 1
     }
 
 @app.get("/happ/add", response_class=HTMLResponse)
