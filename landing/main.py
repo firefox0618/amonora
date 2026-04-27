@@ -880,7 +880,10 @@ async def public_subscription_json(request: Request, token: str):
 
         if security == "reality":
             stream_settings["realitySettings"] = {
-                "serverName": qs.get("sni", [""])[0]
+                "serverName": qs.get("sni", [""])[0],
+                "publicKey": qs.get("pbk", [""])[0],
+                "shortId": qs.get("sid", [""])[0],
+                "fingerprint": qs.get("fp", ["chrome"])[0]
             }
 
         outbounds.append({
