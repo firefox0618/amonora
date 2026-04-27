@@ -862,7 +862,9 @@ async def public_subscription_json(request: Request, token: str):
     from urllib.parse import urlparse, parse_qs
 
     links = content.split("\n")
+
     outbounds = []
+    node_tags = []
 
     for i, link in enumerate(links):
         if not link.strip():
@@ -871,19 +873,16 @@ async def public_subscription_json(request: Request, token: str):
         parsed = urlparse(link)
         qs = parse_qs(parsed.query)
 
-        # защита
-        if not parsed.hostname:
-            continue
+        tag = f"node-{i}"
+        node_tags.append(tag)
 
         security = qs.get("security", ["none"])[0]
-        network = qs.get("type", ["tcp"])[0]
 
         stream_settings = {
-            "network": network,
+            "network": qs.get("type", ["tcp"])[0],
             "security": security
         }
 
-        # ✅ REALITY
         if security == "reality":
             stream_settings["realitySettings"] = {
                 "serverName": qs.get("sni", [""])[0],
@@ -892,28 +891,25 @@ async def public_subscription_json(request: Request, token: str):
                 "fingerprint": qs.get("fp", ["chrome"])[0]
             }
 
-        # ✅ XHTTP (КРИТИЧНО для DK)
-        if network == "xhttp":
+        # xhttp поддержка
+        if qs.get("type", [""])[0] == "xhttp":
             stream_settings["xhttpSettings"] = {
-                "path": qs.get("path", ["/"])[0],
-                "mode": "packet-up"
+                "mode": "packet-up",
+                "path": qs.get("path", ["/"])[0]
             }
-
-        # иногда нужен ALPN
-        if "alpn" in qs:
             stream_settings["tlsSettings"] = {
-                "alpn": qs.get("alpn", [])
+                "alpn": ["h3", "h2", "http/1.1"]
             }
 
         outbounds.append({
             "protocol": "vless",
-            "tag": "proxy" if i == 0 else f"node-{i}",
+            "tag": tag,
             "settings": {
                 "vnext": [{
                     "address": parsed.hostname,
-                    "port": parsed.port or 443,
+                    "port": parsed.port,
                     "users": [{
-                        "id": parsed.username or "",
+                        "id": parsed.username,
                         "encryption": "none"
                     }]
                 }]
@@ -921,14 +917,24 @@ async def public_subscription_json(request: Request, token: str):
             "streamSettings": stream_settings
         })
 
-    return {
-        "version": 1,  # важно для Happ
-        "remarks": "Amonora",
+    # 🔥 ВАЖНО: selector (как у норм VPN)
+    outbounds.append({
+        "protocol": "selector",
+        "tag": "proxy",
+        "outbounds": node_tags
+    })
 
+    # системные
+    outbounds += [
+        {"protocol": "freedom", "tag": "direct"},
+        {"protocol": "blackhole", "tag": "block"}
+    ]
+
+    return {
+        "log": {"loglevel": "warning"},
         "dns": {
             "servers": ["1.1.1.1", "8.8.8.8"]
         },
-
         "routing": {
             "domainStrategy": "IPIfNonMatch",
             "rules": [
@@ -938,12 +944,9 @@ async def public_subscription_json(request: Request, token: str):
                 {"type": "field", "network": "tcp,udp", "outboundTag": "proxy"}
             ]
         },
-
-        "outbounds": outbounds + [
-            {"protocol": "freedom", "tag": "direct"},
-            {"protocol": "freedom", "tag": "proxy"},
-            {"protocol": "blackhole", "tag": "block"}
-        ]
+        "outbounds": outbounds,
+        "remarks": "Amonora",
+        "version": 1
     }
 
 @app.get("/happ/add", response_class=HTMLResponse)
