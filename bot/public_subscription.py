@@ -997,7 +997,7 @@ def _build_feed_headers(
         "subscription-auto-update-enable": "1",
         "per-app-proxy-mode": PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE,
         "per-app-proxy-list": PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST,
-        "ping-result": "icon",
+        "ping-result": "time, icon",
         "routing": "happ://routing/off",
     }
 
@@ -1029,7 +1029,7 @@ def _build_happ_feed_preamble(
         "#subscription-auto-update-en`able: 1",
         f"#per-app-proxy-mode: {PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE}",
         f"#per-app-proxy-list: {PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST}",
-        "#ping-result: icon",
+        "#ping-result: time, icon",
         "happ://routing/off",
     ]
 
