@@ -153,7 +153,7 @@ PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST = (
 PUBLIC_SUBSCRIPTION_COMPLIMENTARY_DAYS = 3650
 PUBLIC_SUBSCRIPTION_EXTRA_SERVERS: tuple[dict[str, str], ...] = (
     {
-        "label": "#1 Обход белых списков",
+        "label": "#1 Мобильный",
         "uri": (
             "vless://07cd21cc-1836-4f35-9654-5afc70923d45@158.160.20.200:8443"
             "?security=reality&type=xhttp&headerType=&path=%2F&host=&flow=&mode=auto"
