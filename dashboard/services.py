@@ -58,6 +58,7 @@ from bot.keyboards.tariffs import device_slot_manual_payment_reminder_keyboard, 
 from bot.public_subscription import (
     _normalize_device_type,
     _normalize_public_os_version,
+    build_public_subscription_feed_url,
     build_public_subscription_page_url,
     get_or_create_public_subscription_page_url_for_user,
 )
@@ -4198,6 +4199,11 @@ async def get_user_detail(user_id: int) -> dict | None:
     )
     if subscription_link is None:
         _, subscription_link = await _get_public_subscription_detail_safe(user.id)
+    subscription_feed_url = (
+        build_public_subscription_feed_url(str(subscription_link.token))
+        if subscription_link is not None
+        else None
+    )
     support_ticket_user_id = int(user.telegram_id)
     support_ticket = await get_ticket(support_ticket_user_id)
     support_history = await get_history(support_ticket_user_id) if support_ticket is not None else []
@@ -4229,6 +4235,7 @@ async def get_user_detail(user_id: int) -> dict | None:
         "status": get_access_status_from_user(user),
         "access_expires_at": _format_datetime(get_access_expires_at_from_user(user)),
         "subscription_link_url": subscription_link_url,
+        "subscription_feed_url": subscription_feed_url,
         "subscription_link_token": str(getattr(subscription_link, "token", "") or "").strip() or None,
         "subscription_link_last_viewed_at": _format_datetime(getattr(subscription_link, "last_viewed_at", None)),
         "subscription_link_last_feed_accessed_at": _format_datetime(getattr(subscription_link, "last_feed_accessed_at", None)),

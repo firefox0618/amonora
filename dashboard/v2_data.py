@@ -2012,6 +2012,7 @@ async def get_v2_user_detail_payload(user_id: int) -> dict | None:
             "channel_subscription_label": channel_subscription["label"],
             "channel_subscription_checked_at": channel_subscription.get("checked_at"),
             "subscription_link_url": detail.get("subscription_link_url"),
+            "subscription_feed_url": detail.get("subscription_feed_url"),
             "subscription_link_token": detail.get("subscription_link_token"),
             "subscription_link_last_viewed_at": detail.get("subscription_link_last_viewed_at"),
             "subscription_link_last_feed_accessed_at": detail.get("subscription_link_last_feed_accessed_at"),

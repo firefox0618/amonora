@@ -55,7 +55,7 @@ PUBLIC_SUBSCRIPTION_FAILOVER_ORDER: dict[str, tuple[str, ...]] = {
 }
 PUBLIC_SUBSCRIPTION_MAX_SLOTS = 3
 PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS = 12
-PUBLIC_SUBSCRIPTION_PROFILE_TITLE = "Amonora 💛"
+PUBLIC_SUBSCRIPTION_PROFILE_TITLE = "Amonora"
 PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES = 0
 PUBLIC_SUBSCRIPTION_SERVER_DESCRIPTION = "VLESS | Amonora"
 PUBLIC_SUBSCRIPTION_PROVIDER_ID = "fDXrJFcd"
@@ -153,7 +153,7 @@ PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST = (
 PUBLIC_SUBSCRIPTION_COMPLIMENTARY_DAYS = 3650
 PUBLIC_SUBSCRIPTION_EXTRA_SERVERS: tuple[dict[str, str], ...] = (
     {
-        "label": "#1 Мобильный",
+        "label": "#1 Обход белых списков",
         "uri": (
             "vless://07cd21cc-1836-4f35-9654-5afc70923d45@158.160.20.200:8443"
             "?security=reality&type=xhttp&headerType=&path=%2F&host=&flow=&mode=auto"
@@ -984,7 +984,7 @@ def _build_feed_headers(
         "color-profile": PUBLIC_SUBSCRIPTION_COLOR_PROFILE,
         "profile-update-interval": str(PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS),
         "profile-web-page-url": page_url,
-        "support-url": SUPPORT_URL,
+        "support-url": PUBLIC_SUBSCRIPTION_BOT_URL,
         "subscription-userinfo": (
             f"upload={int(upload_bytes)}; "
             f"download={int(download_bytes)}; "
@@ -1000,38 +1000,6 @@ def _build_feed_headers(
         "ping-result": "time",
         "routing": "happ://routing/off",
     }
-
-
-def _build_happ_feed_preamble(
-    *,
-    page_url: str,
-    expires_at: datetime | None,
-    upload_bytes: int,
-    download_bytes: int,
-) -> list[str]:
-    expire_ts = int(expires_at.timestamp()) if expires_at is not None else 0
-    return [
-        f"#providerid {PUBLIC_SUBSCRIPTION_PROVIDER_ID}"
-        "#hide-settings: true",
-        f"#profile-title: {PUBLIC_SUBSCRIPTION_PROFILE_TITLE}",
-        f"#color-profile: {PUBLIC_SUBSCRIPTION_COLOR_PROFILE}",
-        f"#profile-update-interval: {PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS}",
-        (
-            "#subscription-userinfo: "
-            f"upload={int(upload_bytes)}; "
-            f"download={int(download_bytes)}; "
-            f"total={PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES}; "
-            f"expire={expire_ts}"
-        ),
-        f"#support-url: {SUPPORT_URL}",
-        f"#profile-web-page-url: {page_url}",
-        "#notification-subs-expire: 1",
-        "#subscription-auto-update-en`able: 1",
-        f"#per-app-proxy-mode: {PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE}",
-        f"#per-app-proxy-list: {PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST}",
-        "#ping-result: time",
-        "happ://routing/off",
-    ]
 
 
 def _slot_device_payload(request_context: Mapping[str, object]) -> dict[str, object]:
@@ -1166,7 +1134,7 @@ async def get_or_create_public_subscription_link_for_user(user_id: int):
 
 async def get_or_create_public_subscription_page_url_for_user(user_id: int) -> str:
     link = await get_or_create_public_subscription_link_for_user(int(user_id))
-    return build_public_subscription_feed_url(link.token)
+    return build_public_subscription_page_url(link.token)
 
 
 async def get_or_create_public_subscription_happ_wrapper_url_for_user(user_id: int) -> str:
@@ -2064,16 +2032,8 @@ async def get_public_subscription_feed_payload(
     page_url = build_public_subscription_page_url(token)
     upload_bytes, download_bytes = _traffic_totals_from_routes(routes)
 
-    preamble = _build_happ_feed_preamble(
-        page_url=page_url,
-        expires_at=access_expires_at,
-        upload_bytes=upload_bytes,
-        download_bytes=download_bytes,
-    )
-    feed_lines = [*preamble, *uris]
-
     return (
-        "\n".join(line for line in feed_lines if str(line or "").strip()).strip() + "\n",
+        "\n".join(line for line in uris if str(line or "").strip()).strip() + "\n",
         _build_feed_headers(
             page_url=page_url,
             display_name=_display_name_for_user(user),

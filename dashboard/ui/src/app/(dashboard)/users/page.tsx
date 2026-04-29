@@ -715,16 +715,19 @@ export default function UsersPage() {
                 <div className="rounded-[10px] border border-[color:var(--surface-border)] bg-[var(--surface)] px-3 py-2">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[12px] uppercase tracking-[0.16em] text-[color:var(--text-muted)]">Ссылка подписки</div>
-                    {detail.user.subscription_link_url ? (
+                    {detail.user.subscription_feed_url || detail.user.subscription_link_url ? (
                       <Button
                         type="button"
                         variant="secondary"
                         onClick={(event) => {
                           stopActionClick(event);
-                          void copyToClipboard(detail.user.subscription_link_url || "", "Ссылка подписки скопирована");
+                          void copyToClipboard(
+                            detail.user.subscription_feed_url || detail.user.subscription_link_url || "",
+                            "Feed ссылка для Happ скопирована",
+                          );
                         }}
                       >
-                        Скопировать
+                        Скопировать для Happ
                       </Button>
                     ) : null}
                   </div>
@@ -733,6 +736,11 @@ export default function UsersPage() {
                       <div className="mt-2 break-all text-[13px] font-semibold text-slate-950 dark:text-slate-50">
                         {detail.user.subscription_link_url}
                       </div>
+                      {detail.user.subscription_feed_url ? (
+                        <div className="mt-1 break-all text-[12px] text-[color:var(--text-muted)]">
+                          Happ feed: {detail.user.subscription_feed_url}
+                        </div>
+                      ) : null}
                       <div className="mt-1 text-[12px] text-[color:var(--text-muted)]">
                         {detail.user.subscription_link_last_feed_accessed_at
                           ? `Последний импорт/обновление: ${detail.user.subscription_link_last_feed_accessed_at}`
@@ -913,16 +921,19 @@ export default function UsersPage() {
               <Card className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-[13px] font-semibold text-slate-950 dark:text-slate-50">Ссылка подписки</div>
-                  {detail.user.subscription_link_url ? (
+                  {detail.user.subscription_feed_url || detail.user.subscription_link_url ? (
                     <Button
                       type="button"
                       variant="secondary"
                       onClick={(event) => {
                         stopActionClick(event);
-                        void copyToClipboard(detail.user.subscription_link_url || "", "Ссылка подписки скопирована");
+                        void copyToClipboard(
+                          detail.user.subscription_feed_url || detail.user.subscription_link_url || "",
+                          "Feed ссылка для Happ скопирована",
+                        );
                       }}
                     >
-                      Скопировать
+                      Скопировать для Happ
                     </Button>
                   ) : null}
                 </div>
@@ -931,6 +942,11 @@ export default function UsersPage() {
                     <div className="break-all text-[13px] font-semibold text-slate-950 dark:text-slate-50">
                       {detail.user.subscription_link_url}
                     </div>
+                    {detail.user.subscription_feed_url ? (
+                      <div className="break-all text-[12px] text-[color:var(--text-muted)]">
+                        Happ feed: {detail.user.subscription_feed_url}
+                      </div>
+                    ) : null}
                     {detail.user.subscription_link_last_feed_accessed_at ? (
                       <div className="text-[12px] text-[color:var(--text-muted)]">
                         Последний импорт/обновление: {detail.user.subscription_link_last_feed_accessed_at}

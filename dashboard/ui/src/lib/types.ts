@@ -361,6 +361,7 @@ export type UserDetailPayload = {
     channel_subscription_label?: string;
     channel_subscription_checked_at?: string | null;
     subscription_link_url?: string | null;
+    subscription_feed_url?: string | null;
     subscription_link_token?: string | null;
     subscription_link_last_viewed_at?: string | null;
     subscription_link_last_feed_accessed_at?: string | null;

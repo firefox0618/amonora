@@ -596,7 +596,7 @@ async def _issue_bridge_vless_key(user_id: int, access_expires_at: datetime) -> 
         finally:
             await provisioner.close()
 
-    results = await asyncio.gather(*[_check_region(cc) for cc in BRIDGE_ACCESS_REGION_ORDER], return_exceptions=True)
+    results = await asyncio.gather(*[check_region(cc) for cc in BRIDGE_ACCESS_REGION_ORDER], return_exceptions=True)
 
     for result in results:
         if isinstance(result, Exception):

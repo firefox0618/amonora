@@ -1,6 +1,9 @@
 import unittest
 
+from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
 import landing.main as landing_main
 
@@ -26,6 +29,42 @@ class LandingVpnActivationTests(unittest.TestCase):
         self.assertFalse(payload["ok"])
         self.assertEqual(payload["status"], "gone")
         self.assertIn("retired", payload["message"].lower())
+
+
+class LandingBridgeAccessTests(unittest.IsolatedAsyncioTestCase):
+    async def test_issue_bridge_vless_key_uses_local_region_health_checker(self) -> None:
+        class FakeProvisioner:
+            def __init__(self, country_code: str) -> None:
+                self.country_code = country_code
+
+            async def health_check(self) -> bool:
+                return self.country_code == "dk"
+
+            async def provision_vless_client(self, **kwargs):
+                return SimpleNamespace(
+                    vpn_client_id=77,
+                    metadata={
+                        "vless_link": "vless://bridge",
+                        "provider_type": "fake",
+                    },
+                )
+
+            async def close(self) -> None:
+                return None
+
+        update_mock = AsyncMock()
+        with (
+            patch.object(landing_main, "get_vless_provisioner", side_effect=lambda country_code: FakeProvisioner(country_code)),
+            patch.object(landing_main, "update_vpn_client_metadata", new=update_mock),
+        ):
+            payload = await landing_main._issue_bridge_vless_key(
+                user_id=42,
+                access_expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=1),
+            )
+
+        self.assertEqual(payload["country_code"], "dk")
+        self.assertEqual(payload["metadata"]["vless_link"], "vless://bridge")
+        update_mock.assert_awaited_once()
 
 
 if __name__ == "__main__":
