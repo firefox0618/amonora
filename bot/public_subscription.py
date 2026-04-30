@@ -153,11 +153,75 @@ PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST = (
 PUBLIC_SUBSCRIPTION_COMPLIMENTARY_DAYS = 3650
 PUBLIC_SUBSCRIPTION_EXTRA_SERVERS: tuple[dict[str, str], ...] = (
     {
-        "label": "#1 Обход белых списков",
+        "label": "🇫🇮 Финляндия",
+        "uri": (
+            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@89.125.88.237:14428"
+            "?type=grpc&mode=gun&serviceName=testedbitten&security=reality&fp=chrome"
+            "&sni=apple.com&pbk=aGc-eKQxTA-OqusjDcFP9qBYf6CBNL_2WbadWE7j4z8&sid=d6db"
+            "#%F0%9F%87%AB%F0%9F%87%AE%20%D0%A4%D0%B8%D0%BD%D0%BB%D1%8F%D0%BD%D0%B4%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇦🇹 Австрия",
+        "uri": (
+            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@89.125.88.237:14428"
+            "?type=grpc&mode=gun&serviceName=testedbitten&security=reality&fp=chrome"
+            "&sni=apple.com&pbk=aGc-eKQxTA-OqusjDcFP9qBYf6CBNL_2WbadWE7j4z8&sid=d6db"
+            "#%F0%9F%87%A6%F0%9F%87%B9%20%D0%90%D0%B2%D1%81%D1%82%D1%80%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇺🇸 США",
+        "uri": (
+            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@138.124.60.219:58293"
+            "?type=grpc&mode=gun&serviceName=shakyreply&security=reality&fp=chrome"
+            "&sni=github.com&pbk=OQ5T3F5zo8Ghy2coROi4XS2C4TqJXIwhlQP2v4E3LTE&sid=a210b2"
+            "#%F0%9F%87%BA%F0%9F%87%B8%20%D0%A1%D0%A8%D0%90%20%E2%9A%A1%EF%B8%8F"
+        ),
+    },
+    {
+        "label": "🇹🇷 Турция",
+        "uri": (
+            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@104.239.87.110:10210"
+            "?type=grpc&mode=gun&serviceName=incompetentwisdom&security=reality&fp=chrome"
+            "&sni=google.com&pbk=xjgZwsm5GvKgZd6hsciEjN2gE3G2rLGN0NdRtDA7KDE&sid=ee45"
+            "#%F0%9F%87%B9%F0%9F%87%B7%20%D0%A2%D1%83%D1%80%D1%86%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇨🇭 Швейцария",
+        "uri": (
+            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@45.148.118.31:46238"
+            "?type=grpc&mode=gun&serviceName=alikewrinkle&security=reality&fp=chrome"
+            "&sni=cloudflare.com&pbk=dakIL9GtO8gqPZy7IUIRQlVw3aAoaXmKos-y7geKYlM&sid=0429167e23c3"
+            "#%F0%9F%87%A8%F0%9F%87%AD%20%D0%A8%D0%B2%D0%B5%D0%B9%D1%86%D0%B0%D1%80%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "📱 Мобильная сеть",
         "uri": (
             "vless://07cd21cc-1836-4f35-9654-5afc70923d45@158.160.20.200:8443"
             "?security=reality&type=xhttp&headerType=&path=%2F&host=&flow=&mode=auto"
             "&sni=www.ads.x5.ru&fp=&pbk=MMnYv9Q-AwwYXOFbAZXpNLz0LUdYFSW3s4yqfX8Owxc&sid=76c6260a"
+            "#%F0%9F%93%B1%20%D0%9C%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F%20%D1%81%D0%B5%D1%82%D1%8C"
+        ),
+    },
+    {
+        "label": "📱 Мобильная сеть 2",
+        "uri": (
+            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@51.250.119.7:443"
+            "?flow=&type=tcp&headerType=none&security=reality&fp=random"
+            "&sni=www.google.com&pbk=Wlf_hcFJ8CsOrRbtxUiKsRbp5vbw4hsIlUAAtjh7aS4&sid=abaf64dbdf22e6"
+            "#%F0%9F%93%B1%20%D0%9C%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F%20%D1%81%D0%B5%D1%82%D1%8C%202"
+        ),
+    },
+    {
+        "label": "📱 Мобильная сеть 3",
+        "uri": (
+            "vless://b201044f-d594-3ed0-9850-28823dda8e8c@178.154.243.251:443"
+            "?flow=&type=tcp&headerType=none&security=reality&fp=random"
+            "&sni=www.google.com&pbk=JkiFzvTq6FFDb44V8ifby6-P7QZo7Z1B5VOrGTgAQEY&sid=a1e1a7"
+            "#%F0%9F%93%B1%20%D0%9C%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F%20%D1%81%D0%B5%D1%82%D1%8C%203"
         ),
     },
 )
