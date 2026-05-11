@@ -12,7 +12,7 @@ VIP_SUBSCRIPTION_SOURCES = {
     "complimentary",
 }
 
-ADMIN_DEVICE_LIMIT = 10
+ADMIN_DEVICE_LIMIT = 30
 PERSONAL_DEVICE_LIMITS: dict[int, int] = {
     417561011: 20,  # @s_ufa
 }
