@@ -1,10 +1,23 @@
 import json
 import unittest
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from bot.platega import PlategaError
-from bot.platega_flow import _platega_callback_event_key, handle_platega_callback_payload
+from bot.platega_flow import _platega_callback_event_key, _set_non_confirmed_status, handle_platega_callback_payload
+
+
+class FakeSyncSession:
+    def __init__(self) -> None:
+        self.commit_calls = 0
+        self.refresh_calls = 0
+
+    async def commit(self) -> None:
+        self.commit_calls += 1
+
+    async def refresh(self, obj) -> None:
+        self.refresh_calls += 1
 
 
 class PlategaCallbackReplayTests(unittest.IsolatedAsyncioTestCase):
@@ -200,6 +213,52 @@ class PlategaCallbackReplayTests(unittest.IsolatedAsyncioTestCase):
         control_mock.assert_awaited_once()
         mark_seen_mock.assert_not_awaited()
         sync_mock.assert_not_awaited()
+
+
+class PlategaRecordSyncTests(unittest.IsolatedAsyncioTestCase):
+    async def test_set_non_confirmed_status_releases_reserved_balance_for_expired_provider_payment(self) -> None:
+        record = SimpleNamespace(
+            id=96,
+            user_id=7,
+            tariff_code="1m",
+            payment_method="sbp_platega",
+            payment_status="pending",
+            balance_reserved_amount=50,
+            expires_at=None,
+            metadata_json="{}",
+            note=None,
+        )
+        session = FakeSyncSession()
+        fixed_now = datetime(2026, 4, 6, 10, 30, 0)
+
+        async def release_reserved_balance(mock_session, mock_record, *, reason: str) -> int:
+            self.assertIs(mock_session, session)
+            self.assertIs(mock_record, record)
+            self.assertEqual(reason, "payment_expired")
+            mock_record.balance_reserved_amount = 0
+            return 50
+
+        with (
+            patch("bot.platega_flow._release_reserved_balance_for_record", new=AsyncMock(side_effect=release_reserved_balance)) as release_mock,
+            patch("bot.platega_flow.safe_emit_analytics_event", new=AsyncMock()) as analytics_mock,
+            patch("bot.platega_flow.utcnow", return_value=fixed_now),
+        ):
+            updated = await _set_non_confirmed_status(
+                session,
+                record,
+                normalized_status="expired",
+                provider_payload={"status": "CANCELED", "id": "trx-96"},
+            )
+
+        self.assertIs(updated, record)
+        self.assertEqual(record.payment_status, "expired")
+        self.assertEqual(record.balance_reserved_amount, 0)
+        self.assertEqual(record.expires_at, fixed_now)
+        self.assertEqual(json.loads(record.metadata_json)["provider_status"], "CANCELED")
+        self.assertEqual(session.commit_calls, 1)
+        self.assertEqual(session.refresh_calls, 1)
+        release_mock.assert_awaited_once()
+        analytics_mock.assert_awaited_once()
 
 
 if __name__ == "__main__":

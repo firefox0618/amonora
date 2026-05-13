@@ -11,6 +11,7 @@ from backend.core.database import async_session
 from bot.config import config
 from bot.db import (
     _load_payment_metadata,
+    _release_reserved_balance_for_record,
     confirm_external_payment_record,
     create_balance_aware_external_payment_record,
     create_external_payment_record,
@@ -535,6 +536,12 @@ async def _set_non_confirmed_status(
     record.payment_status = normalized_status
     if normalized_status == "expired":
         record.expires_at = record.expires_at or utcnow()
+    if normalized_status in {"expired", "cancelled", "rejected", "disputed"}:
+        await _release_reserved_balance_for_record(
+            session,
+            record,
+            reason=f"payment_{normalized_status}",
+        )
     await _update_record_metadata(
         session,
         record,
