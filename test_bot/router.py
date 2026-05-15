@@ -13,6 +13,7 @@ from aiogram.filters import BaseFilter, Command, CommandObject, CommandStart
 from aiogram.types import (
     BufferedInputFile,
     CallbackQuery,
+    CopyTextButton,
     FSInputFile,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -68,7 +69,10 @@ from bot.ui.screens.user import _bonus_stats_text, _bonus_text
 from bot.public_subscription import (
     _normalize_device_type,
     _normalize_public_os_version,
+    build_public_subscription_feed_url,
     build_public_subscription_happ_wrapper_url,
+    build_public_subscription_page_url,
+    extract_public_subscription_token_from_url,
     get_or_create_public_subscription_page_url_for_user,
     get_public_subscription_bound_devices_for_user,
 )
@@ -111,6 +115,8 @@ from bot.utils.texts import (
     CHANNEL_URL,
     PAYMENT_SYNC_WARNING_TEXT,
     PLATEGA_PAYMENT_NOT_CONFIGURED_TEXT,
+    PRIVACY_URL,
+    REFUNDS_URL,
     SUPPORT_URL,
     TERMS_URL,
     OS_LABELS,
@@ -226,9 +232,6 @@ SCREEN_IMAGE_FILENAMES = {
     "balance_topup": "sakura_my_subscription.jpg",
     "device_slot": "sakura_my_subscription.jpg",
 }
-PRIVACY_URL = "https://www.amonoraconnect.com/legal/privacy"
-REFUNDS_URL = "https://www.amonoraconnect.com/legal/refunds"
-
 AGREEMENT_TEXT = """Перед использованием нашего сервиса, просим Вас принять пользовательское соглашение.
 
 Для активации пробного периода необходимо принять следующее условия:
@@ -618,6 +621,8 @@ class TestUserSummary:
     devices: tuple[dict, ...]
     single_connection_uri: str | None
     subscription_page_url: str | None = None
+    subscription_feed_url: str | None = None
+    subscription_extended_feed_url: str | None = None
     happ_subscription_url: str | None = None
     manual_extension_label: str | None = None
 
@@ -1040,27 +1045,36 @@ def _my_devices_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
 
 
 def _subscription_key_menu_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
+    stable_feed_url = _subscription_feed_url(summary)
+    extended_feed_url = _subscription_feed_url(summary, include_extra=True)
     open_page_button = (
-        InlineKeyboardButton(text="Открыть подписку", url=summary.subscription_page_url)
+        InlineKeyboardButton(text="🌐 Страница", url=summary.subscription_page_url)
         if summary.subscription_page_url
-        else InlineKeyboardButton(text="Открыть подписку", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
+        else InlineKeyboardButton(text="🌐 Страница", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
     )
     open_happ_button = (
-        InlineKeyboardButton(text="Открыть в Happ", url=summary.happ_subscription_url)
+        InlineKeyboardButton(text="📲 Happ", url=summary.happ_subscription_url)
         if summary.happ_subscription_url
-        else InlineKeyboardButton(text="Открыть в Happ", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
+        else InlineKeyboardButton(text="📲 Happ", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
     )
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                open_page_button,
-                open_happ_button,
-            ],
-            [InlineKeyboardButton(text="Скопировать ссылку", callback_data=V2_COPY_KEY_CALLBACK)],
-            [InlineKeyboardButton(text="Мои устройства", callback_data=V2_MY_DEVICES_CALLBACK)],
-            [InlineKeyboardButton(text="Назад", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)],
-        ]
-    )
+    rows: list[list[InlineKeyboardButton]] = [[open_page_button, open_happ_button]]
+    if stable_feed_url:
+        rows.append([
+            InlineKeyboardButton(
+                text="📋 Скопировать основную",
+                copy_text=CopyTextButton(text=stable_feed_url),
+            )
+        ])
+    if extended_feed_url:
+        rows.append([
+            InlineKeyboardButton(
+                text="🌍 Скопировать расширенную",
+                copy_text=CopyTextButton(text=extended_feed_url),
+            )
+        ])
+    rows.append([InlineKeyboardButton(text="Мои устройства", callback_data=V2_MY_DEVICES_CALLBACK)])
+    rows.append([InlineKeyboardButton(text="Назад", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def _subscription_key_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
@@ -1562,13 +1576,22 @@ async def _load_test_user_summary(telegram_id: int) -> TestUserSummary:
     expires_at = get_access_expires_at_from_user(user)
     tariff_title, manual_extension_label = await _subscription_billing_summary_for_user(user)
     subscription_page_url: str | None = None
+    subscription_feed_url: str | None = None
+    subscription_extended_feed_url: str | None = None
     happ_subscription_url: str | None = None
     try:
         subscription_page_url = await get_or_create_public_subscription_page_url_for_user(int(user.id))
         if subscription_page_url:
+            token = extract_public_subscription_token_from_url(subscription_page_url)
+            if token is not None:
+                subscription_page_url = build_public_subscription_page_url(token)
+                subscription_feed_url = build_public_subscription_feed_url(token)
+                subscription_extended_feed_url = build_public_subscription_feed_url(token, include_extra=True)
             happ_subscription_url = build_public_subscription_happ_wrapper_url(subscription_page_url)
     except Exception:
         subscription_page_url = None
+        subscription_feed_url = None
+        subscription_extended_feed_url = None
         happ_subscription_url = None
     active_slot_counts = await get_active_device_slot_counts_for_users([int(user.id)])
     setattr(user, "active_device_slot_addons", int(active_slot_counts.get(int(user.id), 0)))
@@ -1602,6 +1625,8 @@ async def _load_test_user_summary(telegram_id: int) -> TestUserSummary:
         devices=devices,
         single_connection_uri=single_connection_uri,
         subscription_page_url=subscription_page_url,
+        subscription_feed_url=subscription_feed_url,
+        subscription_extended_feed_url=subscription_extended_feed_url,
         happ_subscription_url=happ_subscription_url,
         manual_extension_label=manual_extension_label,
     )
@@ -1793,6 +1818,16 @@ def _subscription_connection_uri(summary: TestUserSummary) -> str | None:
     return None
 
 
+def _subscription_feed_url(summary: TestUserSummary, *, include_extra: bool = False) -> str | None:
+    configured_url = summary.subscription_extended_feed_url if include_extra else summary.subscription_feed_url
+    if configured_url:
+        return configured_url
+    token = extract_public_subscription_token_from_url(summary.subscription_page_url)
+    if token is None:
+        return None
+    return build_public_subscription_feed_url(token, include_extra=include_extra)
+
+
 def _subscription_key_text(summary: TestUserSummary) -> str:
     connection_uri = _subscription_connection_uri(summary) or "Ссылка пока недоступна"
     return (
@@ -1808,27 +1843,24 @@ def _subscription_key_text(summary: TestUserSummary) -> str:
 
 
 def _subscription_key_menu_text(summary: TestUserSummary) -> str:
-    connection_uri = _subscription_connection_uri(summary)
-    open_page_hint = "• <b>Открыть подписку</b> — откроет страницу подписки на сайте."
-    open_happ_hint = (
-        "• <b>Открыть в Happ</b> — откроет приложение Happ и добавит подписку автоматически."
-        if summary.happ_subscription_url
-        else "• <b>Открыть в Happ</b> — кнопка станет активной, когда ссылка будет готова."
-    )
-    copy_hint = "• <b>Скопировать ссылку</b> — скопирует ссылку, чтобы вставить её в Happ вручную."
-    availability_hint = (
-        "\n\nТекущая ссылка уже готова для ручного импорта."
-        if connection_uri
-        else "\n\nСсылка появится после подготовки подключения."
-    )
-    return (
-        "🔑 <b>Ключ доступа</b>\n\n"
-        "Выберите, как вам удобнее подключиться:\n\n"
-        f"{open_page_hint}\n"
-        f"{open_happ_hint}\n"
-        f"{copy_hint}"
-        f"{availability_hint}"
-    )
+    lines = [
+        "🔑 <b>Ваш ключ подключения</b>",
+        "",
+        "Есть 2 варианта подписки:",
+        "",
+        "✅ <b>Основная подписка</b> — самый стабильный вариант для Happ.",
+        "Используйте её, если приложение не импортирует ссылку или подключение работает нестабильно.",
+        "",
+        "🌍 <b>Расширенная подписка</b> — больше серверов и стран.",
+        "Если она импортируется с ошибкой, используйте основную.",
+        "",
+        "🌐 <b>Страница подписки</b> — откроет QR-код и инструкцию в браузере.",
+    ]
+    if summary.subscription_page_url:
+        lines.extend(["", "<b>Страница подписки:</b>", summary.subscription_page_url])
+    else:
+        lines.extend(["", "Ссылка появится после подготовки подключения."])
+    return "\n".join(lines)
 
 
 def _device_os_label(device_type: str | None) -> str:
@@ -3261,7 +3293,7 @@ async def v2_my_subscription_callback(callback: CallbackQuery) -> None:
 async def v2_key_menu_callback(callback: CallbackQuery) -> None:
     await _ack_callback_quietly(callback)
     summary = await _load_test_user_summary(int(callback.from_user.id))
-    if not summary.happ_subscription_url and not _subscription_connection_uri(summary):
+    if not summary.subscription_page_url and not summary.happ_subscription_url and not _subscription_feed_url(summary):
         await callback.answer("Ссылка пока недоступна.", show_alert=True)
         return
     await _edit_screen(

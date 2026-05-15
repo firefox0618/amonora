@@ -17,6 +17,8 @@ class TestUserSummary:
     devices: tuple[dict, ...]
     single_connection_uri: str | None
     subscription_page_url: str | None = None
+    subscription_feed_url: str | None = None
+    subscription_extended_feed_url: str | None = None
     happ_subscription_url: str | None = None
     manual_extension_label: str | None = None
 

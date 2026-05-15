@@ -34,15 +34,16 @@ from bot.db import (
 )
 from bot.payment_flow import finalize_subscription_payment, notify_payment_success, notify_referral_bonus
 from bot.public_subscription import (
-    PUBLIC_CLIENT_HOST,
     bind_public_subscription_request_slot,
     build_public_subscription_feed_url,
     build_public_subscription_happ_wrapper_url,
+    describe_public_subscription_feed_failure,
     build_public_subscription_request_context,
     build_public_subscription_page_url,
     extract_public_subscription_token_from_url,
     get_public_subscription_feed_payload,
     get_public_subscription_summary_by_token,
+    is_public_subscription_client_host,
     is_public_subscription_client_request,
     is_valid_public_subscription_token,
     touch_public_subscription_surface,
@@ -109,9 +110,12 @@ BRIDGE_ACCESS_REGION_ORDER = ("dk", "de")
 BRIDGE_ACCESS_RATE_LIMIT_SECONDS = 30 * 60
 BRIDGE_ACCESS_DEVICE_NAME = "Amonora Bridge"
 BRIDGE_ACCESS_COOKIE_NAME = "amonora_bridge_cooldown"
-PUBLIC_WEB_BASE_URL = "https://www.amonoraconnect.com"
-PUBLIC_WEB_CANONICAL_HOST = "www.amonoraconnect.com"
-PUBLIC_WEB_APEX_HOST = "amonoraconnect.com"
+PUBLIC_WEB_BASE_URL = config.public_site_base_url.rstrip("/")
+PUBLIC_WEB_CANONICAL_HOST = config.public_site_host
+PUBLIC_WEB_ALLOWED_HOSTS = frozenset(config.public_site_hosts)
+PUBLIC_API_BASE_URL = config.public_api_base_url.rstrip("/")
+PUBLIC_API_ALLOWED_HOSTS = frozenset(config.public_api_hosts)
+CLIENT_APP_ASSET_VERSION = "20260515-client-domain-v6"
 _bridge_issue_timestamps: dict[str, datetime] = {}
 _bridge_issue_lock = asyncio.Lock()
 
@@ -302,7 +306,7 @@ def _request_host(request: Request) -> str:
 
 
 def _is_client_public_host(request: Request) -> bool:
-    return _request_host(request) == PUBLIC_CLIENT_HOST
+    return is_public_subscription_client_host(_request_host(request))
 
 
 def _canonical_public_url(request: Request) -> str:
@@ -312,14 +316,15 @@ def _canonical_public_url(request: Request) -> str:
 
 
 def _public_static_url(path: str) -> str:
-    """Return canonical /static/ URL, e.g. _public_static_url('og-image.png') → 'https://www.amonoraconnect.com/static/og-image.png'."""
+    """Return canonical /static/ URL for the primary public site host."""
     return f"{PUBLIC_WEB_BASE_URL}/static/{path.lstrip('/')}"
 
 
 def _should_redirect_public_request(request: Request) -> bool:
     if request.method not in {"GET", "HEAD"}:
         return False
-    if _request_host(request) != PUBLIC_WEB_APEX_HOST:
+    request_host = _request_host(request)
+    if request_host not in PUBLIC_WEB_ALLOWED_HOSTS or request_host == PUBLIC_WEB_CANONICAL_HOST:
         return False
     path = request.url.path or "/"
     return path == "/" or path == "/manual" or path.startswith("/legal/")
@@ -525,6 +530,11 @@ def _plaintext_response_with_headers(
         except UnicodeEncodeError:
             response.raw_headers.append((header_name.lower().encode("ascii"), header_value.encode("utf-8")))
     return response
+
+
+def _query_flag(query_params, name: str) -> bool:
+    value = str(query_params.get(name) or "").strip().lower()
+    return value in {"1", "true", "yes", "on"}
 
 
 def _bridge_cookie_secret() -> str:
@@ -798,6 +808,7 @@ async def _public_subscription_feed_response(
     force_client_binding: bool,
 ):
     slot_index: int | None = None
+    include_extra = _query_flag(request.query_params, "include_extra")
     if force_client_binding or is_public_subscription_client_request(request.headers, query_params=request.query_params):
         request_context = build_public_subscription_request_context(
             headers=request.headers,
@@ -806,7 +817,8 @@ async def _public_subscription_feed_response(
         )
         binding = await bind_public_subscription_request_slot(token, request_context=request_context)
         if binding is None:
-            return PlainTextResponse("Not Found", status_code=404)
+            status_code, message = await describe_public_subscription_feed_failure(token)
+            return PlainTextResponse(message, status_code=status_code)
         if str(binding.get("status") or "").strip().lower() == "limit_reached":
             return PlainTextResponse("Device limit reached", status_code=403)
         try:
@@ -814,9 +826,14 @@ async def _public_subscription_feed_response(
         except (TypeError, ValueError):
             return PlainTextResponse("Not Found", status_code=404)
 
-    payload = await get_public_subscription_feed_payload(token, slot_index=slot_index)
+    payload = await get_public_subscription_feed_payload(
+        token,
+        slot_index=slot_index,
+        include_extra=include_extra,
+    )
     if payload is None:
-        return PlainTextResponse("Not Found", status_code=404)
+        status_code, message = await describe_public_subscription_feed_failure(token, slot_index=slot_index)
+        return PlainTextResponse(message, status_code=status_code)
     content, headers = payload
     return _plaintext_response_with_headers(content, headers=headers)
 
@@ -873,7 +890,7 @@ async def public_subscription_happ_wrapper(request: Request):
             "page_url": page_url,
             "feed_url": feed_url,
             "happ_deep_link": f"happ://add/{feed_url}",
-            "asset_version": "20260410-client-sakura-v5",
+            "asset_version": CLIENT_APP_ASSET_VERSION,
         },
     )
 
@@ -1119,7 +1136,7 @@ async def public_subscription_page(request: Request, token: str):
             "page_description": "Единая ссылка на подписку Amonora.",
             "canonical_url": build_public_subscription_page_url(token),
             "client_token": token,
-            "asset_version": "20260410-client-sakura-v5",
+            "asset_version": CLIENT_APP_ASSET_VERSION,
         },
     )
 

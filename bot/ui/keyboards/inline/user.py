@@ -4,7 +4,7 @@ from aiogram.types import CopyTextButton, InlineKeyboardButton, InlineKeyboardMa
 
 from bot.keyboards.referrals import referral_share_url
 from bot.services.user.models import DEVICE_GUIDES, TestBonusSummary, TestUserSummary
-from bot.services.user.summary import _subscription_connection_uri
+from bot.services.user.summary import _subscription_feed_url
 from bot.ui.screens.user import CHANNEL_URL, PRIVACY_URL, REFUNDS_URL, SUPPORT_URL, TERMS_URL
 from bot.user_flow.constants import (
     V2_ACCEPT_TERMS_CALLBACK,
@@ -209,20 +209,33 @@ def _my_devices_keyboard(
 
 
 def _subscription_key_menu_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
-    connection_uri = _subscription_connection_uri(summary)
+    stable_feed_url = _subscription_feed_url(summary)
+    extended_feed_url = _subscription_feed_url(summary, include_extra=True)
     open_page_button = (
-        InlineKeyboardButton(text="Подписка", url=summary.subscription_page_url)
+        InlineKeyboardButton(text="🌐 Страница", url=summary.subscription_page_url)
         if summary.subscription_page_url
-        else InlineKeyboardButton(text="Подписка", callback_data=V2_MENU_CALLBACK)
+        else InlineKeyboardButton(text="🌐 Страница", callback_data=V2_MENU_CALLBACK)
     )
     open_happ_button = (
-        InlineKeyboardButton(text="Happ", url=summary.happ_subscription_url)
+        InlineKeyboardButton(text="📲 Happ", url=summary.happ_subscription_url)
         if summary.happ_subscription_url
-        else InlineKeyboardButton(text="Happ", callback_data=V2_MENU_CALLBACK)
+        else InlineKeyboardButton(text="📲 Happ", callback_data=V2_MENU_CALLBACK)
     )
     rows: list[list[InlineKeyboardButton]] = [[open_page_button, open_happ_button]]
-    if connection_uri:
-        rows.append([InlineKeyboardButton(text="📋 Скопировать", copy_text=CopyTextButton(text=connection_uri))])
+    if stable_feed_url:
+        rows.append([
+            InlineKeyboardButton(
+                text="📋 Скопировать основную",
+                copy_text=CopyTextButton(text=stable_feed_url),
+            )
+        ])
+    if extended_feed_url:
+        rows.append([
+            InlineKeyboardButton(
+                text="🌍 Скопировать расширенную",
+                copy_text=CopyTextButton(text=extended_feed_url),
+            )
+        ])
     rows.append([InlineKeyboardButton(text="Мои устройства", callback_data=V2_MY_DEVICES_CALLBACK)])
     rows.append([InlineKeyboardButton(text="Назад", callback_data=V2_MENU_CALLBACK)])
     return InlineKeyboardMarkup(inline_keyboard=rows)

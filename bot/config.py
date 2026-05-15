@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from urllib.parse import urlsplit, urlunsplit
 
 from dotenv import load_dotenv
 
@@ -33,6 +34,35 @@ def parse_str_list(value: str | None, default: list[str] | None = None) -> list[
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _normalize_public_base_url(value: str | None, default: str) -> str:
+    raw_value = str(value or default).strip()
+    if not raw_value:
+        raw_value = default
+    parsed = urlsplit(raw_value if "://" in raw_value else f"https://{raw_value}")
+    scheme = str(parsed.scheme or "https").strip().lower() or "https"
+    hostname = str(parsed.hostname or "").strip().lower()
+    if not hostname:
+        raise ValueError(f"Invalid public base URL: {raw_value}")
+    path = str(parsed.path or "").rstrip("/")
+    return urlunsplit((scheme, hostname, path, "", ""))
+
+
+def _base_url_host(value: str | None) -> str:
+    return str(urlsplit(str(value or "")).hostname or "").strip().lower()
+
+
+def _site_host_variants(value: str | None) -> set[str]:
+    host = _base_url_host(value)
+    if not host:
+        return set()
+    hosts = {host}
+    if host.startswith("www."):
+        hosts.add(host[4:])
+    elif host.count(".") == 1:
+        hosts.add(f"www.{host}")
+    return hosts
+
+
 @dataclass
 class Config:
     bot_token: str
@@ -62,6 +92,12 @@ class Config:
     control_daily_summary_enabled: bool
     control_daily_summary_hour: int
     dashboard_public_base_url: str | None
+    public_site_base_url: str
+    public_client_base_url: str
+    public_api_base_url: str
+    legacy_public_site_base_url: str
+    legacy_public_client_base_url: str
+    legacy_public_api_base_url: str
     openai_api_key: str | None
     openai_channel_model: str
     amonora_internal_channel_webhook_secret: str | None
@@ -155,6 +191,30 @@ class Config:
             f"@{db_host}:{self.db_port}/{self.db_name}"
         )
 
+    @property
+    def public_site_host(self) -> str:
+        return _base_url_host(self.public_site_base_url)
+
+    @property
+    def public_client_host(self) -> str:
+        return _base_url_host(self.public_client_base_url)
+
+    @property
+    def public_api_host(self) -> str:
+        return _base_url_host(self.public_api_base_url)
+
+    @property
+    def public_site_hosts(self) -> set[str]:
+        return _site_host_variants(self.public_site_base_url) | _site_host_variants(self.legacy_public_site_base_url)
+
+    @property
+    def public_client_hosts(self) -> set[str]:
+        return {_base_url_host(self.public_client_base_url), _base_url_host(self.legacy_public_client_base_url)} - {""}
+
+    @property
+    def public_api_hosts(self) -> set[str]:
+        return {_base_url_host(self.public_api_base_url), _base_url_host(self.legacy_public_api_base_url)} - {""}
+
 _admin_ids = parse_int_list(get_env("ADMIN_IDS"))
 _control_owner_ids = parse_int_list(get_optional_env("AMONORA_CONTROL_OWNER_IDS"))
 _control_admin_ids = parse_int_list(get_optional_env("AMONORA_CONTROL_ADMIN_IDS"))
@@ -212,6 +272,21 @@ config = Config(
     in {"1", "true", "yes", "on"},
     control_daily_summary_hour=int(get_env("AMONORA_CONTROL_DAILY_SUMMARY_HOUR", "9")),
     dashboard_public_base_url=get_optional_env("DASHBOARD_PUBLIC_BASE_URL"),
+    public_site_base_url=_normalize_public_base_url(get_optional_env("PUBLIC_SITE_BASE_URL"), "https://amonora.ru"),
+    public_client_base_url=_normalize_public_base_url(get_optional_env("PUBLIC_CLIENT_BASE_URL"), "https://client.amonora.ru"),
+    public_api_base_url=_normalize_public_base_url(get_optional_env("PUBLIC_API_BASE_URL"), "https://api.amonora.ru"),
+    legacy_public_site_base_url=_normalize_public_base_url(
+        get_optional_env("LEGACY_PUBLIC_SITE_BASE_URL"),
+        "https://amonoraconnect.com",
+    ),
+    legacy_public_client_base_url=_normalize_public_base_url(
+        get_optional_env("LEGACY_PUBLIC_CLIENT_BASE_URL"),
+        "https://client.amonoraconnect.com",
+    ),
+    legacy_public_api_base_url=_normalize_public_base_url(
+        get_optional_env("LEGACY_PUBLIC_API_BASE_URL"),
+        "https://api.amonoraconnect.com",
+    ),
     openai_api_key=get_optional_env("OPENAI_API_KEY", ""),
     openai_channel_model=get_env("OPENAI_CHANNEL_MODEL", "gpt-4.1-mini"),
     amonora_internal_channel_webhook_secret=get_optional_env("AMONORA_INTERNAL_CHANNEL_WEBHOOK_SECRET", ""),

@@ -1,6 +1,6 @@
 from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandObject, CommandStart
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, CopyTextButton, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from backend.core.analytics import (
     EVENT_CHANNEL_MEMBERSHIP_CONFIRMED,
@@ -21,7 +21,12 @@ from bot.db import (
 from bot.keyboards.home import home_keyboard_for_user
 from bot.keyboards.main_menu import main_menu_for_user
 from bot.keyboards.tariffs import balance_topup_amounts_keyboard, tariffs_keyboard
-from bot.public_subscription import get_or_create_public_subscription_page_url_for_user
+from bot.public_subscription import (
+    build_public_subscription_feed_url,
+    build_public_subscription_happ_wrapper_url,
+    build_public_subscription_page_url,
+    get_or_create_public_subscription_page_url_for_user,
+)
 from bot.user_notifications import send_user_message
 from bot.payment_flow import sync_user_vpn_access_with_single_retry
 from bot.utils.access import (
@@ -364,16 +369,40 @@ async def home_subscription_page_callback(callback: CallbackQuery) -> None:
         return
 
     page_url = await get_or_create_public_subscription_page_url_for_user(int(user.id))
+    token = page_url.rsplit("/", 1)[-1]
+    page_url = build_public_subscription_page_url(token)
+    feed_url = build_public_subscription_feed_url(token)
+    extended_feed_url = build_public_subscription_feed_url(token, include_extra=True)
+    happ_url = build_public_subscription_happ_wrapper_url(page_url)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🌐 Открыть страницу подписки", url=page_url)],
+            [
+                InlineKeyboardButton(text="📲 Открыть Happ", url=happ_url),
+                InlineKeyboardButton(text="🌐 Страница подписки", url=page_url),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="📋 Скопировать основную",
+                    copy_text=CopyTextButton(text=feed_url),
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🌍 Скопировать расширенную",
+                    copy_text=CopyTextButton(text=extended_feed_url),
+                )
+            ],
             [InlineKeyboardButton(text="↩ Назад", callback_data="home:cabinet")],
         ]
     )
     await callback.message.edit_text(
         (
             "🔗 <b>Единая ссылка на подписку</b>\n\n"
-            "Открой страницу в браузере, чтобы получить QR и ссылку для Happ.\n"
+            "Обычная подписка — самый стабильный вариант для Happ.\n"
+            "Расширенная подписка — больше серверов и стран, но если приложение импортирует её с ошибкой, "
+            "используйте обычную.\n\n"
+            "Кнопка «Открыть Happ» использует стабильный feed <code>?feed=1</code>. "
+            "Расширенная подписка копирует feed <code>?feed=1&amp;include_extra=1</code>.\n"
             "Это отдельный user-level contour: он не заменяет текущие устройства, а работает параллельно."
         ),
         parse_mode="HTML",

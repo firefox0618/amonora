@@ -23,8 +23,10 @@ SEP = "〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️"
 SURFACE_SEP = "━━━━━━━━━━━━━━━━━━━"
 CHANNEL_URL = "https://t.me/amonora_new"
 SUPPORT_URL = "https://t.me/amonora_support_bot"
-TERMS_URL = "https://www.amonoraconnect.com/legal/terms"
-MANUAL_URL = "https://www.amonoraconnect.com/manual"
+TERMS_URL = f"{config.public_site_base_url}/legal/terms"
+PRIVACY_URL = f"{config.public_site_base_url}/legal/privacy"
+REFUNDS_URL = f"{config.public_site_base_url}/legal/refunds"
+MANUAL_URL = f"{config.public_site_base_url}/manual"
 
 OS_LABELS = {
     "android": "🤖 Android",

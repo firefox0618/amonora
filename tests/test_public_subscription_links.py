@@ -120,7 +120,14 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
                 {"label": "🇩🇪 #1 Германия", "uri": "vless://uuid-de@ffconnect.amonoraconnect.com:443?type=tcp&security=reality#de-old"},
                 {"label": "🇩🇰 #1 Дания", "uri": "vless://uuid-dk@dk.amonoraconnect.com:443?type=xhttp&security=reality#dk-old"},
                 {"label": "🇪🇪 #1 Эстония", "uri": "vless://uuid-ee@est.amonoraconnect.com:443?type=tcp&security=reality&flow=xtls-rprx-vision#ee-old"},
-                {"label": "#1 Обход белых списков", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[0]["uri"]},
+                {"label": "🇫🇮 Финляндия", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[0]["uri"]},
+                {"label": "🇦🇹 Австрия", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[1]["uri"]},
+                {"label": "🇺🇸 США", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[2]["uri"]},
+                {"label": "🇹🇷 Турция", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[3]["uri"]},
+                {"label": "🇨🇭 Швейцария", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[4]["uri"]},
+                {"label": "📱 Мобильная сеть", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[5]["uri"]},
+                {"label": "📱 Мобильная сеть 2", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[6]["uri"]},
+                {"label": "📱 Мобильная сеть 3", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[7]["uri"]},
             ],
         )
 
@@ -160,7 +167,19 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             [entry["label"] for entry in entries],
-            ["🇩🇪 #1 Германия", "🇩🇰 #1 Дания", "🇪🇪 #1 Эстония", "#1 Обход белых списков"],
+            [
+                "🇩🇪 #1 Германия",
+                "🇩🇰 #1 Дания",
+                "🇪🇪 #1 Эстония",
+                "🇫🇮 Финляндия",
+                "🇦🇹 Австрия",
+                "🇺🇸 США",
+                "🇹🇷 Турция",
+                "🇨🇭 Швейцария",
+                "📱 Мобильная сеть",
+                "📱 Мобильная сеть 2",
+                "📱 Мобильная сеть 3",
+            ],
         )
         self.assertIn("#%F0%9F%87%AA%F0%9F%87%AA%20%231%20%D0%AD%D1%81%D1%82%D0%BE%D0%BD%D0%B8%D1%8F", entries[2]["uri"])
 
@@ -305,17 +324,55 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         ):
             page_url = await public_subscription_module.get_or_create_public_subscription_page_url_for_user(42)
 
-        self.assertEqual(page_url, "https://client.amonoraconnect.com/existing_public_token")
+        self.assertEqual(page_url, "https://client.amonora.ru/existing_public_token")
         create_mock.assert_not_awaited()
 
     def test_happ_wrapper_url_is_built_from_public_page_url(self) -> None:
+        wrapper_url = public_subscription_module.build_public_subscription_happ_wrapper_url(
+            "https://client.amonora.ru/abcdefghijklmnop"
+        )
+
+        self.assertEqual(
+            wrapper_url,
+            "https://client.amonora.ru/happ/add?sub=https%3A%2F%2Fclient.amonora.ru%2Fabcdefghijklmnop",
+        )
+
+    def test_feed_url_builders_use_primary_client_domain(self) -> None:
+        self.assertEqual(
+            public_subscription_module.build_public_subscription_page_url("abcdefghijklmnop"),
+            "https://client.amonora.ru/abcdefghijklmnop",
+        )
+        self.assertEqual(
+            public_subscription_module.build_public_subscription_feed_url("abcdefghijklmnop"),
+            "https://client.amonora.ru/abcdefghijklmnop?feed=1",
+        )
+        self.assertEqual(
+            public_subscription_module.build_public_subscription_feed_url("abcdefghijklmnop", include_extra=True),
+            "https://client.amonora.ru/abcdefghijklmnop?feed=1&include_extra=1",
+        )
+
+    def test_happ_wrapper_url_normalizes_legacy_public_page_url_to_primary_client_domain(self) -> None:
         wrapper_url = public_subscription_module.build_public_subscription_happ_wrapper_url(
             "https://client.amonoraconnect.com/abcdefghijklmnop"
         )
 
         self.assertEqual(
             wrapper_url,
-            "https://client.amonoraconnect.com/happ/add?sub=https%3A%2F%2Fclient.amonoraconnect.com%2Fabcdefghijklmnop",
+            "https://client.amonora.ru/happ/add?sub=https%3A%2F%2Fclient.amonora.ru%2Fabcdefghijklmnop",
+        )
+
+    def test_extract_public_subscription_token_accepts_primary_and_legacy_client_hosts(self) -> None:
+        self.assertEqual(
+            public_subscription_module.extract_public_subscription_token_from_url(
+                "https://client.amonora.ru/abcdefghijklmnop?feed=1"
+            ),
+            "abcdefghijklmnop",
+        )
+        self.assertEqual(
+            public_subscription_module.extract_public_subscription_token_from_url(
+                "https://client.amonoraconnect.com/sub/abcdefghijklmnop"
+            ),
+            "abcdefghijklmnop",
         )
 
     def test_happ_wrapper_rejects_foreign_host_urls(self) -> None:
@@ -410,7 +467,8 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["telegram_id"], 145)
         self.assertEqual(payload["status"], "active")
         self.assertEqual(payload["status_label"], "Активна")
-        self.assertEqual(payload["feed_url"], "https://client.amonoraconnect.com/abcdefghijklmnop?feed=1")
+        self.assertEqual(payload["feed_url"], "https://client.amonora.ru/abcdefghijklmnop?feed=1")
+        self.assertNotEqual(payload["feed_url"], payload["page_url"])
         self.assertEqual(payload["traffic_limit"], "∞")
         self.assertEqual(payload["traffic_used"], "0 МБ")
         self.assertEqual(payload["devices_limit"], 10)
@@ -424,7 +482,14 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
                 {"label": "🇩🇪 #1 Германия"},
                 {"label": "🇩🇰 #1 Дания"},
                 {"label": "🇪🇪 #1 Эстония"},
-                {"label": "#1 Обход белых списков"},
+                {"label": "🇫🇮 Финляндия"},
+                {"label": "🇦🇹 Австрия"},
+                {"label": "🇺🇸 США"},
+                {"label": "🇹🇷 Турция"},
+                {"label": "🇨🇭 Швейцария"},
+                {"label": "📱 Мобильная сеть"},
+                {"label": "📱 Мобильная сеть 2"},
+                {"label": "📱 Мобильная сеть 3"},
             ],
         )
         self.assertEqual(len(payload["install_links"]), 7)
@@ -631,21 +696,106 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         assert payload is not None
         content, headers = payload
         lines = [line for line in content.splitlines() if line.strip()]
-        self.assertEqual(len(lines), 4)
+        self.assertEqual(len(lines), 3)
         self.assertTrue(lines[0].startswith("vless://uuid-1@"))
         self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 2))}", lines[0])
         self.assertTrue(lines[1].startswith("vless://uuid-2@"))
         self.assertIn(f"#{quote(public_subscription_module._user_server_label('dk', 2))}", lines[1])
         self.assertTrue(lines[2].startswith("vless://uuid-2@"))
         self.assertIn(f"#{quote(public_subscription_module._user_server_label('ee', 2))}", lines[2])
-        self.assertIn("158.160.20.200:8443", lines[3])
-        self.assertEqual(headers["profile-web-page-url"], f"https://client.amonoraconnect.com/{token}")
+        self.assertTrue(all(line.startswith("vless://") for line in lines))
+        self.assertNotIn("profile-title", content)
+        self.assertNotIn("hide-settings", content)
+        self.assertNotIn("profile-update-interval", content)
+        self.assertNotIn("<html", content.lower())
+        self.assertNotIn("{", content)
+        for extra_entry in public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS:
+            self.assertNotIn(str(extra_entry["uri"]), content)
+        self.assertEqual(headers["profile-web-page-url"], f"https://client.amonora.ru/{token}")
         self.assertEqual(headers["profile-update-interval"], "12")
         self.assertEqual(headers["profile-title"], "Amonora")
         self.assertEqual(headers["support-url"], "https://t.me/amonora_v_2_0_bot")
         self.assertEqual(headers["announce"], public_subscription_module.PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT)
         self.assertIn("expire=", headers["subscription-userinfo"])
         touch_mock.assert_awaited_once_with(token, feed_access=True)
+
+    async def test_feed_payload_include_extra_adds_extra_servers_without_changing_default_routes(self) -> None:
+        token = "abcdefghijklmnop"
+        link = SimpleNamespace(id=9, user_id=42, token=token)
+        user = SimpleNamespace(
+            id=42,
+            username=None,
+            telegram_id=987654321,
+            is_blocked=False,
+            subscription_status="active",
+            subscription_expires_at=datetime(2026, 4, 25, 10, 0, 0),
+            trial_expires_at=None,
+        )
+        routes = [
+            SimpleNamespace(
+                id=1,
+                user_id=42,
+                country_code="de",
+                slot_index=1,
+                status="active",
+                protocol="vless",
+                client_uuid="uuid-1",
+                xui_client_id="uuid-1",
+                email="device_feed_42_de_1",
+                client_data=json.dumps({"vless_link": "vless://uuid-1@de.example:443?type=tcp#one"}),
+            ),
+            SimpleNamespace(
+                id=2,
+                user_id=42,
+                country_code="dk",
+                slot_index=1,
+                status="active",
+                protocol="vless",
+                client_uuid="uuid-2",
+                xui_client_id="uuid-2",
+                email="device_feed_42_dk_1",
+                client_data=json.dumps({"vless_link": "vless://uuid-2@dk.example:443?type=tcp#two"}),
+            ),
+        ]
+
+        with (
+            patch.object(
+                public_subscription_module,
+                "get_public_subscription_link_by_token",
+                new=AsyncMock(return_value=link),
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_user_by_id",
+                new=AsyncMock(return_value=user),
+            ),
+            patch.object(
+                public_subscription_module,
+                "sync_public_subscription_access",
+                new=AsyncMock(return_value=False),
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_public_subscription_routes_for_user",
+                new=AsyncMock(return_value=routes),
+            ),
+            patch.object(
+                public_subscription_module,
+                "touch_public_subscription_surface",
+                new=AsyncMock(return_value=True),
+            ),
+        ):
+            payload = await public_subscription_module.get_public_subscription_feed_payload(token, include_extra=True)
+
+        self.assertIsNotNone(payload)
+        assert payload is not None
+        content, _ = payload
+        lines = [line for line in content.splitlines() if line.strip()]
+        self.assertTrue(lines[0].startswith("vless://uuid-1@"))
+        self.assertTrue(lines[1].startswith("vless://uuid-2@"))
+        self.assertTrue(lines[2].startswith("vless://uuid-2@"))
+        self.assertIn(f"#{quote(public_subscription_module._user_server_label('ee', 1))}", lines[2])
+        self.assertEqual(lines[3:], [entry["uri"] for entry in public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS])
 
     def test_build_public_server_entries_exposes_only_primary_routes(self) -> None:
         routes = [
@@ -682,7 +832,19 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             [entry["label"] for entry in entries],
-            ["🇩🇪 #1 Германия", "🇩🇰 #1 Дания", "🇪🇪 #1 Эстония", "#1 Обход белых списков"],
+            [
+                "🇩🇪 #1 Германия",
+                "🇩🇰 #1 Дания",
+                "🇪🇪 #1 Эстония",
+                "🇫🇮 Финляндия",
+                "🇦🇹 Австрия",
+                "🇺🇸 США",
+                "🇹🇷 Турция",
+                "🇨🇭 Швейцария",
+                "📱 Мобильная сеть",
+                "📱 Мобильная сеть 2",
+                "📱 Мобильная сеть 3",
+            ],
         )
         self.assertTrue(entries[0]["uri"].startswith("vless://uuid-de@"))
         self.assertTrue(entries[1]["uri"].startswith("vless://uuid-dk@"))

@@ -5,7 +5,7 @@ from pathlib import Path
 from aiogram.types import FSInputFile
 
 from bot.services.user.models import DEVICE_GUIDES, TestBonusSummary, TestUserSummary
-from bot.utils.texts import CHANNEL_URL, OS_LABELS, SUPPORT_URL, TERMS_URL
+from bot.utils.texts import CHANNEL_URL, OS_LABELS, PRIVACY_URL, REFUNDS_URL, SUPPORT_URL, TERMS_URL
 
 
 SCREEN_ASSETS_DIR = Path(__file__).resolve().parents[2] / "assets" / "v2"
@@ -30,9 +30,6 @@ SCREEN_IMAGE_FILENAMES = {
     "balance_topup": "sakura_my_subscription.jpg",
     "device_slot": "sakura_my_subscription.jpg",
 }
-PRIVACY_URL = "https://www.amonoraconnect.com/legal/privacy"
-REFUNDS_URL = "https://www.amonoraconnect.com/legal/refunds"
-
 AGREEMENT_TEXT = """Перед использованием нашего сервиса, просим Вас принять пользовательское соглашение.
 
 Для активации пробного периода необходимо принять следующее условия:

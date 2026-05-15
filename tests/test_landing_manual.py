@@ -30,7 +30,7 @@ class LandingManualTests(unittest.TestCase):
         topnav_html = response.text.split('<nav class="topnav"', 1)[1].split("</nav>", 1)[0]
         self.assertNotIn("/manual", topnav_html)
 
-    def test_public_pages_redirect_apex_host_to_www_canonical_host(self) -> None:
+    def test_public_pages_redirect_legacy_site_host_to_primary_canonical_host(self) -> None:
         response = self.client.get(
             "/manual",
             headers={"host": "amonoraconnect.com"},
@@ -38,7 +38,7 @@ class LandingManualTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 308)
-        self.assertEqual(response.headers["location"], "https://www.amonoraconnect.com/manual")
+        self.assertEqual(response.headers["location"], "https://amonora.ru/manual")
 
 
 if __name__ == "__main__":

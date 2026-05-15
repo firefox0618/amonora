@@ -49,8 +49,27 @@ class BotPublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         editable_message.edit_text.assert_awaited_once()
         call = editable_message.edit_text.await_args
         self.assertIn("Единая ссылка на подписку", call.args[0])
+        self.assertIn("?feed=1", call.args[0])
+        self.assertIn("include_extra=1", call.args[0])
         keyboard = call.kwargs["reply_markup"]
-        self.assertEqual(keyboard.inline_keyboard[0][0].url, "https://client.amonoraconnect.com/abcdefghijklmnop")
+        self.assertEqual(
+            keyboard.inline_keyboard[0][0].url,
+            "https://client.amonora.ru/happ/add?sub=https%3A%2F%2Fclient.amonora.ru%2Fabcdefghijklmnop",
+        )
+        self.assertEqual(
+            keyboard.inline_keyboard[0][1].url,
+            "https://client.amonora.ru/abcdefghijklmnop",
+        )
+        self.assertEqual(keyboard.inline_keyboard[1][0].text, "📋 Скопировать основную")
+        self.assertEqual(
+            keyboard.inline_keyboard[1][0].copy_text.text,
+            "https://client.amonora.ru/abcdefghijklmnop?feed=1",
+        )
+        self.assertEqual(keyboard.inline_keyboard[2][0].text, "🌍 Скопировать расширенную")
+        self.assertEqual(
+            keyboard.inline_keyboard[2][0].copy_text.text,
+            "https://client.amonora.ru/abcdefghijklmnop?feed=1&include_extra=1",
+        )
         callback.answer.assert_awaited_once()
 
 

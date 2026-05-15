@@ -11,7 +11,10 @@ from bot.db import (
     get_vpn_client_by_id,
 )
 from bot.public_subscription import (
+    build_public_subscription_feed_url,
     build_public_subscription_happ_wrapper_url,
+    build_public_subscription_page_url,
+    extract_public_subscription_token_from_url,
     get_account_devices_for_user,
     get_or_create_public_subscription_page_url_for_user,
 )
@@ -104,13 +107,22 @@ async def _load_test_user_summary(telegram_id: int) -> TestUserSummary:
     expires_at = get_access_expires_at_from_user(user)
     tariff_title, manual_extension_label = await _subscription_billing_summary_for_user(user)
     subscription_page_url: str | None = None
+    subscription_feed_url: str | None = None
+    subscription_extended_feed_url: str | None = None
     happ_subscription_url: str | None = None
     try:
         subscription_page_url = await get_or_create_public_subscription_page_url_for_user(int(user.id))
         if subscription_page_url:
+            token = extract_public_subscription_token_from_url(subscription_page_url)
+            if token is not None:
+                subscription_page_url = build_public_subscription_page_url(token)
+                subscription_feed_url = build_public_subscription_feed_url(token)
+                subscription_extended_feed_url = build_public_subscription_feed_url(token, include_extra=True)
             happ_subscription_url = build_public_subscription_happ_wrapper_url(subscription_page_url)
     except Exception:
         subscription_page_url = None
+        subscription_feed_url = None
+        subscription_extended_feed_url = None
         happ_subscription_url = None
     active_slot_counts = await get_active_device_slot_counts_for_users([int(user.id)])
     setattr(user, "active_device_slot_addons", int(active_slot_counts.get(int(user.id), 0)))
@@ -131,6 +143,8 @@ async def _load_test_user_summary(telegram_id: int) -> TestUserSummary:
         devices=devices,
         single_connection_uri=single_connection_uri,
         subscription_page_url=subscription_page_url,
+        subscription_feed_url=subscription_feed_url,
+        subscription_extended_feed_url=subscription_extended_feed_url,
         happ_subscription_url=happ_subscription_url,
         manual_extension_label=manual_extension_label,
     )
@@ -167,6 +181,16 @@ def _subscription_connection_uri(summary: TestUserSummary) -> str | None:
         if connection_uri:
             return connection_uri
     return None
+
+
+def _subscription_feed_url(summary: TestUserSummary, *, include_extra: bool = False) -> str | None:
+    configured_url = summary.subscription_extended_feed_url if include_extra else summary.subscription_feed_url
+    if configured_url:
+        return configured_url
+    token = extract_public_subscription_token_from_url(summary.subscription_page_url)
+    if token is None:
+        return None
+    return build_public_subscription_feed_url(token, include_extra=include_extra)
 
 
 async def _get_owned_test_device_for_telegram(telegram_id: int, device_id: int):

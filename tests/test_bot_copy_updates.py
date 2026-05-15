@@ -334,13 +334,13 @@ class BotCopyUpdateTests(unittest.TestCase):
         self.assertIn("📘 <b>Инструкция</b>", root_text)
         self.assertNotIn("❓ <b>FAQ</b>", root_text)
         self.assertIn(MANUAL_URL, instructions_text)
-        self.assertTrue(MANUAL_URL.startswith("https://www.amonoraconnect.com/"))
-        self.assertTrue(TERMS_URL.startswith("https://www.amonoraconnect.com/"))
+        self.assertTrue(MANUAL_URL.startswith("https://amonora.ru/"))
+        self.assertTrue(TERMS_URL.startswith("https://amonora.ru/"))
         self.assertIn("📘 Инструкция", root_labels)
         self.assertNotIn("❓ FAQ", root_labels)
         self.assertIn("📜 Документы", root_labels)
         self.assertIn("📜 Пользовательское соглашение", docs_labels)
-        self.assertTrue(all(url.startswith("https://www.amonoraconnect.com/") for url in doc_urls))
+        self.assertTrue(all(url.startswith("https://amonora.ru/") for url in doc_urls))
 
     def test_new_user_start_text_and_offer_button_show_terms_acceptance(self) -> None:
         text = start_new_user_text("Иван")

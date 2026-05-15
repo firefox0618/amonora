@@ -314,7 +314,7 @@ class DashboardDeviceTechnicalPayloadTests(unittest.IsolatedAsyncioTestCase):
             detail = await get_user_detail(444)
 
         assert detail is not None
-        self.assertEqual(detail["subscription_link_url"], "https://client.amonoraconnect.com/abcdefghijklmnop")
+        self.assertEqual(detail["subscription_link_url"], "https://client.amonora.ru/abcdefghijklmnop")
         self.assertEqual(detail["subscription_link_token"], "abcdefghijklmnop")
         self.assertEqual(len(detail["devices"]), 1)
         device = detail["devices"][0]

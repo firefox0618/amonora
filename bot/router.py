@@ -66,6 +66,7 @@ from bot.services.user.summary import (
     _load_pending_discount_payload,
     _load_test_user_summary,
     _subscription_connection_uri,
+    _subscription_feed_url,
 )
 from bot.public_subscription import PUBLIC_SUBSCRIPTION_BINDING_METADATA_KEYS
 from bot.ui.keyboards.inline.user import (
@@ -221,6 +222,9 @@ from bot.utils.texts import (
     PLATEGA_PAYMENT_NOT_CONFIGURED_TEXT,
     PANEL_CONNECTION_ERROR_TEXT,
     PANEL_OPERATION_ERROR_TEXT,
+    PRIVACY_URL,
+    REFUNDS_URL,
+    TERMS_URL,
     USER_NOT_FOUND_TEXT,
     balance_topup_payment_text,
     balance_topup_success_text,
@@ -327,9 +331,6 @@ SCREEN_IMAGE_FILENAMES = {
     "balance_topup": "sakura_my_subscription.jpg",
     "device_slot": "sakura_my_subscription.jpg",
 }
-PRIVACY_URL = "https://www.amonoraconnect.com/legal/privacy"
-REFUNDS_URL = "https://www.amonoraconnect.com/legal/refunds"
-
 AGREEMENT_TEXT = """Перед использованием нашего сервиса, просим Вас принять пользовательское соглашение.
 
 Для активации пробного периода необходимо принять следующее условия:
@@ -703,6 +704,8 @@ class TestUserSummary:
     devices: tuple[dict, ...]
     single_connection_uri: str | None
     subscription_page_url: str | None = None
+    subscription_feed_url: str | None = None
+    subscription_extended_feed_url: str | None = None
     happ_subscription_url: str | None = None
     manual_extension_label: str | None = None
 
@@ -1029,25 +1032,31 @@ def _my_devices_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
 
 
 def _subscription_key_menu_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
-    connection_uri = _subscription_connection_uri(summary)
+    stable_feed_url = _subscription_feed_url(summary)
+    extended_feed_url = _subscription_feed_url(summary, include_extra=True)
     open_page_button = (
-        InlineKeyboardButton(text="Подписка", url=summary.subscription_page_url)
+        InlineKeyboardButton(text="🌐 Страница", url=summary.subscription_page_url)
         if summary.subscription_page_url
-        else InlineKeyboardButton(text="Подписка", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
+        else InlineKeyboardButton(text="🌐 Страница", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
     )
     open_happ_button = (
-        InlineKeyboardButton(text="Happ", url=summary.happ_subscription_url)
+        InlineKeyboardButton(text="📲 Happ", url=summary.happ_subscription_url)
         if summary.happ_subscription_url
-        else InlineKeyboardButton(text="Happ", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
+        else InlineKeyboardButton(text="📲 Happ", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
     )
-    rows: list[list[InlineKeyboardButton]] = [
-        [open_page_button, open_happ_button],
-    ]
-    if connection_uri:
+    rows: list[list[InlineKeyboardButton]] = [[open_page_button, open_happ_button]]
+    if stable_feed_url:
         rows.append([
             InlineKeyboardButton(
-                text="📋 Скопировать",
-                copy_text=CopyTextButton(text=connection_uri),
+                text="📋 Скопировать основную",
+                copy_text=CopyTextButton(text=stable_feed_url),
+            )
+        ])
+    if extended_feed_url:
+        rows.append([
+            InlineKeyboardButton(
+                text="🌍 Скопировать расширенную",
+                copy_text=CopyTextButton(text=extended_feed_url),
             )
         ])
     rows.append([InlineKeyboardButton(text="Мои устройства", callback_data=V2_MY_DEVICES_CALLBACK)])
@@ -2997,27 +3006,26 @@ async def v2_my_subscription_callback(callback: CallbackQuery) -> None:
 async def v2_key_menu_callback(callback: CallbackQuery) -> None:
     await _ack_callback_quietly(callback)
     summary = await _load_test_user_summary(int(callback.from_user.id))
-    if not summary.happ_subscription_url and not _subscription_connection_uri(summary):
+    if not summary.subscription_page_url and not summary.happ_subscription_url and not _subscription_feed_url(summary):
         await callback.answer("Ссылка пока недоступна.", show_alert=True)
         return
-    connection_uri = _subscription_connection_uri(summary)
     lines = [
         "🔑 <b>Ваш ключ подключения</b>",
         "",
-        "<b>Подписка</b> — откроет страницу с QR-кодом и инструкциями в браузере.",
-        "<b>Happ</b> — автоматически добавит подписку в приложение Happ.",
+        "Есть 2 варианта подписки:",
+        "",
+        "✅ <b>Основная подписка</b> — самый стабильный вариант для Happ.",
+        "Используйте её, если приложение не импортирует ссылку или подключение работает нестабильно.",
+        "",
+        "🌍 <b>Расширенная подписка</b> — больше серверов и стран.",
+        "Если она импортируется с ошибкой, используйте основную.",
+        "",
+        "🌐 <b>Страница подписки</b> — откроет QR-код и инструкцию в браузере.",
     ]
-    if connection_uri:
-        lines.extend([
-            "<b>📋 Скопировать</b> — скопирует ссылку в буфер обмена.",
-            "",
-            f"<code>{connection_uri}</code>",
-            "",
-            "💡 Или нажмите «Подписка» чтобы открыть страницу с инструкцией.",
-        ])
+    if summary.subscription_page_url:
+        lines.extend(["", "<b>Страница подписки:</b>", summary.subscription_page_url])
     else:
-        lines.append("")
-        lines.append("Ссылка появится после подготовки подключения.")
+        lines.extend(["", "Ссылка появится после подготовки подключения."])
     await _edit_screen(
         callback,
         "\n".join(lines),

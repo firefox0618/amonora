@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from bot.utils.texts import MANUAL_URL, TERMS_URL
+from bot.utils.texts import MANUAL_URL, PRIVACY_URL, REFUNDS_URL, TERMS_URL
 
 
 def info_root_keyboard() -> InlineKeyboardMarkup:
@@ -29,8 +29,8 @@ def info_documents_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="📜 Пользовательское соглашение", url=TERMS_URL)],
-            [InlineKeyboardButton(text="🔐 Политика конфиденциальности", url="https://www.amonoraconnect.com/legal/privacy")],
-            [InlineKeyboardButton(text="↩ Политика возврата", url="https://www.amonoraconnect.com/legal/refunds")],
+            [InlineKeyboardButton(text="🔐 Политика конфиденциальности", url=PRIVACY_URL)],
+            [InlineKeyboardButton(text="↩ Политика возврата", url=REFUNDS_URL)],
             [InlineKeyboardButton(text="⬅ Назад", callback_data="info:root")],
         ]
     )

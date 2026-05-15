@@ -47,7 +47,7 @@ class DashboardUserDetailPayloadTests(unittest.IsolatedAsyncioTestCase):
             "user": user,
             "status": "paid_active",
             "access_expires_at": "2026-04-05 12:30",
-            "subscription_link_url": "https://client.amonoraconnect.com/abcdefghijklmnop",
+            "subscription_link_url": "https://client.amonora.ru/abcdefghijklmnop",
             "subscription_link_token": "abcdefghijklmnop",
             "subscription_link_last_viewed_at": "2026-04-05 18:29 Екб",
             "subscription_link_last_feed_accessed_at": "2026-04-05 18:30 Екб",
@@ -81,7 +81,7 @@ class DashboardUserDetailPayloadTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["user"]["created_at"], "2026-03-01 15:00 Екб")
         self.assertEqual(payload["user"]["subscription_started_at"], "2026-03-05 17:30 Екб")
         self.assertEqual(payload["user"]["payments_count"], 12)
-        self.assertEqual(payload["user"]["subscription_link_url"], "https://client.amonoraconnect.com/abcdefghijklmnop")
+        self.assertEqual(payload["user"]["subscription_link_url"], "https://client.amonora.ru/abcdefghijklmnop")
         self.assertEqual(payload["user"]["subscription_link_last_feed_accessed_at"], "2026-04-05 18:30 Екб")
         self.assertEqual(len(payload["payments"]), 12)
 

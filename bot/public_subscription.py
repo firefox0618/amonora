@@ -13,6 +13,7 @@ from typing import Mapping
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
 
+from bot.config import config
 from bot.db import (
     bind_public_subscription_device_slot,
     clear_public_subscription_device_slot_binding,
@@ -43,8 +44,9 @@ from bot.vpn_provisioning import get_vless_provisioner
 
 logger = logging.getLogger(__name__)
 
-PUBLIC_CLIENT_BASE_URL = "https://client.amonoraconnect.com"
-PUBLIC_CLIENT_HOST = "client.amonoraconnect.com"
+PUBLIC_CLIENT_BASE_URL = config.public_client_base_url.rstrip("/")
+PUBLIC_CLIENT_HOST = config.public_client_host
+PUBLIC_CLIENT_ALLOWED_HOSTS = frozenset(config.public_client_hosts)
 PUBLIC_CLIENT_HAPP_ADD_PATH = "/happ/add"
 PUBLIC_SUBSCRIPTION_BOT_URL = "https://t.me/amonora_v_2_0_bot"
 PUBLIC_SUBSCRIPTION_COUNTRY_CODES = ("de", "dk", "ee")
@@ -264,8 +266,15 @@ def build_public_subscription_page_url(token: str) -> str:
     return f"{PUBLIC_CLIENT_BASE_URL}/{str(token).strip()}"
 
 
-def build_public_subscription_feed_url(token: str) -> str:
-    return f"{build_public_subscription_page_url(token)}?feed=1"
+def build_public_subscription_feed_url(token: str, *, include_extra: bool = False) -> str:
+    query = [("feed", "1")]
+    if include_extra:
+        query.append(("include_extra", "1"))
+    return f"{build_public_subscription_page_url(token)}?{urlencode(query)}"
+
+
+def is_public_subscription_client_host(host: str | None) -> bool:
+    return str(host or "").strip().lower() in PUBLIC_CLIENT_ALLOWED_HOSTS
 
 
 def extract_public_subscription_token_from_url(value: str | None) -> str | None:
@@ -276,7 +285,7 @@ def extract_public_subscription_token_from_url(value: str | None) -> str | None:
     parsed = urlsplit(raw_value)
     if str(parsed.scheme or "").strip().lower() != "https":
         return None
-    if str(parsed.hostname or "").strip().lower() != PUBLIC_CLIENT_HOST:
+    if not is_public_subscription_client_host(parsed.hostname):
         return None
 
     path_parts = [part for part in str(parsed.path or "").split("/") if part]
@@ -1664,16 +1673,63 @@ def _build_feed_uris(routes: list[object]) -> list[str]:
                 if uri:
                     if candidate_country != logical_country:
                         uri = _rewrite_public_vless_uri(uri, label=label)
-                    _append_labeled_uri(uris, uri, label=label)
+                    if uri.startswith("vless://"):
+                        _append_labeled_uri(uris, uri, label=label)
                 break
-
-    for entry in PUBLIC_SUBSCRIPTION_EXTRA_SERVERS:
-        _append_labeled_uri(
-            uris,
-            str(entry.get("uri") or "").strip(),
-            label=str(entry.get("label") or "").strip(),
-        )
     return uris
+
+
+def _build_extra_feed_uris() -> list[str]:
+    uris: list[str] = []
+    for entry in PUBLIC_SUBSCRIPTION_EXTRA_SERVERS:
+        uri = str(entry.get("uri") or "").strip()
+        if not uri.startswith("vless://"):
+            continue
+        if uri not in uris:
+            uris.append(uri)
+    return uris
+
+
+async def describe_public_subscription_feed_failure(
+    token: str,
+    *,
+    slot_index: int | None = None,
+) -> tuple[int, str]:
+    if not is_valid_public_subscription_token(token):
+        return 404, "Not Found"
+
+    link = await get_public_subscription_link_by_token(token, active_only=True)
+    if link is None:
+        return 404, "Not Found"
+
+    user = await get_user_by_id(int(link.user_id))
+    if user is None:
+        return 404, "Not Found"
+    if getattr(user, "is_blocked", False):
+        return 403, "Subscription blocked"
+
+    access_expires_at = _resolved_public_access_expires_at(user)
+    if access_expires_at is None:
+        return 410, "Subscription expired"
+
+    routes = await get_public_subscription_routes_for_user(int(user.id))
+    slot_limit = _desired_public_slot_count_for_user(user)
+    if not _has_ready_public_routes(routes, slot_limit=slot_limit, slot_index=slot_index):
+        if slot_index is not None:
+            await sync_public_subscription_slot_access(
+                int(user.id),
+                slot_index=int(slot_index),
+                create_missing=True,
+            )
+        else:
+            await sync_public_subscription_access(int(user.id), create_missing=True)
+        routes = await get_public_subscription_routes_for_user(int(user.id))
+
+    if slot_index is not None:
+        routes = [route for route in routes if int(getattr(route, "slot_index", 0) or 0) == int(slot_index)]
+    if _build_feed_uris(routes):
+        return 200, ""
+    return 503, "Subscription routes unavailable"
 
 
 def _route_protocol_labels(routes: list[object]) -> list[str]:
@@ -2058,6 +2114,7 @@ async def get_public_subscription_feed_payload(
     token: str,
     *,
     slot_index: int | None = None,
+    include_extra: bool = False,
 ) -> tuple[str, dict[str, str]] | None:
     if not is_valid_public_subscription_token(token):
         return None
@@ -2091,6 +2148,10 @@ async def get_public_subscription_feed_payload(
     uris = _build_feed_uris(routes)
     if not uris:
         return None
+    if include_extra:
+        for extra_uri in _build_extra_feed_uris():
+            if extra_uri not in uris:
+                uris.append(extra_uri)
 
     await touch_public_subscription_surface(token, feed_access=True)
     page_url = build_public_subscription_page_url(token)

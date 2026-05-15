@@ -299,7 +299,7 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
             devices_count=1,
             device_limit=10,
             devices=(),
-            single_connection_uri="https://client.amonoraconnect.com/token",
+            single_connection_uri="https://client.amonora.ru/token",
         )
 
         with (
@@ -335,10 +335,10 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
                     "id": 77,
                     "title": "Galaxy S24",
                     "kind": "public_slot",
-                    "connection_uri": "https://client.amonoraconnect.com/token",
+                    "connection_uri": "https://client.amonora.ru/token",
                 },
             ),
-            single_connection_uri="https://client.amonoraconnect.com/token",
+            single_connection_uri="https://client.amonora.ru/token",
         )
 
         with patch.object(test_bot_router, "_load_test_user_summary", new=AsyncMock(return_value=summary)):
@@ -409,10 +409,10 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
         ):
             summary = await test_bot_router._load_test_user_summary(1001)
 
-        self.assertEqual(summary.subscription_page_url, "https://client.amonoraconnect.com/abcdefghijklmnop")
+        self.assertEqual(summary.subscription_page_url, "https://client.amonora.ru/abcdefghijklmnop")
         self.assertEqual(
             summary.happ_subscription_url,
-            "https://client.amonoraconnect.com/happ/add?sub=https%3A%2F%2Fclient.amonoraconnect.com%2Fabcdefghijklmnop",
+            "https://client.amonora.ru/happ/add?sub=https%3A%2F%2Fclient.amonora.ru%2Fabcdefghijklmnop",
         )
 
     def test_subscription_text_shows_manual_extension_amount(self) -> None:
@@ -618,8 +618,8 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
                 },
             ),
             single_connection_uri="vless://example",
-            subscription_page_url="https://client.amonoraconnect.com/abcdefghijklmnop",
-            happ_subscription_url="https://client.amonoraconnect.com/happ/add?sub=https%3A%2F%2Fclient.amonoraconnect.com%2Fabcdefghijklmnop",
+            subscription_page_url="https://client.amonora.ru/abcdefghijklmnop",
+            happ_subscription_url="https://client.amonora.ru/happ/add?sub=https%3A%2F%2Fclient.amonora.ru%2Fabcdefghijklmnop",
         )
 
         with patch.object(test_bot_router, "_load_test_user_summary", new=AsyncMock(return_value=summary)):
@@ -926,22 +926,35 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
             device_limit=3,
             devices=(),
             single_connection_uri=None,
-            subscription_page_url="https://client.amonoraconnect.com/abcdefghijklmnop",
-            happ_subscription_url="https://client.amonoraconnect.com/happ/add?sub=https%3A%2F%2Fclient.amonoraconnect.com%2Fabcdefghijklmnop",
+            subscription_page_url="https://client.amonora.ru/abcdefghijklmnop",
+            subscription_feed_url="https://client.amonora.ru/abcdefghijklmnop?feed=1",
+            subscription_extended_feed_url="https://client.amonora.ru/abcdefghijklmnop?feed=1&include_extra=1",
+            happ_subscription_url="https://client.amonora.ru/happ/add?sub=https%3A%2F%2Fclient.amonora.ru%2Fabcdefghijklmnop",
         )
 
         with patch.object(test_bot_router, "_load_test_user_summary", new=AsyncMock(return_value=summary)):
             await test_bot_router.v2_key_menu_callback(callback)
 
         self.assertEqual(len(callback.message.edits), 1)
-        self.assertIn("ключ доступа", callback.message.edits[0]["text"].lower())
-        self.assertIn("откроет сайт amonora", callback.message.edits[0]["text"].lower())
-        self.assertIn("сразу вставить в happ", callback.message.edits[0]["text"].lower())
+        self.assertIn("ваш ключ подключения", callback.message.edits[0]["text"].lower())
+        self.assertIn("основная подписка", callback.message.edits[0]["text"].lower())
+        self.assertIn("расширенная подписка", callback.message.edits[0]["text"].lower())
+        self.assertIn("страница подписки", callback.message.edits[0]["text"].lower())
+        self.assertIn(summary.subscription_page_url, callback.message.edits[0]["text"])
         buttons = [button for row in callback.message.edits[0]["reply_markup"].inline_keyboard for button in row]
         labels = [button.text for button in buttons]
-        self.assertEqual(labels, ["Подключить", "Скопировать ключ", "Назад"])
-        connect_button = next(button for button in buttons if button.text == "Подключить")
-        self.assertEqual(connect_button.url, summary.happ_subscription_url)
+        self.assertEqual(
+            labels,
+            ["🌐 Страница", "📲 Happ", "📋 Скопировать основную", "🌍 Скопировать расширенную", "Мои устройства", "Назад"],
+        )
+        page_button = next(button for button in buttons if button.text == "🌐 Страница")
+        happ_button = next(button for button in buttons if button.text == "📲 Happ")
+        main_copy_button = next(button for button in buttons if button.text == "📋 Скопировать основную")
+        advanced_copy_button = next(button for button in buttons if button.text == "🌍 Скопировать расширенную")
+        self.assertEqual(page_button.url, summary.subscription_page_url)
+        self.assertEqual(happ_button.url, summary.happ_subscription_url)
+        self.assertEqual(main_copy_button.copy_text.text, summary.subscription_feed_url)
+        self.assertEqual(advanced_copy_button.copy_text.text, summary.subscription_extended_feed_url)
 
     async def test_copy_key_screen_shows_general_key_text_and_back(self) -> None:
         callback = FakeCallback(FakeMessage(), test_bot_router.V2_COPY_KEY_CALLBACK)
@@ -968,8 +981,8 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
                 },
             ),
             single_connection_uri="vless://example",
-            subscription_page_url="https://client.amonoraconnect.com/abcdefghijklmnop",
-            happ_subscription_url="https://client.amonoraconnect.com/happ/add?sub=https%3A%2F%2Fclient.amonoraconnect.com%2Fabcdefghijklmnop",
+            subscription_page_url="https://client.amonora.ru/abcdefghijklmnop",
+            happ_subscription_url="https://client.amonora.ru/happ/add?sub=https%3A%2F%2Fclient.amonora.ru%2Fabcdefghijklmnop",
         )
 
         with patch.object(test_bot_router, "_load_test_user_summary", new=AsyncMock(return_value=summary)):
@@ -977,7 +990,7 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(len(callback.message.edits), 1)
         self.assertIn("ваш ключ доступа", callback.message.edits[0]["text"].lower())
-        self.assertIn("https://client.amonoraconnect.com/abcdefghijklmnop", callback.message.edits[0]["text"])
+        self.assertIn("https://client.amonora.ru/abcdefghijklmnop", callback.message.edits[0]["text"])
         self.assertIn("вставить из буфера обмена", callback.message.edits[0]["text"].lower())
         labels = [button.text for row in callback.message.edits[0]["reply_markup"].inline_keyboard for button in row]
         self.assertEqual(labels, ["Назад"])
@@ -996,15 +1009,15 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
             device_limit=3,
             devices=(),
             single_connection_uri=None,
-            subscription_page_url="https://client.amonoraconnect.com/abcdefghijklmnop",
-            happ_subscription_url="https://client.amonoraconnect.com/happ/add?sub=https%3A%2F%2Fclient.amonoraconnect.com%2Fabcdefghijklmnop",
+            subscription_page_url="https://client.amonora.ru/abcdefghijklmnop",
+            happ_subscription_url="https://client.amonora.ru/happ/add?sub=https%3A%2F%2Fclient.amonora.ru%2Fabcdefghijklmnop",
         )
 
         with patch.object(test_bot_router, "_load_test_user_summary", new=AsyncMock(return_value=summary)):
             await test_bot_router.v2_copy_key_callback(callback)
 
         self.assertEqual(len(callback.message.edits), 1)
-        self.assertIn("client.amonoraconnect.com/abcdefghijklmnop", callback.message.edits[0]["text"])
+        self.assertIn("client.amonora.ru/abcdefghijklmnop", callback.message.edits[0]["text"])
 
     async def test_my_devices_screen_shows_count_and_slot_button(self) -> None:
         callback = FakeCallback(FakeMessage(), test_bot_router.V2_MY_DEVICES_CALLBACK)

@@ -286,9 +286,9 @@ function App() {
   );
   const clientHostUrl = useMemo(() => {
     try {
-      return summary?.page_url ? new URL(summary.page_url).origin : "https://client.amonoraconnect.com";
+      return summary?.page_url ? new URL(summary.page_url).origin : "https://client.amonora.ru";
     } catch {
-      return "https://client.amonoraconnect.com";
+      return "https://client.amonora.ru";
     }
   }, [summary]);
   const accountDevices = useMemo(
