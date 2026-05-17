@@ -937,24 +937,21 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(len(callback.message.edits), 1)
         self.assertIn("ваш ключ подключения", callback.message.edits[0]["text"].lower())
-        self.assertIn("основная подписка", callback.message.edits[0]["text"].lower())
-        self.assertIn("расширенная подписка", callback.message.edits[0]["text"].lower())
+        self.assertIn("единая ссылка подписки", callback.message.edits[0]["text"].lower())
         self.assertIn("страница подписки", callback.message.edits[0]["text"].lower())
         self.assertIn(summary.subscription_page_url, callback.message.edits[0]["text"])
         buttons = [button for row in callback.message.edits[0]["reply_markup"].inline_keyboard for button in row]
         labels = [button.text for button in buttons]
         self.assertEqual(
             labels,
-            ["🌐 Страница", "📲 Happ", "📋 Скопировать основную", "🌍 Скопировать расширенную", "Мои устройства", "Назад"],
+            ["🌐 Страница", "📲 Happ", "📋 Скопировать ссылку", "Мои устройства", "Назад"],
         )
         page_button = next(button for button in buttons if button.text == "🌐 Страница")
         happ_button = next(button for button in buttons if button.text == "📲 Happ")
-        main_copy_button = next(button for button in buttons if button.text == "📋 Скопировать основную")
-        advanced_copy_button = next(button for button in buttons if button.text == "🌍 Скопировать расширенную")
+        copy_button = next(button for button in buttons if button.text == "📋 Скопировать ссылку")
         self.assertEqual(page_button.url, summary.subscription_page_url)
         self.assertEqual(happ_button.url, summary.happ_subscription_url)
-        self.assertEqual(main_copy_button.copy_text.text, summary.subscription_feed_url)
-        self.assertEqual(advanced_copy_button.copy_text.text, summary.subscription_extended_feed_url)
+        self.assertEqual(copy_button.copy_text.text, summary.subscription_feed_url)
 
     async def test_copy_key_screen_shows_general_key_text_and_back(self) -> None:
         callback = FakeCallback(FakeMessage(), test_bot_router.V2_COPY_KEY_CALLBACK)

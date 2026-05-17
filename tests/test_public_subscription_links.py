@@ -348,7 +348,7 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             public_subscription_module.build_public_subscription_feed_url("abcdefghijklmnop", include_extra=True),
-            "https://client.amonora.ru/abcdefghijklmnop?feed=1&include_extra=1",
+            "https://client.amonora.ru/abcdefghijklmnop?feed=1",
         )
 
     def test_happ_wrapper_url_normalizes_legacy_public_page_url_to_primary_client_domain(self) -> None:
@@ -696,7 +696,7 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         assert payload is not None
         content, headers = payload
         lines = [line for line in content.splitlines() if line.strip()]
-        self.assertEqual(len(lines), 3)
+        self.assertEqual(len(lines), 3 + len(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
         self.assertTrue(lines[0].startswith("vless://uuid-1@"))
         self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 2))}", lines[0])
         self.assertTrue(lines[1].startswith("vless://uuid-2@"))
@@ -709,8 +709,16 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("profile-update-interval", content)
         self.assertNotIn("<html", content.lower())
         self.assertNotIn("{", content)
-        for extra_entry in public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS:
-            self.assertNotIn(str(extra_entry["uri"]), content)
+        self.assertEqual(
+            lines[3:],
+            [
+                public_subscription_module._rewrite_public_vless_uri(
+                    str(entry["uri"]),
+                    label=str(entry["label"]),
+                )
+                for entry in public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS
+            ],
+        )
         self.assertEqual(headers["profile-web-page-url"], f"https://client.amonora.ru/{token}")
         self.assertEqual(headers["profile-update-interval"], "12")
         self.assertEqual(headers["profile-title"], "Amonora")
@@ -719,7 +727,7 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("expire=", headers["subscription-userinfo"])
         touch_mock.assert_awaited_once_with(token, feed_access=True)
 
-    async def test_feed_payload_include_extra_adds_extra_servers_without_changing_default_routes(self) -> None:
+    async def test_feed_payload_include_extra_keeps_legacy_query_compatible_with_unified_feed(self) -> None:
         token = "abcdefghijklmnop"
         link = SimpleNamespace(id=9, user_id=42, token=token)
         user = SimpleNamespace(
@@ -783,19 +791,21 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
                 public_subscription_module,
                 "touch_public_subscription_surface",
                 new=AsyncMock(return_value=True),
-            ),
+            ) as touch_mock,
         ):
-            payload = await public_subscription_module.get_public_subscription_feed_payload(token, include_extra=True)
+            default_payload = await public_subscription_module.get_public_subscription_feed_payload(token)
+            extra_payload = await public_subscription_module.get_public_subscription_feed_payload(
+                token,
+                include_extra=True,
+            )
 
-        self.assertIsNotNone(payload)
-        assert payload is not None
-        content, _ = payload
-        lines = [line for line in content.splitlines() if line.strip()]
-        self.assertTrue(lines[0].startswith("vless://uuid-1@"))
-        self.assertTrue(lines[1].startswith("vless://uuid-2@"))
-        self.assertTrue(lines[2].startswith("vless://uuid-2@"))
-        self.assertIn(f"#{quote(public_subscription_module._user_server_label('ee', 1))}", lines[2])
-        self.assertEqual(lines[3:], [entry["uri"] for entry in public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS])
+        self.assertIsNotNone(default_payload)
+        self.assertIsNotNone(extra_payload)
+        assert default_payload is not None
+        assert extra_payload is not None
+        self.assertEqual(default_payload[0], extra_payload[0])
+        self.assertEqual(default_payload[1], extra_payload[1])
+        self.assertEqual(touch_mock.await_count, 2)
 
     def test_build_public_server_entries_exposes_only_primary_routes(self) -> None:
         routes = [

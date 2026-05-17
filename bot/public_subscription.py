@@ -267,10 +267,10 @@ def build_public_subscription_page_url(token: str) -> str:
 
 
 def build_public_subscription_feed_url(token: str, *, include_extra: bool = False) -> str:
-    query = [("feed", "1")]
-    if include_extra:
-        query.append(("include_extra", "1"))
-    return f"{build_public_subscription_page_url(token)}?{urlencode(query)}"
+    del include_extra
+    # Keep the legacy kwarg for compatibility, but always return the single
+    # unified feed URL so all clients receive the same subscription.
+    return f"{build_public_subscription_page_url(token)}?feed=1"
 
 
 def is_public_subscription_client_host(host: str | None) -> bool:
@@ -1673,20 +1673,15 @@ def _build_feed_uris(routes: list[object]) -> list[str]:
                 if uri:
                     if candidate_country != logical_country:
                         uri = _rewrite_public_vless_uri(uri, label=label)
-                    if uri.startswith("vless://"):
-                        _append_labeled_uri(uris, uri, label=label)
+                    _append_labeled_uri(uris, uri, label=label)
                 break
-    return uris
 
-
-def _build_extra_feed_uris() -> list[str]:
-    uris: list[str] = []
     for entry in PUBLIC_SUBSCRIPTION_EXTRA_SERVERS:
-        uri = str(entry.get("uri") or "").strip()
-        if not uri.startswith("vless://"):
-            continue
-        if uri not in uris:
-            uris.append(uri)
+        _append_labeled_uri(
+            uris,
+            str(entry.get("uri") or "").strip(),
+            label=str(entry.get("label") or "").strip(),
+        )
     return uris
 
 
@@ -2116,6 +2111,7 @@ async def get_public_subscription_feed_payload(
     slot_index: int | None = None,
     include_extra: bool = False,
 ) -> tuple[str, dict[str, str]] | None:
+    del include_extra
     if not is_valid_public_subscription_token(token):
         return None
 
@@ -2148,10 +2144,6 @@ async def get_public_subscription_feed_payload(
     uris = _build_feed_uris(routes)
     if not uris:
         return None
-    if include_extra:
-        for extra_uri in _build_extra_feed_uris():
-            if extra_uri not in uris:
-                uris.append(extra_uri)
 
     await touch_public_subscription_surface(token, feed_access=True)
     page_url = build_public_subscription_page_url(token)

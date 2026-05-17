@@ -372,7 +372,6 @@ async def home_subscription_page_callback(callback: CallbackQuery) -> None:
     token = page_url.rsplit("/", 1)[-1]
     page_url = build_public_subscription_page_url(token)
     feed_url = build_public_subscription_feed_url(token)
-    extended_feed_url = build_public_subscription_feed_url(token, include_extra=True)
     happ_url = build_public_subscription_happ_wrapper_url(page_url)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -382,14 +381,8 @@ async def home_subscription_page_callback(callback: CallbackQuery) -> None:
             ],
             [
                 InlineKeyboardButton(
-                    text="📋 Скопировать основную",
+                    text="📋 Скопировать ссылку",
                     copy_text=CopyTextButton(text=feed_url),
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text="🌍 Скопировать расширенную",
-                    copy_text=CopyTextButton(text=extended_feed_url),
                 )
             ],
             [InlineKeyboardButton(text="↩ Назад", callback_data="home:cabinet")],
@@ -398,11 +391,9 @@ async def home_subscription_page_callback(callback: CallbackQuery) -> None:
     await callback.message.edit_text(
         (
             "🔗 <b>Единая ссылка на подписку</b>\n\n"
-            "Обычная подписка — самый стабильный вариант для Happ.\n"
-            "Расширенная подписка — больше серверов и стран, но если приложение импортирует её с ошибкой, "
-            "используйте обычную.\n\n"
-            "Кнопка «Открыть Happ» использует стабильный feed <code>?feed=1</code>. "
-            "Расширенная подписка копирует feed <code>?feed=1&amp;include_extra=1</code>.\n"
+            "Одна ссылка открывает всю подписку целиком.\n"
+            "Внутри уже собраны все доступные серверы и страны.\n\n"
+            "Кнопка «Открыть Happ» и копирование используют один и тот же feed <code>?feed=1</code>.\n"
             "Это отдельный user-level contour: он не заменяет текущие устройства, а работает параллельно."
         ),
         parse_mode="HTML",

@@ -209,8 +209,7 @@ def _my_devices_keyboard(
 
 
 def _subscription_key_menu_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
-    stable_feed_url = _subscription_feed_url(summary)
-    extended_feed_url = _subscription_feed_url(summary, include_extra=True)
+    feed_url = _subscription_feed_url(summary)
     open_page_button = (
         InlineKeyboardButton(text="🌐 Страница", url=summary.subscription_page_url)
         if summary.subscription_page_url
@@ -222,18 +221,11 @@ def _subscription_key_menu_keyboard(summary: TestUserSummary) -> InlineKeyboardM
         else InlineKeyboardButton(text="📲 Happ", callback_data=V2_MENU_CALLBACK)
     )
     rows: list[list[InlineKeyboardButton]] = [[open_page_button, open_happ_button]]
-    if stable_feed_url:
+    if feed_url:
         rows.append([
             InlineKeyboardButton(
-                text="📋 Скопировать основную",
-                copy_text=CopyTextButton(text=stable_feed_url),
-            )
-        ])
-    if extended_feed_url:
-        rows.append([
-            InlineKeyboardButton(
-                text="🌍 Скопировать расширенную",
-                copy_text=CopyTextButton(text=extended_feed_url),
+                text="📋 Скопировать ссылку",
+                copy_text=CopyTextButton(text=feed_url),
             )
         ])
     rows.append([InlineKeyboardButton(text="Мои устройства", callback_data=V2_MY_DEVICES_CALLBACK)])

@@ -1045,8 +1045,7 @@ def _my_devices_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
 
 
 def _subscription_key_menu_keyboard(summary: TestUserSummary) -> InlineKeyboardMarkup:
-    stable_feed_url = _subscription_feed_url(summary)
-    extended_feed_url = _subscription_feed_url(summary, include_extra=True)
+    feed_url = _subscription_feed_url(summary)
     open_page_button = (
         InlineKeyboardButton(text="🌐 Страница", url=summary.subscription_page_url)
         if summary.subscription_page_url
@@ -1058,18 +1057,11 @@ def _subscription_key_menu_keyboard(summary: TestUserSummary) -> InlineKeyboardM
         else InlineKeyboardButton(text="📲 Happ", callback_data=V2_MY_SUBSCRIPTION_CALLBACK)
     )
     rows: list[list[InlineKeyboardButton]] = [[open_page_button, open_happ_button]]
-    if stable_feed_url:
+    if feed_url:
         rows.append([
             InlineKeyboardButton(
-                text="📋 Скопировать основную",
-                copy_text=CopyTextButton(text=stable_feed_url),
-            )
-        ])
-    if extended_feed_url:
-        rows.append([
-            InlineKeyboardButton(
-                text="🌍 Скопировать расширенную",
-                copy_text=CopyTextButton(text=extended_feed_url),
+                text="📋 Скопировать ссылку",
+                copy_text=CopyTextButton(text=feed_url),
             )
         ])
     rows.append([InlineKeyboardButton(text="Мои устройства", callback_data=V2_MY_DEVICES_CALLBACK)])
@@ -1846,14 +1838,10 @@ def _subscription_key_menu_text(summary: TestUserSummary) -> str:
     lines = [
         "🔑 <b>Ваш ключ подключения</b>",
         "",
-        "Есть 2 варианта подписки:",
+        "Это единая ссылка подписки.",
+        "Внутри уже собраны все доступные серверы и страны.",
         "",
-        "✅ <b>Основная подписка</b> — самый стабильный вариант для Happ.",
-        "Используйте её, если приложение не импортирует ссылку или подключение работает нестабильно.",
-        "",
-        "🌍 <b>Расширенная подписка</b> — больше серверов и стран.",
-        "Если она импортируется с ошибкой, используйте основную.",
-        "",
+        "📲 <b>Happ</b> — автоматически добавит подписку в приложение.",
         "🌐 <b>Страница подписки</b> — откроет QR-код и инструкцию в браузере.",
     ]
     if summary.subscription_page_url:
