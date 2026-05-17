@@ -63,6 +63,30 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["device_type"], "android")
         self.assertEqual(payload["os_version"], "15")
 
+    def test_linux_platform_hint_does_not_override_android_user_agent(self) -> None:
+        payload = public_subscription_module.build_public_subscription_request_context(
+            headers={
+                "user-agent": "Happ-Proxy/1.4.2 (Android 14; SM-S918B Build/UP1A)",
+                "sec-ch-ua-platform": "Linux",
+            },
+            source_ip="127.0.0.1",
+        )
+
+        self.assertEqual(payload["device_type"], "android")
+        self.assertEqual(payload["os_name"], "Android")
+
+    def test_linux_platform_hint_does_not_override_ios_user_agent(self) -> None:
+        payload = public_subscription_module.build_public_subscription_request_context(
+            headers={
+                "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) Happ/3.0",
+                "sec-ch-ua-platform": "Linux",
+            },
+            source_ip="127.0.0.1",
+        )
+
+        self.assertEqual(payload["device_type"], "ios")
+        self.assertEqual(payload["os_name"], "iOS")
+
     def test_public_server_entries_include_estonia_when_route_exists(self) -> None:
         routes = [
             SimpleNamespace(
@@ -1268,6 +1292,33 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(devices), 2)
         self.assertEqual(devices[0]["os_version"], "11_10.0.26200")
         self.assertEqual(devices[1]["os_version"], "15")
+
+    async def test_bound_devices_recover_android_type_from_saved_linux_hint(self) -> None:
+        routes = [
+            SimpleNamespace(
+                slot_index=1,
+                client_data=json.dumps(
+                    {
+                        "feed_device_fingerprint_hash": "aaa",
+                        "device_model": "SM-S918B",
+                        "device_type": "linux",
+                        "os_name": "Android",
+                        "os_version": "14",
+                    }
+                ),
+            ),
+        ]
+
+        with patch.object(
+            public_subscription_module,
+            "get_public_subscription_routes_for_user",
+            new=AsyncMock(return_value=routes),
+        ):
+            devices = await public_subscription_module.get_public_subscription_bound_devices_for_user(42)
+
+        self.assertEqual(len(devices), 1)
+        self.assertEqual(devices[0]["device_type"], "android")
+        self.assertEqual(devices[0]["os_name"], "Android")
 
     async def test_sync_user_vpn_access_also_syncs_existing_public_surface(self) -> None:
         with (

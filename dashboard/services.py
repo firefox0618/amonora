@@ -58,6 +58,7 @@ from bot.keyboards.tariffs import device_slot_manual_payment_reminder_keyboard, 
 from bot.public_subscription import (
     _normalize_device_type,
     _normalize_public_os_version,
+    _resolve_device_type,
     build_public_subscription_feed_url,
     build_public_subscription_page_url,
     get_or_create_public_subscription_page_url_for_user,
@@ -703,7 +704,10 @@ def _build_device_technical_payload(
     display_ip: str,
     user_last_activity_at: datetime | None,
 ) -> dict[str, str]:
-    device_type = str(metadata.get("device_type") or "other").strip().lower() or "other"
+    device_type = _resolve_device_type(
+        metadata.get("device_type"),
+        os_name=metadata.get("os_name") or metadata.get("platform_name"),
+    ) or "other"
     country_code = normalize_country_code(metadata.get("country_code"))
     provider_type = str(
         metadata.get("provider_type") or get_country_provider_type(country_code)
@@ -929,7 +933,10 @@ def _serialize_public_subscription_devices(
                 country_names.append(country_name)
         countries_label = ", ".join(country_names) if country_names else "Единая ссылка"
 
-        device_type = _normalize_device_type(bound_metadata.get("device_type")) or "other"
+        device_type = _resolve_device_type(
+            bound_metadata.get("device_type"),
+            os_name=bound_metadata.get("os_name") or bound_metadata.get("platform_name"),
+        ) or "other"
         last_seen_at = (
             _parse_iso_datetime(str(bound_metadata.get("feed_device_last_seen_at") or "").strip())
             or _parse_iso_datetime(str(bound_metadata.get("feed_device_bound_at") or "").strip())

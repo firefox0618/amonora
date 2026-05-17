@@ -711,7 +711,7 @@ def _sha256_hex(value: str) -> str:
 
 
 def _normalize_device_type(value: str | None) -> str | None:
-    raw_value = str(value or "").strip().lower()
+    raw_value = str(value or "").strip().strip('"').strip("'").lower()
     if not raw_value:
         return None
     if raw_value in {"iphone", "ipad", "ios"}:
@@ -719,6 +719,33 @@ def _normalize_device_type(value: str | None) -> str | None:
     if raw_value in {"android", "windows", "macos", "linux"}:
         return raw_value
     return raw_value
+
+
+def _device_type_from_os_name(value: str | None) -> str | None:
+    normalized = str(value or "").strip().strip('"').strip("'").lower()
+    if not normalized:
+        return None
+    if normalized.startswith("android"):
+        return "android"
+    if normalized in {"ios", "iphone", "ipad", "iphone / ipad"} or normalized.startswith("iphone") or normalized.startswith("ipad"):
+        return "ios"
+    if normalized.startswith("windows"):
+        return "windows"
+    if normalized.startswith("macos") or normalized.startswith("mac os"):
+        return "macos"
+    if normalized.startswith("linux"):
+        return "linux"
+    return None
+
+
+def _resolve_device_type(value: str | None, *, os_name: str | None = None) -> str | None:
+    normalized = _normalize_device_type(value)
+    inferred_from_os_name = _device_type_from_os_name(os_name)
+    if normalized in {None, "other"}:
+        return inferred_from_os_name or normalized
+    if normalized == "linux" and inferred_from_os_name and inferred_from_os_name != "linux":
+        return inferred_from_os_name
+    return normalized
 
 
 def _normalize_public_os_version(
@@ -868,17 +895,27 @@ def build_public_subscription_request_context(
         "x-device-id",
         "x-amonora-device-id",
     ).strip()
-    device_type = _normalize_device_type(
-        _query_value(query_params, "device_os", "deviceOs", "os", "platform")
-        or _header_value(headers, "x-device-os", "x-happ-device-os", "sec-ch-ua-platform")
-        or parsed["device_type"]
+    explicit_device_type = _normalize_device_type(
+        _query_value(query_params, "device_os", "deviceOs", "os")
+        or _header_value(headers, "x-device-os", "x-happ-device-os")
     )
-    os_name = (
-        _query_value(query_params, "device_os_name", "deviceOsName", "os_name", "osName", "platform_name", "platformName")
+    hinted_device_type = _normalize_device_type(
+        _query_value(query_params, "platform")
+        or _header_value(headers, "sec-ch-ua-platform")
+    )
+    device_type = explicit_device_type or _normalize_device_type(parsed["device_type"]) or hinted_device_type
+    explicit_os_name = (
+        _query_value(query_params, "device_os_name", "deviceOsName", "os_name", "osName")
         or _header_value(headers, "x-device-os-name", "x-happ-device-os-name")
+    )
+    hinted_os_name = _query_value(query_params, "platform_name", "platformName")
+    os_name = (
+        explicit_os_name
         or parsed["os_name"]
+        or hinted_os_name
         or ("iOS" if device_type == "ios" else (str(device_type or "").capitalize() or None))
     )
+    device_type = _resolve_device_type(device_type, os_name=os_name)
     device_model = (
         _query_value(query_params, "device_model", "deviceModel", "model", "device_name", "deviceName")
         or _header_value(headers, "x-device-model", "x-happ-device-model", "sec-ch-ua-model")
@@ -1852,7 +1889,10 @@ def _bound_public_devices_from_routes(
         )
         if bound_metadata is None:
             continue
-        device_type = _normalize_device_type(bound_metadata.get("device_type")) or "other"
+        device_type = _resolve_device_type(
+            bound_metadata.get("device_type"),
+            os_name=bound_metadata.get("os_name") or bound_metadata.get("platform_name"),
+        ) or "other"
         os_name = str(bound_metadata.get("os_name") or bound_metadata.get("platform_name") or device_type).strip()
         device_model = str(bound_metadata.get("device_model") or bound_metadata.get("device_name") or "Happ device").strip()
         os_version = _normalize_public_os_version(
@@ -1895,15 +1935,16 @@ def _legacy_public_devices_from_vpn_clients(
         except json.JSONDecodeError:
             metadata = {}
 
-        device_type = _normalize_device_type(
+        raw_os_name = str(metadata.get("os_name") or metadata.get("platform_name") or "").strip() or None
+        device_type = _resolve_device_type(
             metadata.get("device_type")
             or metadata.get("os_type")
             or metadata.get("platform")
-            or metadata.get("platform_name")
+            or metadata.get("platform_name"),
+            os_name=raw_os_name,
         ) or "other"
         os_name = str(
-            metadata.get("os_name")
-            or metadata.get("platform_name")
+            raw_os_name
             or ("iOS" if device_type == "ios" else ("macOS" if device_type == "macos" else (str(device_type).capitalize() if device_type != "other" else "Устройство")))
         ).strip() or "Устройство"
         device_model = str(
