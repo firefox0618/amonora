@@ -135,7 +135,8 @@ def get_mode_description(mode: str | None, *, telegram_id: int | None = None) ->
 def get_mode_protocol(mode: str | None, country_code: str | None = None) -> str:
     effective_mode = resolve_effective_mode(mode, country_code)
     provider_type = get_country_provider_type(country_code)
-    if effective_mode == "reserve" and provider_type == "xui":
+    normalized_country = normalize_country_code(country_code)
+    if effective_mode == "reserve" and provider_type == "xui" and normalized_country != "de":
         return "trojan"
     base_protocol = MODES[effective_mode].protocol
     if base_protocol == "trojan" and provider_type != "xui":
