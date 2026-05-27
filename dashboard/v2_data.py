@@ -27,6 +27,7 @@ from bot.config import config
 from bot.db import get_active_device_slot_counts_for_users, get_active_device_slot_entitlements_for_user
 from bot.manual_payments import payment_status_label
 from bot.platega_flow import PLATEGA_PAYMENT_METHODS, sync_platega_record_by_id
+from bot.public_subscription import is_placeholder_public_subscription_binding
 from bot.repair_reasons import (
     is_payment_related_repair_reason,
     normalize_repair_reason,
@@ -1823,7 +1824,10 @@ async def get_v2_users_payload(
                 metadata = json.loads(raw_client_data or "{}")
             except json.JSONDecodeError:
                 metadata = {}
-            if str(metadata.get("feed_device_fingerprint_hash") or "").strip():
+            if (
+                str(metadata.get("feed_device_fingerprint_hash") or "").strip()
+                and not is_placeholder_public_subscription_binding(metadata)
+            ):
                 slot_stat["bound"] = True
             fallback_country = normalize_country_code(metadata.get("country_code"))
             if fallback_country:

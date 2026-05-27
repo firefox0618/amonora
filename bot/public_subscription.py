@@ -248,6 +248,7 @@ PUBLIC_SUBSCRIPTION_BINDING_METADATA_KEYS = {
     "feed_device_last_seen_at",
     "subscription_client",
 }
+PUBLIC_SUBSCRIPTION_PLACEHOLDER_DEVICE_LABELS = {"happ device"}
 
 
 def is_valid_public_subscription_token(token: str | None) -> bool:
@@ -270,7 +271,7 @@ def build_public_subscription_feed_url(token: str, *, include_extra: bool = Fals
     del include_extra
     # Keep the legacy kwarg for compatibility, but always return the single
     # unified feed URL so all clients receive the same subscription.
-    return f"{build_public_subscription_page_url(token)}?feed=1"
+    return f"{PUBLIC_CLIENT_BASE_URL}/sub/{str(token).strip()}"
 
 
 def is_public_subscription_client_host(host: str | None) -> bool:
@@ -876,6 +877,50 @@ def _parse_user_agent_device_fields(user_agent: str) -> dict[str, str | None]:
     }
 
 
+def _normalized_placeholder_device_label(value: object) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def is_placeholder_public_subscription_binding(metadata: Mapping[str, object] | None) -> bool:
+    if not isinstance(metadata, Mapping):
+        return False
+
+    fingerprint_hash = str(metadata.get("feed_device_fingerprint_hash") or "").strip()
+    if not fingerprint_hash:
+        return False
+
+    normalized_values = {
+        _normalized_placeholder_device_label(metadata.get(key))
+        for key in ("device_model", "device_name", "feed_device_label")
+        if str(metadata.get(key) or "").strip()
+    }
+    if not normalized_values or not normalized_values.issubset(PUBLIC_SUBSCRIPTION_PLACEHOLDER_DEVICE_LABELS):
+        return False
+
+    device_type = _normalize_device_type(str(metadata.get("device_type") or "").strip()) or "other"
+    os_name = str(metadata.get("os_name") or metadata.get("platform_name") or "").strip()
+    install_id = str(metadata.get("install_id") or "").strip()
+    return device_type == "other" and not os_name and not install_id
+
+
+def is_placeholder_public_subscription_request_context(request_context: Mapping[str, object] | None) -> bool:
+    if not isinstance(request_context, Mapping):
+        return False
+
+    device_label = _normalized_placeholder_device_label(request_context.get("device_label"))
+    device_model = _normalized_placeholder_device_label(request_context.get("device_model"))
+    device_type = _normalize_device_type(str(request_context.get("device_type") or "").strip()) or "other"
+    os_name = str(request_context.get("os_name") or "").strip()
+    install_id = str(request_context.get("install_id") or "").strip()
+    return (
+        device_label in PUBLIC_SUBSCRIPTION_PLACEHOLDER_DEVICE_LABELS
+        and device_model in ("", *PUBLIC_SUBSCRIPTION_PLACEHOLDER_DEVICE_LABELS)
+        and device_type == "other"
+        and not os_name
+        and not install_id
+    )
+
+
 def build_public_subscription_request_context(
     *,
     headers: Mapping[str, object] | None,
@@ -920,7 +965,7 @@ def build_public_subscription_request_context(
         _query_value(query_params, "device_model", "deviceModel", "model", "device_name", "deviceName")
         or _header_value(headers, "x-device-model", "x-happ-device-model", "sec-ch-ua-model")
         or parsed["device_model"]
-        or (os_name or "Happ device")
+        or os_name
     )
     os_version = (
         _query_value(
@@ -975,7 +1020,7 @@ def build_public_subscription_request_context(
     if not fingerprint_source:
         fingerprint_source = str(source_ip or "").strip() or "unknown-device"
     fingerprint_hash = _sha256_hex(fingerprint_source)
-    device_label = str(device_model or os_name or "Happ device").strip() or "Happ device"
+    device_label = str(device_model or os_name or "").strip() or "Happ device"
     return {
         "client_kind": "happ",
         "device_type": device_type,
@@ -1114,14 +1159,17 @@ def _build_feed_headers(
 
 def _slot_device_payload(request_context: Mapping[str, object]) -> dict[str, object]:
     current = utcnow()
+    device_label = str(request_context.get("device_label") or "").strip() or None
+    device_model = str(request_context.get("device_model") or "").strip() or None
+    os_name = str(request_context.get("os_name") or "").strip() or None
     return {
         "feed_device_fingerprint_hash": str(request_context.get("fingerprint_hash") or "").strip().lower(),
-        "feed_device_label": str(request_context.get("device_label") or "").strip() or "Happ device",
-        "device_name": str(request_context.get("device_label") or "").strip() or "Happ device",
-        "device_model": str(request_context.get("device_model") or "").strip() or "Happ device",
+        "feed_device_label": device_label,
+        "device_name": device_label or os_name,
+        "device_model": device_model,
         "device_type": _normalize_device_type(str(request_context.get("device_type") or "").strip()) or "other",
-        "platform_name": str(request_context.get("os_name") or "").strip() or None,
-        "os_name": str(request_context.get("os_name") or "").strip() or None,
+        "platform_name": os_name,
+        "os_name": os_name,
         "os_version": str(request_context.get("os_version") or "").strip() or None,
         "app_version": str(request_context.get("app_version") or "").strip() or None,
         "source_ip": str(request_context.get("source_ip") or "").strip() or None,
@@ -1273,6 +1321,19 @@ async def clear_public_subscription_bound_device_for_user(user_id: int, slot_ind
     )
 
 
+async def _purge_placeholder_public_bindings(user_id: int, routes: list[object]) -> set[int]:
+    cleared_slots: set[int] = set()
+    for route in routes:
+        slot_index = int(getattr(route, "slot_index", 0) or 0)
+        if slot_index <= 0 or slot_index in cleared_slots:
+            continue
+        if not is_placeholder_public_subscription_binding(_load_route_metadata(route)):
+            continue
+        if await clear_public_subscription_bound_device_for_user(int(user_id), slot_index):
+            cleared_slots.add(slot_index)
+    return cleared_slots
+
+
 async def bind_public_subscription_request_slot(
     token: str,
     *,
@@ -1296,6 +1357,28 @@ async def bind_public_subscription_request_slot(
     if slot_limit <= 0:
         return None
 
+    routes = await get_public_subscription_routes_for_user(int(user.id))
+    cleared_placeholder_slots = await _purge_placeholder_public_bindings(int(user.id), routes)
+    if cleared_placeholder_slots:
+        routes = await get_public_subscription_routes_for_user(int(user.id))
+
+    if is_placeholder_public_subscription_request_context(request_context):
+        active_devices = len(
+            {
+                int(getattr(route, "slot_index", 0) or 0)
+                for route in routes
+                if int(getattr(route, "slot_index", 0) or 0) > 0
+                and str(_load_route_metadata(route).get("feed_device_fingerprint_hash") or "").strip()
+                and not is_placeholder_public_subscription_binding(_load_route_metadata(route))
+            }
+        )
+        return {
+            "status": "ignored_placeholder",
+            "created": False,
+            "slot_index": 0,
+            "active_devices": active_devices,
+        }
+
     binding = await bind_public_subscription_device_slot(
         int(user.id),
         fingerprint_hash=str(request_context.get("fingerprint_hash") or ""),
@@ -1305,7 +1388,6 @@ async def bind_public_subscription_request_slot(
     if str(binding.get("status") or "").strip().lower() != "limit_reached":
         return binding
 
-    routes = await get_public_subscription_routes_for_user(int(user.id))
     recovery_slot = _first_recoverable_public_slot_index(routes, slot_limit=slot_limit)
     if recovery_slot is None:
         return binding
@@ -1884,6 +1966,7 @@ def _bound_public_devices_from_routes(
                 metadata
                 for metadata in metadata_candidates
                 if str(metadata.get("feed_device_fingerprint_hash") or "").strip()
+                and not is_placeholder_public_subscription_binding(metadata)
             ),
             None,
         )
@@ -1894,7 +1977,7 @@ def _bound_public_devices_from_routes(
             os_name=bound_metadata.get("os_name") or bound_metadata.get("platform_name"),
         ) or "other"
         os_name = str(bound_metadata.get("os_name") or bound_metadata.get("platform_name") or device_type).strip()
-        device_model = str(bound_metadata.get("device_model") or bound_metadata.get("device_name") or "Happ device").strip()
+        device_model = str(bound_metadata.get("device_model") or bound_metadata.get("device_name") or "").strip()
         os_version = _normalize_public_os_version(
             device_type=device_type,
             os_version=bound_metadata.get("os_version"),
@@ -1905,8 +1988,8 @@ def _bound_public_devices_from_routes(
                 "kind": "public_slot",
                 "id": int(slot_index),
                 "slot_index": int(slot_index),
-                "title": device_model or f"Happ #{slot_index}",
-                "device_model": device_model or f"Happ #{slot_index}",
+                "title": device_model or os_name or f"Happ #{slot_index}",
+                "device_model": device_model or os_name or f"Happ #{slot_index}",
                 "device_type": device_type,
                 "os_name": os_name or device_type,
                 "os_version": str(os_version or "—").strip() or "—",
@@ -2076,6 +2159,9 @@ def _first_recoverable_public_slot_index(
 
 async def get_public_subscription_bound_devices_for_user(user_id: int) -> tuple[dict[str, object], ...]:
     routes = await get_public_subscription_routes_for_user(int(user_id))
+    cleared_placeholder_slots = await _purge_placeholder_public_bindings(int(user_id), routes)
+    if cleared_placeholder_slots:
+        routes = await get_public_subscription_routes_for_user(int(user_id))
     return _bound_public_devices_from_routes(routes)
 
 
@@ -2087,6 +2173,9 @@ async def get_account_devices_for_user(user_id: int) -> tuple[dict[str, object],
         get_public_subscription_routes_for_user(int(user.id)),
         get_user_vpn_clients(int(user.id)),
     )
+    cleared_placeholder_slots = await _purge_placeholder_public_bindings(int(user.id), routes)
+    if cleared_placeholder_slots:
+        routes = await get_public_subscription_routes_for_user(int(user.id))
     return _build_account_devices_payload(user, routes=routes, legacy_devices=legacy_devices)
 
 

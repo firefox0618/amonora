@@ -927,8 +927,8 @@ class TestBotRouterTests(unittest.IsolatedAsyncioTestCase):
             devices=(),
             single_connection_uri=None,
             subscription_page_url="https://client.amonora.ru/abcdefghijklmnop",
-            subscription_feed_url="https://client.amonora.ru/abcdefghijklmnop?feed=1",
-            subscription_extended_feed_url="https://client.amonora.ru/abcdefghijklmnop?feed=1&include_extra=1",
+            subscription_feed_url="https://client.amonora.ru/sub/abcdefghijklmnop",
+            subscription_extended_feed_url="https://client.amonora.ru/sub/abcdefghijklmnop",
             happ_subscription_url="https://client.amonora.ru/happ/add?sub=https%3A%2F%2Fclient.amonora.ru%2Fabcdefghijklmnop",
         )
 

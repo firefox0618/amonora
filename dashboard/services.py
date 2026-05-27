@@ -62,6 +62,7 @@ from bot.public_subscription import (
     build_public_subscription_feed_url,
     build_public_subscription_page_url,
     get_or_create_public_subscription_page_url_for_user,
+    is_placeholder_public_subscription_binding,
 )
 from bot.db import (
     BALANCE_HOLD_PAYMENT_STATUSES,
@@ -916,6 +917,7 @@ def _serialize_public_subscription_devices(
                 metadata
                 for metadata in metadata_candidates
                 if str(metadata.get("feed_device_fingerprint_hash") or "").strip()
+                and not is_placeholder_public_subscription_binding(metadata)
             ),
             None,
         )

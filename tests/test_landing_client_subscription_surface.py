@@ -65,7 +65,7 @@ class LandingClientSubscriptionSurfaceTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("happ://add/https://client.amonora.ru/abcdefghijklmnop?feed=1", response.text)
+        self.assertIn("happ://add/https://client.amonora.ru/sub/abcdefghijklmnop", response.text)
         self.assertIn("Скопировать ссылку", response.text)
         self.assertIn("Открыть страницу подписки", response.text)
 
@@ -76,7 +76,7 @@ class LandingClientSubscriptionSurfaceTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn("happ://add/https://client.amonora.ru/abcdefghijklmnop?feed=1", response.text)
+        self.assertIn("happ://add/https://client.amonora.ru/sub/abcdefghijklmnop", response.text)
 
     def test_client_host_happ_wrapper_rejects_foreign_subscription_urls(self) -> None:
         response = self.client.get(
@@ -127,11 +127,12 @@ class LandingClientSubscriptionSurfaceTests(unittest.TestCase):
             response = self.client.get(
                 "/abcdefghijklmnop?feed=1",
                 headers={"host": LEGACY_CLIENT_HOST},
+                follow_redirects=False,
             )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.text, "vless://feed\n")
-        feed_mock.assert_called_once_with("abcdefghijklmnop", slot_index=1, include_extra=False)
+        self.assertEqual(response.status_code, 307)
+        self.assertEqual(response.headers["location"], "https://client.amonora.ru/sub/abcdefghijklmnop")
+        feed_mock.assert_not_called()
 
     def test_primary_client_host_token_page_feed_query_supports_include_extra(self) -> None:
         with (
@@ -149,11 +150,12 @@ class LandingClientSubscriptionSurfaceTests(unittest.TestCase):
             response = self.client.get(
                 "/abcdefghijklmnop?feed=1&include_extra=1",
                 headers={"host": PRIMARY_CLIENT_HOST},
+                follow_redirects=False,
             )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.text, "vless://feed\n")
-        feed_mock.assert_called_once_with("abcdefghijklmnop", slot_index=1, include_extra=True)
+        self.assertEqual(response.status_code, 307)
+        self.assertEqual(response.headers["location"], "https://client.amonora.ru/sub/abcdefghijklmnop?include_extra=1")
+        feed_mock.assert_not_called()
 
     def test_client_host_feed_passes_include_extra_flag(self) -> None:
         with patch.object(
@@ -217,7 +219,7 @@ class LandingClientSubscriptionSurfaceTests(unittest.TestCase):
             "days_left": 10,
             "traffic_used": "0 МБ",
             "traffic_limit": "∞",
-            "feed_url": "https://client.amonora.ru/abcdefghijklmnop?feed=1",
+            "feed_url": "https://client.amonora.ru/sub/abcdefghijklmnop",
             "page_url": "https://client.amonora.ru/abcdefghijklmnop",
             "bot_url": "https://t.me/amonora_v_2_0_bot",
             "is_active": True,

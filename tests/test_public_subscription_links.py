@@ -87,6 +87,32 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["device_type"], "ios")
         self.assertEqual(payload["os_name"], "iOS")
 
+    def test_placeholder_binding_detector_matches_happ_device_stub(self) -> None:
+        self.assertTrue(
+            public_subscription_module.is_placeholder_public_subscription_binding(
+                {
+                    "feed_device_fingerprint_hash": "stub",
+                    "device_model": "Happ device",
+                    "device_name": "Happ device",
+                    "feed_device_label": "Happ device",
+                    "device_type": "other",
+                }
+            )
+        )
+
+    def test_placeholder_request_context_detector_matches_empty_happ_stub(self) -> None:
+        self.assertTrue(
+            public_subscription_module.is_placeholder_public_subscription_request_context(
+                {
+                    "device_label": "Happ device",
+                    "device_model": None,
+                    "device_type": None,
+                    "os_name": None,
+                    "install_id": None,
+                }
+            )
+        )
+
     def test_public_server_entries_include_estonia_when_route_exists(self) -> None:
         routes = [
             SimpleNamespace(
@@ -368,11 +394,11 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(
             public_subscription_module.build_public_subscription_feed_url("abcdefghijklmnop"),
-            "https://client.amonora.ru/abcdefghijklmnop?feed=1",
+            "https://client.amonora.ru/sub/abcdefghijklmnop",
         )
         self.assertEqual(
             public_subscription_module.build_public_subscription_feed_url("abcdefghijklmnop", include_extra=True),
-            "https://client.amonora.ru/abcdefghijklmnop?feed=1",
+            "https://client.amonora.ru/sub/abcdefghijklmnop",
         )
 
     def test_happ_wrapper_url_normalizes_legacy_public_page_url_to_primary_client_domain(self) -> None:
@@ -491,7 +517,7 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["telegram_id"], 145)
         self.assertEqual(payload["status"], "active")
         self.assertEqual(payload["status_label"], "Активна")
-        self.assertEqual(payload["feed_url"], "https://client.amonora.ru/abcdefghijklmnop?feed=1")
+        self.assertEqual(payload["feed_url"], "https://client.amonora.ru/sub/abcdefghijklmnop")
         self.assertNotEqual(payload["feed_url"], payload["page_url"])
         self.assertEqual(payload["traffic_limit"], "∞")
         self.assertEqual(payload["traffic_used"], "0 МБ")
@@ -1319,6 +1345,84 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(devices), 1)
         self.assertEqual(devices[0]["device_type"], "android")
         self.assertEqual(devices[0]["os_name"], "Android")
+
+    async def test_bound_devices_drop_placeholder_happ_device_bindings(self) -> None:
+        routes = [
+            SimpleNamespace(
+                slot_index=1,
+                client_data=json.dumps(
+                    {
+                        "feed_device_fingerprint_hash": "aaa",
+                        "device_model": "Happ device",
+                        "device_name": "Happ device",
+                        "feed_device_label": "Happ device",
+                        "device_type": "other",
+                    }
+                ),
+            ),
+        ]
+
+        with (
+            patch.object(
+                public_subscription_module,
+                "get_public_subscription_routes_for_user",
+                new=AsyncMock(return_value=routes),
+            ),
+            patch.object(
+                public_subscription_module,
+                "clear_public_subscription_bound_device_for_user",
+                new=AsyncMock(return_value=True),
+            ) as clear_mock,
+        ):
+            devices = await public_subscription_module.get_public_subscription_bound_devices_for_user(42)
+
+        self.assertEqual(devices, ())
+        clear_mock.assert_awaited_once_with(42, 1)
+
+    async def test_bind_request_slot_ignores_placeholder_happ_device_context(self) -> None:
+        link = SimpleNamespace(user_id=42)
+        user = SimpleNamespace(id=42, is_blocked=False)
+        routes = []
+        request_context = {
+            "fingerprint_hash": "placeholder-hash",
+            "device_label": "Happ device",
+            "device_model": None,
+            "device_type": None,
+            "os_name": None,
+            "install_id": None,
+        }
+
+        with (
+            patch.object(
+                public_subscription_module,
+                "get_public_subscription_link_by_token",
+                new=AsyncMock(return_value=link),
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_user_by_id",
+                new=AsyncMock(return_value=user),
+            ),
+            patch.object(public_subscription_module, "has_active_access_from_user", return_value=True),
+            patch.object(public_subscription_module, "get_device_limit_for_user", return_value=3),
+            patch.object(
+                public_subscription_module,
+                "get_public_subscription_routes_for_user",
+                new=AsyncMock(return_value=routes),
+            ),
+            patch.object(
+                public_subscription_module,
+                "bind_public_subscription_device_slot",
+                new=AsyncMock(),
+            ) as bind_mock,
+        ):
+            result = await public_subscription_module.bind_public_subscription_request_slot(
+                "valid-public-token",
+                request_context=request_context,
+            )
+
+        self.assertEqual(result["status"], "ignored_placeholder")
+        bind_mock.assert_not_awaited()
 
     async def test_sync_user_vpn_access_also_syncs_existing_public_surface(self) -> None:
         with (

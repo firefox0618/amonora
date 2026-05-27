@@ -704,8 +704,8 @@ async def _show_user_home_from_callback(callback: CallbackQuery) -> None:
 
 
 def _public_slot_card_text(device_data: dict, expires_text: str) -> str:
-    device_name = str(device_data.get("device_model") or device_data.get("title") or "Happ device").strip() or "Happ device"
     slot_index = int(device_data.get("slot_index") or device_data.get("id") or 0)
+    device_name = str(device_data.get("device_model") or device_data.get("title") or "").strip() or f"Happ #{slot_index}"
     os_name = str(device_data.get("os_name") or "Устройство").strip() or "Устройство"
     os_version = str(device_data.get("os_version") or "—").strip() or "—"
     source_label = str(device_data.get("source_label") or "Happ / единая ссылка").strip() or "Happ / единая ссылка"

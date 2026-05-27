@@ -1117,7 +1117,7 @@ async def platega_webhook(request: Request, secret: str):
     return JSONResponse(response_payload)
 
 
-@app.get("/{token}", response_class=HTMLResponse)
+@app.get("/{token}")
 async def public_subscription_page(request: Request, token: str):
     if not _is_client_public_host(request):
         if _should_render_html_not_found(request):
@@ -1126,7 +1126,10 @@ async def public_subscription_page(request: Request, token: str):
     if not is_valid_public_subscription_token(token):
         return PlainTextResponse("Not Found", status_code=404)
     if is_public_subscription_client_request(request.headers, query_params=request.query_params):
-        return await _public_subscription_feed_response(request, token, force_client_binding=True)
+        feed_url = build_public_subscription_feed_url(token)
+        if _query_flag(request.query_params, "include_extra"):
+            feed_url = f"{feed_url}?include_extra=1"
+        return RedirectResponse(feed_url, status_code=307)
     return templates.TemplateResponse(
         request,
         "client_subscription_shell.html",
