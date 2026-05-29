@@ -21,7 +21,7 @@ from bot.vpn_provisioning import XrayCoreProvisioner
 from control_bot.dispatcher import create_control_event
 
 
-ACTIVE_XUI_REGION_CODES = ("de",)
+ACTIVE_XUI_REGION_CODES = ("de", "fr")
 ACTIVE_XRAY_REGION_CODES = ("dk",)
 RETIRED_REGION_CODES = ("ee",)
 ACTIVE_REGION_CODES = ACTIVE_XUI_REGION_CODES + ACTIVE_XRAY_REGION_CODES

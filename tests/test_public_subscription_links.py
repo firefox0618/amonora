@@ -7,6 +7,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from urllib.parse import quote
 
+import httpx
+
 
 os.environ.setdefault("BOT_TOKEN", "test-token")
 os.environ.setdefault("ADMIN_IDS", "1")
@@ -87,32 +89,6 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["device_type"], "ios")
         self.assertEqual(payload["os_name"], "iOS")
 
-    def test_placeholder_binding_detector_matches_happ_device_stub(self) -> None:
-        self.assertTrue(
-            public_subscription_module.is_placeholder_public_subscription_binding(
-                {
-                    "feed_device_fingerprint_hash": "stub",
-                    "device_model": "Happ device",
-                    "device_name": "Happ device",
-                    "feed_device_label": "Happ device",
-                    "device_type": "other",
-                }
-            )
-        )
-
-    def test_placeholder_request_context_detector_matches_empty_happ_stub(self) -> None:
-        self.assertTrue(
-            public_subscription_module.is_placeholder_public_subscription_request_context(
-                {
-                    "device_label": "Happ device",
-                    "device_model": None,
-                    "device_type": None,
-                    "os_name": None,
-                    "install_id": None,
-                }
-            )
-        )
-
     def test_public_server_entries_include_estonia_when_route_exists(self) -> None:
         routes = [
             SimpleNamespace(
@@ -127,6 +103,21 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
                     {
                         "stream_network": "tcp",
                         "vless_link": "vless://uuid-de@ffconnect.amonoraconnect.com:443?type=tcp&security=reality#de-old",
+                    }
+                ),
+            ),
+            SimpleNamespace(
+                status="active",
+                protocol="vless",
+                country_code="fr",
+                slot_index=1,
+                xui_client_id="uuid-fr",
+                client_uuid="uuid-fr",
+                email="device_feed_42_fr_1",
+                client_data=json.dumps(
+                    {
+                        "stream_network": "tcp",
+                        "vless_link": "vless://uuid-fr@83.171.226.197:443?type=tcp&security=reality#fr-old",
                     }
                 ),
             ),
@@ -164,22 +155,12 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
 
         entries = public_subscription_module._build_public_server_entries(routes)
 
-        self.assertEqual(
-            entries,
-            [
-                {"label": "🇩🇪 #1 Германия", "uri": "vless://uuid-de@ffconnect.amonoraconnect.com:443?type=tcp&security=reality#de-old"},
-                {"label": "🇩🇰 #1 Дания", "uri": "vless://uuid-dk@dk.amonoraconnect.com:443?type=xhttp&security=reality#dk-old"},
-                {"label": "🇪🇪 #1 Эстония", "uri": "vless://uuid-ee@est.amonoraconnect.com:443?type=tcp&security=reality&flow=xtls-rprx-vision#ee-old"},
-                {"label": "🇫🇮 Финляндия", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[0]["uri"]},
-                {"label": "🇦🇹 Австрия", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[1]["uri"]},
-                {"label": "🇺🇸 США", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[2]["uri"]},
-                {"label": "🇹🇷 Турция", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[3]["uri"]},
-                {"label": "🇨🇭 Швейцария", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[4]["uri"]},
-                {"label": "📱 Мобильная сеть", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[5]["uri"]},
-                {"label": "📱 Мобильная сеть 2", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[6]["uri"]},
-                {"label": "📱 Мобильная сеть 3", "uri": public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS[7]["uri"]},
-            ],
-        )
+        self.assertEqual(entries[:3], [
+            {"label": "🇩🇪 #1 Германия", "uri": "vless://uuid-de@ffconnect.amonoraconnect.com:443?type=tcp&security=reality#de-old"},
+            {"label": "🇩🇰 #1 Дания", "uri": "vless://uuid-dk@dk.amonoraconnect.com:443?type=xhttp&security=reality#dk-old"},
+            {"label": "🇪🇪 #1 Эстония", "uri": "vless://uuid-ee@est.amonoraconnect.com:443?type=tcp&security=reality&flow=xtls-rprx-vision#ee-old"},
+        ])
+        self.assertEqual(entries[3:], list(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
 
     def test_public_server_entries_use_failover_and_keep_extra_server(self) -> None:
         routes = [
@@ -216,21 +197,14 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         entries = public_subscription_module._build_public_server_entries(routes)
 
         self.assertEqual(
-            [entry["label"] for entry in entries],
+            [entry["label"] for entry in entries[:3]],
             [
                 "🇩🇪 #1 Германия",
                 "🇩🇰 #1 Дания",
                 "🇪🇪 #1 Эстония",
-                "🇫🇮 Финляндия",
-                "🇦🇹 Австрия",
-                "🇺🇸 США",
-                "🇹🇷 Турция",
-                "🇨🇭 Швейцария",
-                "📱 Мобильная сеть",
-                "📱 Мобильная сеть 2",
-                "📱 Мобильная сеть 3",
             ],
         )
+        self.assertEqual(entries[3:], list(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
         self.assertIn("#%F0%9F%87%AA%F0%9F%87%AA%20%231%20%D0%AD%D1%81%D1%82%D0%BE%D0%BD%D0%B8%D1%8F", entries[2]["uri"])
 
     async def test_bind_request_slot_recovers_missing_public_slot_before_returning_limit_error(self) -> None:
@@ -527,20 +501,16 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["account_devices"], [])
         self.assertEqual(payload["account_devices_count"], 0)
         self.assertEqual(
-            payload["servers"],
+            payload["servers"][:3],
             [
                 {"label": "🇩🇪 #1 Германия"},
                 {"label": "🇩🇰 #1 Дания"},
                 {"label": "🇪🇪 #1 Эстония"},
-                {"label": "🇫🇮 Финляндия"},
-                {"label": "🇦🇹 Австрия"},
-                {"label": "🇺🇸 США"},
-                {"label": "🇹🇷 Турция"},
-                {"label": "🇨🇭 Швейцария"},
-                {"label": "📱 Мобильная сеть"},
-                {"label": "📱 Мобильная сеть 2"},
-                {"label": "📱 Мобильная сеть 3"},
             ],
+        )
+        self.assertEqual(
+            payload["servers"][3:],
+            [{"label": entry["label"]} for entry in public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS],
         )
         self.assertEqual(len(payload["install_links"]), 7)
         self.assertEqual(payload["install_links"][0]["key"], "android")
@@ -665,6 +635,75 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["account_devices"][1]["legacy_status_label"], "Работает в legacy-режиме")
         self.assertIn("Legacy", payload["account_devices"][1]["source_label"])
 
+    async def test_summary_and_feed_degrade_gracefully_when_route_provisioning_raises_read_error(self) -> None:
+        token = "abcdefghijklmnop"
+        link = SimpleNamespace(id=9, user_id=42, token=token)
+        user = SimpleNamespace(
+            id=42,
+            username="amonora_user",
+            telegram_id=145,
+            is_blocked=False,
+            subscription_status="active",
+            subscription_expires_at=datetime(2026, 4, 25, 10, 0, 0),
+            trial_expires_at=None,
+        )
+        failing_provisioner = SimpleNamespace(
+            health_check=AsyncMock(side_effect=httpx.ReadError("panel unavailable")),
+            close=AsyncMock(),
+        )
+
+        with (
+            patch.object(
+                public_subscription_module,
+                "get_public_subscription_link_by_token",
+                new=AsyncMock(return_value=link),
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_user_by_id",
+                new=AsyncMock(return_value=user),
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_public_subscription_routes_for_user",
+                new=AsyncMock(return_value=[]),
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_user_vpn_clients",
+                new=AsyncMock(return_value=[]),
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_device_limit_for_user",
+                return_value=3,
+            ),
+            patch.object(
+                public_subscription_module,
+                "get_vless_provisioner",
+                return_value=failing_provisioner,
+            ),
+            patch.object(
+                public_subscription_module,
+                "touch_public_subscription_surface",
+                new=AsyncMock(return_value=True),
+            ),
+        ):
+            summary = await public_subscription_module.get_public_subscription_summary_by_token(token)
+            feed_payload = await public_subscription_module.get_public_subscription_feed_payload(token)
+
+        self.assertIsNotNone(summary)
+        assert summary is not None
+        self.assertEqual(summary["feed_url"], "https://client.amonora.ru/sub/abcdefghijklmnop")
+        self.assertEqual(summary["page_url"], "https://client.amonora.ru/abcdefghijklmnop")
+        self.assertGreater(len(summary["servers"]), 0)
+        self.assertEqual(summary["bound_devices"], [])
+        self.assertIsNotNone(feed_payload)
+        assert feed_payload is not None
+        content, headers = feed_payload
+        self.assertIn("profile-title", headers)
+        self.assertGreater(len([line for line in content.splitlines() if line.strip()]), 0)
+
     async def test_feed_payload_builds_headers_and_route_body(self) -> None:
         token = "abcdefghijklmnop"
         link = SimpleNamespace(id=9, user_id=42, token=token)
@@ -746,7 +785,11 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         assert payload is not None
         content, headers = payload
         lines = [line for line in content.splitlines() if line.strip()]
-        self.assertEqual(len(lines), 3 + len(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
+        self.assertEqual(
+            len(lines),
+            len(public_subscription_module.PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES)
+            + len(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS),
+        )
         self.assertTrue(lines[0].startswith("vless://uuid-1@"))
         self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 2))}", lines[0])
         self.assertTrue(lines[1].startswith("vless://uuid-2@"))
@@ -891,21 +934,14 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         entries = public_subscription_module._build_public_server_entries(routes)
 
         self.assertEqual(
-            [entry["label"] for entry in entries],
+            [entry["label"] for entry in entries[:3]],
             [
                 "🇩🇪 #1 Германия",
                 "🇩🇰 #1 Дания",
                 "🇪🇪 #1 Эстония",
-                "🇫🇮 Финляндия",
-                "🇦🇹 Австрия",
-                "🇺🇸 США",
-                "🇹🇷 Турция",
-                "🇨🇭 Швейцария",
-                "📱 Мобильная сеть",
-                "📱 Мобильная сеть 2",
-                "📱 Мобильная сеть 3",
             ],
         )
+        self.assertEqual(entries[3:], list(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
         self.assertTrue(entries[0]["uri"].startswith("vless://uuid-de@"))
         self.assertTrue(entries[1]["uri"].startswith("vless://uuid-dk@"))
 
@@ -1345,84 +1381,6 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(devices), 1)
         self.assertEqual(devices[0]["device_type"], "android")
         self.assertEqual(devices[0]["os_name"], "Android")
-
-    async def test_bound_devices_drop_placeholder_happ_device_bindings(self) -> None:
-        routes = [
-            SimpleNamespace(
-                slot_index=1,
-                client_data=json.dumps(
-                    {
-                        "feed_device_fingerprint_hash": "aaa",
-                        "device_model": "Happ device",
-                        "device_name": "Happ device",
-                        "feed_device_label": "Happ device",
-                        "device_type": "other",
-                    }
-                ),
-            ),
-        ]
-
-        with (
-            patch.object(
-                public_subscription_module,
-                "get_public_subscription_routes_for_user",
-                new=AsyncMock(return_value=routes),
-            ),
-            patch.object(
-                public_subscription_module,
-                "clear_public_subscription_bound_device_for_user",
-                new=AsyncMock(return_value=True),
-            ) as clear_mock,
-        ):
-            devices = await public_subscription_module.get_public_subscription_bound_devices_for_user(42)
-
-        self.assertEqual(devices, ())
-        clear_mock.assert_awaited_once_with(42, 1)
-
-    async def test_bind_request_slot_ignores_placeholder_happ_device_context(self) -> None:
-        link = SimpleNamespace(user_id=42)
-        user = SimpleNamespace(id=42, is_blocked=False)
-        routes = []
-        request_context = {
-            "fingerprint_hash": "placeholder-hash",
-            "device_label": "Happ device",
-            "device_model": None,
-            "device_type": None,
-            "os_name": None,
-            "install_id": None,
-        }
-
-        with (
-            patch.object(
-                public_subscription_module,
-                "get_public_subscription_link_by_token",
-                new=AsyncMock(return_value=link),
-            ),
-            patch.object(
-                public_subscription_module,
-                "get_user_by_id",
-                new=AsyncMock(return_value=user),
-            ),
-            patch.object(public_subscription_module, "has_active_access_from_user", return_value=True),
-            patch.object(public_subscription_module, "get_device_limit_for_user", return_value=3),
-            patch.object(
-                public_subscription_module,
-                "get_public_subscription_routes_for_user",
-                new=AsyncMock(return_value=routes),
-            ),
-            patch.object(
-                public_subscription_module,
-                "bind_public_subscription_device_slot",
-                new=AsyncMock(),
-            ) as bind_mock,
-        ):
-            result = await public_subscription_module.bind_public_subscription_request_slot(
-                "valid-public-token",
-                request_context=request_context,
-            )
-
-        self.assertEqual(result["status"], "ignored_placeholder")
-        bind_mock.assert_not_awaited()
 
     async def test_sync_user_vpn_access_also_syncs_existing_public_surface(self) -> None:
         with (

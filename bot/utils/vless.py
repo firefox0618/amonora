@@ -36,8 +36,8 @@ def build_vless_link(
     connection_name: str | None = None,
     country_code: str | None = None,
 ) -> str:
-    stream_settings = json.loads(inbound["streamSettings"])
-    inbound_settings = json.loads(inbound["settings"])
+    stream_settings = _json_object(inbound.get("streamSettings"))
+    inbound_settings = _json_object(inbound.get("settings"))
     transport = extract_vless_transport_metadata(inbound)
 
     reality_settings = stream_settings["realitySettings"]
@@ -74,11 +74,16 @@ def build_vless_link(
     ]
     if transport["stream_network"] == "tcp":
         query_parts.append("headerType=none")
+    if transport["stream_network"] == "grpc":
+        query_parts.append(f"serviceName={quote(transport.get('stream_service_name', ''), safe='')}")
+        query_parts.append(f"mode={quote(transport.get('stream_mode') or 'gun', safe='')}")
+        if transport.get("stream_authority"):
+            query_parts.append(f"authority={quote(transport['stream_authority'], safe='')}")
     if transport.get("stream_path"):
         query_parts.append(f"path={quote(transport['stream_path'], safe='')}")
     if transport.get("stream_host"):
         query_parts.append(f"host={quote(transport['stream_host'], safe='')}")
-    if transport.get("stream_mode"):
+    if transport.get("stream_mode") and transport["stream_network"] != "grpc":
         query_parts.append(f"mode={quote(transport['stream_mode'], safe='')}")
     if flow:
         query_parts.append(f"flow={quote(flow, safe='')}")
@@ -97,7 +102,7 @@ def build_trojan_link(
     connection_name: str | None = None,
     country_code: str | None = None,
 ) -> str:
-    stream_settings = json.loads(inbound["streamSettings"])
+    stream_settings = _json_object(inbound.get("streamSettings"))
     tls_settings = stream_settings.get("tlsSettings", {})
 
     server_name = tls_settings.get("serverName") or get_country_vpn_host(country_code)
@@ -173,6 +178,19 @@ def build_vless_link_from_metadata(
     stream_path = _normalize_path(metadata.get("xhttp_path") or metadata.get("stream_path"))
     if stream_network == "tcp":
         query_parts.append("headerType=none")
+    if stream_network == "grpc":
+        service_name = str(
+            metadata.get("grpc_service_name")
+            or metadata.get("service_name")
+            or metadata.get("stream_service_name")
+            or ""
+        ).strip()
+        if service_name:
+            query_parts.append(f"serviceName={quote(service_name, safe='')}")
+        query_parts.append(f"mode={quote(str(metadata.get('grpc_mode') or metadata.get('stream_mode') or 'gun'), safe='')}")
+        authority = str(metadata.get("grpc_authority") or metadata.get("stream_authority") or "").strip()
+        if authority:
+            query_parts.append(f"authority={quote(authority, safe='')}")
     alpn = _normalize_alpn(metadata.get("alpn"))
     if alpn:
         query_parts.append(f"alpn={quote(alpn, safe='')}")
@@ -180,7 +198,7 @@ def build_vless_link_from_metadata(
         query_parts.append(f"path={quote(stream_path, safe='')}")
     if metadata.get("stream_host"):
         query_parts.append(f"host={quote(str(metadata.get('stream_host')), safe='')}")
-    if metadata.get("stream_mode"):
+    if metadata.get("stream_mode") and stream_network != "grpc":
         query_parts.append(f"mode={quote(str(metadata.get('stream_mode')), safe='')}")
 
     try:
@@ -195,11 +213,13 @@ def build_vless_link_from_metadata(
 
 
 def extract_vless_transport_metadata(inbound: dict) -> dict[str, str]:
-    stream_settings = json.loads(inbound["streamSettings"])
+    stream_settings = _json_object(inbound.get("streamSettings"))
     stream_network = str(stream_settings.get("network") or "tcp").strip().lower() or "tcp"
     stream_path = ""
     stream_host = ""
     stream_mode = ""
+    stream_service_name = ""
+    stream_authority = ""
 
     if stream_network == "xhttp":
         xhttp_settings = stream_settings.get("xhttpSettings") or {}
@@ -211,13 +231,20 @@ def extract_vless_transport_metadata(inbound: dict) -> dict[str, str]:
         elif xhttp_settings.get("host"):
             stream_host = str(xhttp_settings.get("host")).strip()
         stream_mode = str(xhttp_settings.get("mode") or "").strip()
+    elif stream_network == "grpc":
+        grpc_settings = stream_settings.get("grpcSettings") or {}
+        stream_service_name = str(grpc_settings.get("serviceName") or "").strip()
+        stream_authority = str(grpc_settings.get("authority") or "").strip()
+        stream_mode = "gun"
 
     return {
         "stream_network": stream_network,
-        "transport_label": stream_network.upper() if stream_network else "TCP",
+        "transport_label": "gRPC" if stream_network == "grpc" else stream_network.upper() if stream_network else "TCP",
         "stream_path": stream_path,
         "stream_host": stream_host,
         "stream_mode": stream_mode,
+        "stream_service_name": stream_service_name,
+        "stream_authority": stream_authority,
     }
 
 
@@ -230,6 +257,21 @@ def _normalize_path(value: object) -> str:
     if raw.startswith("/"):
         return raw
     return f"/{raw}"
+
+
+def _json_object(value: object) -> dict:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return {}
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
 
 
 def _normalize_alpn(value: object) -> str:

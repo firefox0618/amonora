@@ -112,10 +112,13 @@ class Config:
     xui_url: str
     xui_url_de: str | None
     xui_url_ee: str | None
+    xui_url_fr: str | None
     xui_username: str
     xui_password: str
     xui_username_ee: str | None
     xui_password_ee: str | None
+    xui_username_fr: str | None
+    xui_password_fr: str | None
 
     channel_id: str
     trial_days: int
@@ -126,6 +129,7 @@ class Config:
     vpn_host_de: str | None
     vpn_host_ee: str | None
     vpn_host_dk: str | None
+    vpn_host_fr: str | None
     mobile_mode_override_link_de: str | None
     mobile_mode_override_link_dk: str | None
     enable_dk_test_flow: bool
@@ -299,10 +303,13 @@ config = Config(
     xui_url=get_env("XUI_URL"),
     xui_url_de=get_optional_env("XUI_URL_DE"),
     xui_url_ee=get_optional_env("XUI_URL_EE"),
+    xui_url_fr=get_optional_env("XUI_URL_FR"),
     xui_username=get_env("XUI_USERNAME"),
     xui_password=get_env("XUI_PASSWORD"),
     xui_username_ee=get_optional_env("XUI_USERNAME_EE"),
     xui_password_ee=get_optional_env("XUI_PASSWORD_EE"),
+    xui_username_fr=get_optional_env("XUI_USERNAME_FR"),
+    xui_password_fr=get_optional_env("XUI_PASSWORD_FR"),
     channel_id=get_env("CHANNEL_ID"),
     trial_days=int(get_env("TRIAL_DAYS", "3")),
     ref_bonus_days=int(get_env("REF_BONUS_DAYS", "3")),
@@ -312,6 +319,7 @@ config = Config(
     vpn_host_de=get_optional_env("VPN_HOST_DE"),
     vpn_host_ee=get_optional_env("VPN_HOST_EE"),
     vpn_host_dk=get_optional_env("VPN_HOST_DK"),
+    vpn_host_fr=get_optional_env("VPN_HOST_FR"),
     mobile_mode_override_link_de=get_optional_env("MOBILE_MODE_OVERRIDE_LINK_DE"),
     mobile_mode_override_link_dk=get_optional_env("MOBILE_MODE_OVERRIDE_LINK_DK"),
     enable_dk_test_flow=get_optional_env("ENABLE_DK_TEST_FLOW", "0").strip().lower() in {"1", "true", "yes", "on"},

@@ -3,6 +3,7 @@ import logging
 from copy import deepcopy
 from datetime import datetime
 import ipaddress
+import re
 from urllib.parse import quote
 from uuid import uuid4
 
@@ -23,7 +24,26 @@ def _resolve_country_panel_credentials(country_code: str | None) -> tuple[str, s
         username = str(config.xui_username_ee or config.xui_username or "").strip()
         password = str(config.xui_password_ee or config.xui_password or "").strip()
         return username, password
+    if normalized_country == "fr":
+        username = str(config.xui_username_fr or config.xui_username or "").strip()
+        password = str(config.xui_password_fr or config.xui_password or "").strip()
+        return username, password
     return config.xui_username, config.xui_password
+
+
+def _json_dict(value: object) -> dict:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return {}
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
 
 
 class XUIClient:
@@ -43,6 +63,38 @@ class XUIClient:
         self.password = password or resolved_password
         self.country_code = country_code
         self.client = httpx.AsyncClient(follow_redirects=True, timeout=15.0)
+        self._csrf_token: str | None = None
+        self._base_path: str = ""
+
+    @staticmethod
+    def _normalize_base_path(value: str | None) -> str:
+        raw_value = str(value or "").strip()
+        if not raw_value or raw_value == "/":
+            return ""
+        normalized = f"/{raw_value.strip('/')}"
+        return normalized
+
+    @staticmethod
+    def _extract_meta_content(html: str, name: str) -> str | None:
+        pattern = rf'<meta\s+name="{re.escape(name)}"\s+content="([^"]*)"'
+        match = re.search(pattern, html, flags=re.IGNORECASE)
+        if not match:
+            return None
+        value = str(match.group(1) or "").strip()
+        return value or None
+
+    async def _prime_login_context(self) -> None:
+        try:
+            response = await self.client.get(self.base_url)
+            response.raise_for_status()
+        except httpx.HTTPError:
+            self._csrf_token = None
+            self._base_path = ""
+            return
+
+        html = response.text
+        self._csrf_token = self._extract_meta_content(html, "csrf-token")
+        self._base_path = self._normalize_base_path(self._extract_meta_content(html, "base-path"))
 
     def _build_client_settings(
         self,
@@ -76,10 +128,26 @@ class XUIClient:
         return {"clients": [client]}
 
     async def login(self) -> bool:
+        self._csrf_token = None
+        self._base_path = ""
+        self.client.headers.pop("X-CSRF-Token", None)
+        self.client.headers.pop("Referer", None)
+        await self._prime_login_context()
+        headers: dict[str, str] = {}
+        if self._csrf_token:
+            headers["X-CSRF-Token"] = self._csrf_token
+        if self._base_path:
+            headers["Referer"] = f"{self.base_url}{self._base_path}/"
         response = await self.client.post(
             f"{self.base_url}/login",
+            headers=headers,
             data={"username": self.username, "password": self.password},
         )
+        if response.status_code == 200:
+            if self._csrf_token:
+                self.client.headers["X-CSRF-Token"] = self._csrf_token
+            if self._base_path:
+                self.client.headers["Referer"] = f"{self.base_url}{self._base_path}/"
         return response.status_code == 200
 
     async def get_inbounds(self) -> dict:
@@ -171,10 +239,7 @@ class XUIClient:
         )
 
         for inbound in ordered_inbounds:
-            try:
-                settings = json.loads(inbound.get("settings") or "{}")
-            except json.JSONDecodeError:
-                continue
+            settings = _json_dict(inbound.get("settings"))
             clients = settings.get("clients", [])
             if any(self._client_matches(protocol, client, client_uuid, email) for client in clients):
                 resolved = inbound.get("id")
@@ -200,12 +265,23 @@ class XUIClient:
             ),
         }
 
-        response = await self.client.post(
-            f"{self.base_url}/panel/api/inbounds/addClient",
-            json=payload,
+        try:
+            response = await self.client.post(
+                f"{self.base_url}/panel/api/inbounds/addClient",
+                json=payload,
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 404:
+                raise
+        return await self._add_client_via_clients_api(
+            protocol="vless",
+            inbound_id=inbound_id,
+            email=email,
+            client_uuid=client_uuid,
+            expiry_time_ms=expiry_time_ms,
         )
-        response.raise_for_status()
-        return response.json()
 
     async def add_trojan_client(
         self,
@@ -226,12 +302,23 @@ class XUIClient:
             ),
         }
 
-        response = await self.client.post(
-            f"{self.base_url}/panel/api/inbounds/addClient",
-            json=payload,
+        try:
+            response = await self.client.post(
+                f"{self.base_url}/panel/api/inbounds/addClient",
+                json=payload,
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 404:
+                raise
+        return await self._add_client_via_clients_api(
+            protocol="trojan",
+            inbound_id=inbound_id,
+            email=email,
+            client_uuid=password,
+            expiry_time_ms=expiry_time_ms,
         )
-        response.raise_for_status()
-        return response.json()
 
     async def update_vless_client(
         self,
@@ -254,9 +341,104 @@ class XUIClient:
             ),
         }
 
+        try:
+            response = await self.client.post(
+                f"{self.base_url}/panel/api/inbounds/updateClient/{quote(client_uuid, safe='')}",
+                json=payload,
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 404:
+                raise
+        return await self._update_client_via_clients_api(
+            protocol="vless",
+            email=email,
+            client_uuid=client_uuid,
+            expiry_time_ms=expiry_time_ms,
+            enable=enable,
+        )
+
+    def _build_clients_api_client_payload(
+        self,
+        *,
+        protocol: str,
+        email: str,
+        client_uuid: str,
+        expiry_time_ms: int,
+        enable: bool = True,
+    ) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "email": email,
+            "subId": "",
+            "totalGB": 0,
+            "expiryTime": expiry_time_ms,
+            "limitIp": XUI_MAX_DEVICES_PER_KEY,
+            "tgId": 0,
+            "comment": "",
+            "enable": enable,
+        }
+        if protocol == "vless":
+            payload["id"] = client_uuid
+            payload["flow"] = ""
+        elif protocol == "trojan":
+            payload["password"] = client_uuid
+        else:
+            raise ValueError(f"Unsupported client protocol: {protocol}")
+        return payload
+
+    async def _add_client_via_clients_api(
+        self,
+        *,
+        protocol: str,
+        inbound_id: int,
+        email: str,
+        client_uuid: str,
+        expiry_time_ms: int,
+    ) -> dict:
+        payload = {
+            "client": self._build_clients_api_client_payload(
+                protocol=protocol,
+                email=email,
+                client_uuid=client_uuid,
+                expiry_time_ms=expiry_time_ms,
+                enable=True,
+            ),
+            "inboundIds": [int(inbound_id)],
+        }
         response = await self.client.post(
-            f"{self.base_url}/panel/api/inbounds/updateClient/{quote(client_uuid, safe='')}",
+            f"{self.base_url}/panel/api/clients/add",
             json=payload,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def _update_client_via_clients_api(
+        self,
+        *,
+        protocol: str,
+        email: str,
+        client_uuid: str,
+        expiry_time_ms: int,
+        enable: bool,
+    ) -> dict:
+        payload = self._build_clients_api_client_payload(
+            protocol=protocol,
+            email=email,
+            client_uuid=client_uuid,
+            expiry_time_ms=expiry_time_ms,
+            enable=enable,
+        )
+        response = await self.client.post(
+            f"{self.base_url}/panel/api/clients/update/{quote(email, safe='')}",
+            json=payload,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def _delete_client_via_clients_api(self, *, email: str) -> dict:
+        response = await self.client.post(
+            f"{self.base_url}/panel/api/clients/del/{quote(email, safe='')}",
         )
         response.raise_for_status()
         return response.json()
@@ -369,7 +551,7 @@ class XUIClient:
             )
         except Exception:
             logger.exception("Failed to save VLESS client in DB, rolling back panel state")
-            await self.delete_vless_client(inbound["id"], client_uuid)
+            await self.delete_vless_client(inbound["id"], client_uuid, email=email)
             raise
 
         return {
@@ -448,7 +630,7 @@ class XUIClient:
         )
 
         for inbound in ordered_inbounds:
-            settings = json.loads(inbound["settings"])
+            settings = _json_dict(inbound.get("settings"))
             clients = deepcopy(settings.get("clients", []))
             updated = False
 
@@ -503,13 +685,19 @@ class XUIClient:
     ) -> dict:
         result = {"success": False, "msg": "client lookup fallback used", "obj": None}
         if inbound_id:
-            response = await self.client.post(
-                f"{self.base_url}/panel/api/inbounds/{inbound_id}/delClient/{quote(client_uuid, safe='')}"
-            )
-            response.raise_for_status()
-            result = response.json()
-            if result.get("success"):
-                return result
+            try:
+                response = await self.client.post(
+                    f"{self.base_url}/panel/api/inbounds/{inbound_id}/delClient/{quote(client_uuid, safe='')}"
+                )
+                response.raise_for_status()
+                result = response.json()
+                if result.get("success"):
+                    return result
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 404:
+                    raise
+                if email:
+                    return await self._delete_client_via_clients_api(email=email)
 
         vless_inbounds = await self.list_inbounds("vless")
         if not vless_inbounds:
@@ -525,7 +713,7 @@ class XUIClient:
         )
 
         for inbound in ordered_inbounds:
-            settings = json.loads(inbound["settings"])
+            settings = _json_dict(inbound.get("settings"))
             clients = settings.get("clients", [])
             filtered_clients = [
                 client
@@ -547,6 +735,12 @@ class XUIClient:
         client_uuid: str,
         email: str | None = None,
     ) -> dict:
+        if email:
+            try:
+                return await self._delete_client_via_clients_api(email=email)
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 404:
+                    raise
         trojan_inbounds = await self.list_inbounds("trojan")
         if not trojan_inbounds:
             return {
@@ -561,7 +755,7 @@ class XUIClient:
         )
 
         for inbound in ordered_inbounds:
-            settings = json.loads(inbound["settings"])
+            settings = _json_dict(inbound.get("settings"))
             clients = settings.get("clients", [])
             filtered_clients = [
                 client

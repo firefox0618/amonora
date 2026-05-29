@@ -69,6 +69,18 @@ _REGIONS = {
         anti_sharing_policy_summary="Lease-based anti-sharing по активным IP через Xray access-log worker.",
         user_selectable=True,
     ),
+    "fr": Region(
+        code="fr",
+        name_ru="Франция",
+        flag="🇫🇷",
+        import_name="🇫🇷 AMONORA-FRANCE",
+        provider_type="xui",
+        runtime_type="xui",
+        runtime_service_name="3x-ui",
+        anti_sharing_scope_label="3x-ui limitIp",
+        anti_sharing_policy_summary="Жёсткий panel-side лимит по активным IP на ключ через 3x-ui.",
+        user_selectable=False,
+    ),
     "se": Region(
         code="se",
         name_ru="Швеция",
@@ -100,6 +112,7 @@ _REGION_LIMIT_RULES = {
         load_average_soft_limit=1.2,
     ),
     "dk": RegionLimitRule(),
+    "fr": RegionLimitRule(),
     "se": RegionLimitRule(),
 }
 
@@ -237,6 +250,8 @@ def get_country_panel_url(country_code: str | None) -> str | None:
         return config.xui_url_de
     if code == "ee" and config.xui_url_ee:
         return str(config.xui_url_ee).strip()
+    if code == "fr" and config.xui_url_fr:
+        return str(config.xui_url_fr).strip()
     return config.xui_url
 
 
@@ -250,6 +265,13 @@ def get_country_vpn_host(country_code: str | None) -> str:
         return config.vpn_host_dk
     if code == "dk":
         return "dk.amonoraconnect.com"
+    if code == "fr" and config.vpn_host_fr:
+        configured_host = str(config.vpn_host_fr).strip()
+        if configured_host == "83.171.226.197":
+            return "franc.amonora.ru"
+        return configured_host
+    if code == "fr":
+        return "franc.amonora.ru"
     if code == "de" and config.vpn_host_de:
         return config.vpn_host_de
     return config.vpn_host

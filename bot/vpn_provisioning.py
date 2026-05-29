@@ -294,13 +294,24 @@ class XUIProvisioner(VPNProvisioner):
             **build_region_snapshot(country_code),
             **(base_metadata or {}),
             "provider_type": self.provider_type,
-            "transport": "vless_reality_xhttp" if transport["stream_network"] == "xhttp" else "vless_reality_tcp",
+            "transport": (
+                "vless_reality_xhttp"
+                if transport["stream_network"] == "xhttp"
+                else "vless_reality_grpc"
+                if transport["stream_network"] == "grpc"
+                else "vless_reality_tcp"
+            ),
             "vless_link": link,
             "stream_network": transport["stream_network"],
             "transport_label": transport["transport_label"],
             "stream_path": transport.get("stream_path", ""),
             "stream_host": transport.get("stream_host", ""),
             "stream_mode": transport.get("stream_mode", ""),
+            "stream_service_name": transport.get("stream_service_name", ""),
+            "stream_authority": transport.get("stream_authority", ""),
+            "grpc_service_name": transport.get("stream_service_name", ""),
+            "grpc_authority": transport.get("stream_authority", ""),
+            "grpc_mode": transport.get("stream_mode", ""),
         }
 
     async def close(self) -> None:

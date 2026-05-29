@@ -1,26 +1,10 @@
 {
-  "name": "amonora-client-ui",
+  "name": "amonora-client-ui-compat",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite"
-  },
-  "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@mantine/core": "^8.3.8",
-    "@mantine/hooks": "^8.3.8",
-    "lucide-react": "^0.554.0",
-    "qrcode.react": "^4.2.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
-  },
-  "devDependencies": {
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "@vitejs/plugin-react": "^5.1.0",
-    "typescript": "^5.9.3",
-    "vite": "^7.1.12"
+    "build": "npm --prefix ../apps/client/ui run build",
+    "dev": "npm --prefix ../apps/client/ui run dev"
   }
 }

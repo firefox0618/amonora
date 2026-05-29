@@ -77,6 +77,31 @@ class DenmarkVpnProvisioningTests(unittest.TestCase):
         self.assertIn("path=%2Fdk-test", link)
         self.assertIn("alpn=h3%2Ch2%2Chttp%2F1.1", link)
 
+    def test_build_vless_link_from_grpc_metadata(self) -> None:
+        link = build_vless_link_from_metadata(
+            metadata={
+                "stream_network": "grpc",
+                "reality_server_name": "github.com",
+                "reality_short_id": "a210b2",
+                "reality_password": "grpc-public-key",
+                "grpc_service_name": "shakyreply",
+                "grpc_authority": "",
+                "grpc_mode": "gun",
+                "port": 443,
+            },
+            client_uuid="22222222-2222-2222-2222-222222222222",
+            email="device@test",
+            connection_name="AMONORA-FR",
+            country_code="fr",
+        )
+        self.assertIn("vless://22222222-2222-2222-2222-222222222222@franc.amonora.ru:443", link)
+        self.assertIn("type=grpc", link)
+        self.assertIn("security=reality", link)
+        self.assertIn("sni=github.com", link)
+        self.assertIn("sid=a210b2", link)
+        self.assertIn("serviceName=shakyreply", link)
+        self.assertIn("mode=gun", link)
+
     def test_denmark_host_falls_back_to_dedicated_public_host_not_global_vpn_host(self) -> None:
         with patch.object(config, "vpn_host_dk", None), patch.object(config, "xray_core_dk_ssh_host", "81.17.159.58"):
             self.assertEqual(get_country_vpn_host("dk"), "dk.amonoraconnect.com")

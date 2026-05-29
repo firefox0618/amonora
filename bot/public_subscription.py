@@ -50,7 +50,14 @@ PUBLIC_CLIENT_ALLOWED_HOSTS = frozenset(config.public_client_hosts)
 PUBLIC_CLIENT_HAPP_ADD_PATH = "/happ/add"
 PUBLIC_SUBSCRIPTION_BOT_URL = "https://t.me/amonora_v_2_0_bot"
 PUBLIC_SUBSCRIPTION_COUNTRY_CODES = ("de", "dk", "ee")
+PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES = ("de", "dk", "ee")
 PUBLIC_SUBSCRIPTION_FAILOVER_ORDER: dict[str, tuple[str, ...]] = {
+    "de": ("de", "dk", "fr", "ee"),
+    "dk": ("dk", "de", "fr", "ee"),
+    "fr": ("fr", "de", "dk", "ee"),
+    "ee": ("ee", "fr", "dk", "de"),
+}
+PUBLIC_SUBSCRIPTION_VISIBLE_FAILOVER_ORDER: dict[str, tuple[str, ...]] = {
     "de": ("de", "dk", "ee"),
     "dk": ("dk", "de", "ee"),
     "ee": ("ee", "dk", "de"),
@@ -155,24 +162,6 @@ PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST = (
 PUBLIC_SUBSCRIPTION_COMPLIMENTARY_DAYS = 3650
 PUBLIC_SUBSCRIPTION_EXTRA_SERVERS: tuple[dict[str, str], ...] = (
     {
-        "label": "🇫🇮 Финляндия",
-        "uri": (
-            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@89.125.88.237:14428"
-            "?type=grpc&mode=gun&serviceName=testedbitten&security=reality&fp=chrome"
-            "&sni=apple.com&pbk=aGc-eKQxTA-OqusjDcFP9qBYf6CBNL_2WbadWE7j4z8&sid=d6db"
-            "#%F0%9F%87%AB%F0%9F%87%AE%20%D0%A4%D0%B8%D0%BD%D0%BB%D1%8F%D0%BD%D0%B4%D0%B8%D1%8F"
-        ),
-    },
-    {
-        "label": "🇦🇹 Австрия",
-        "uri": (
-            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@89.125.88.237:14428"
-            "?type=grpc&mode=gun&serviceName=testedbitten&security=reality&fp=chrome"
-            "&sni=apple.com&pbk=aGc-eKQxTA-OqusjDcFP9qBYf6CBNL_2WbadWE7j4z8&sid=d6db"
-            "#%F0%9F%87%A6%F0%9F%87%B9%20%D0%90%D0%B2%D1%81%D1%82%D1%80%D0%B8%D1%8F"
-        ),
-    },
-    {
         "label": "🇺🇸 США",
         "uri": (
             "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@138.124.60.219:58293"
@@ -188,15 +177,6 @@ PUBLIC_SUBSCRIPTION_EXTRA_SERVERS: tuple[dict[str, str], ...] = (
             "?type=grpc&mode=gun&serviceName=incompetentwisdom&security=reality&fp=chrome"
             "&sni=google.com&pbk=xjgZwsm5GvKgZd6hsciEjN2gE3G2rLGN0NdRtDA7KDE&sid=ee45"
             "#%F0%9F%87%B9%F0%9F%87%B7%20%D0%A2%D1%83%D1%80%D1%86%D0%B8%D1%8F"
-        ),
-    },
-    {
-        "label": "🇨🇭 Швейцария",
-        "uri": (
-            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@45.148.118.31:46238"
-            "?type=grpc&mode=gun&serviceName=alikewrinkle&security=reality&fp=chrome"
-            "&sni=cloudflare.com&pbk=dakIL9GtO8gqPZy7IUIRQlVw3aAoaXmKos-y7geKYlM&sid=0429167e23c3"
-            "#%F0%9F%87%A8%F0%9F%87%AD%20%D0%A8%D0%B2%D0%B5%D0%B9%D1%86%D0%B0%D1%80%D0%B8%D1%8F"
         ),
     },
     {
@@ -1452,6 +1432,14 @@ async def _provision_public_route(user, *, country_code: str, slot_index: int, a
             disabled_at=None,
         )
         return updated
+    except Exception:
+        logger.exception(
+            "Failed to provision public subscription route user_id=%s country=%s slot=%s",
+            getattr(user, "id", None),
+            country_code,
+            slot_index,
+        )
+        return None
     finally:
         await provisioner.close()
 
@@ -1564,8 +1552,10 @@ async def sync_public_subscription_access(
     for key, route in existing_by_key.items():
         if key in desired_keys:
             continue
-        if not await _sync_public_route(route, access_expires_at=None):
-            sync_failed = True
+        # Ignore legacy public routes that no longer belong to the active
+        # subscription contour (for example retired FR entries). They should
+        # not make payment/post-sync repair fail for otherwise healthy users.
+        continue
 
     return sync_failed
 
@@ -1691,7 +1681,7 @@ def _build_germany_hysteria2_uri(route, metadata: Mapping[str, object] | None = 
 
 
 def _active_public_routes_by_country(routes: list[object]) -> dict[str, list[object]]:
-    by_country: dict[str, list[object]] = {country_code: [] for country_code in PUBLIC_SUBSCRIPTION_COUNTRY_CODES}
+    by_country: dict[str, list[object]] = {country_code: [] for country_code in PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES}
     ordered_routes = sorted(
         routes,
         key=lambda route: (
@@ -1743,7 +1733,7 @@ def _build_public_server_entries(routes: list[object]) -> list[dict[str, str]]:
     routes_by_country = _active_public_routes_by_country(routes)
     entries: list[dict[str, str]] = []
 
-    for logical_country in PUBLIC_SUBSCRIPTION_COUNTRY_CODES:
+    for logical_country in PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES:
         label = _user_server_label(logical_country, 1)
         for candidate_country in _failover_chain_for_country(logical_country):
             candidate_routes = routes_by_country.get(candidate_country) or []
@@ -1776,13 +1766,13 @@ def _build_feed_uris(routes: list[object]) -> list[str]:
             continue
         country_code = normalize_country_code(getattr(route, "country_code", None))
         slot_index = int(getattr(route, "slot_index", 0) or 0)
-        if country_code not in PUBLIC_SUBSCRIPTION_COUNTRY_CODES or slot_index <= 0:
+        if country_code not in PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES or slot_index <= 0:
             continue
         active_routes_by_key[(country_code, slot_index)] = route
         active_slots.add(slot_index)
 
     for slot_index in sorted(active_slots):
-        for logical_country in PUBLIC_SUBSCRIPTION_COUNTRY_CODES:
+        for logical_country in PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES:
             label = _user_server_label(logical_country, slot_index)
             for candidate_country in _failover_chain_for_country(logical_country):
                 route = active_routes_by_key.get((candidate_country, slot_index))
@@ -2095,13 +2085,13 @@ def _active_public_route_keys(routes: list[object]) -> set[tuple[str, int]]:
 
 def _failover_chain_for_country(country_code: str) -> tuple[str, ...]:
     normalized_country = normalize_country_code(country_code)
-    preferred_chain = PUBLIC_SUBSCRIPTION_FAILOVER_ORDER.get(normalized_country) or (normalized_country,)
+    preferred_chain = PUBLIC_SUBSCRIPTION_VISIBLE_FAILOVER_ORDER.get(normalized_country) or (normalized_country,)
     normalized_chain: list[str] = []
     for candidate_country in preferred_chain:
         normalized_candidate = normalize_country_code(candidate_country)
-        if normalized_candidate in PUBLIC_SUBSCRIPTION_COUNTRY_CODES and normalized_candidate not in normalized_chain:
+        if normalized_candidate in PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES and normalized_candidate not in normalized_chain:
             normalized_chain.append(normalized_candidate)
-    if not normalized_chain and normalized_country in PUBLIC_SUBSCRIPTION_COUNTRY_CODES:
+    if not normalized_chain and normalized_country in PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES:
         normalized_chain.append(normalized_country)
     return tuple(normalized_chain)
 
@@ -2112,7 +2102,7 @@ def _has_ready_public_routes(
     slot_limit: int,
     slot_index: int | None = None,
 ) -> bool:
-    active_slots_by_country: dict[str, set[int]] = {country_code: set() for country_code in PUBLIC_SUBSCRIPTION_COUNTRY_CODES}
+    active_slots_by_country: dict[str, set[int]] = {country_code: set() for country_code in PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES}
     for country_code, current_slot in _active_public_route_keys(routes):
         active_slots_by_country.setdefault(country_code, set()).add(int(current_slot))
 
@@ -2125,7 +2115,7 @@ def _has_ready_public_routes(
         return False
 
     for current_slot in sorted(expected_slots):
-        for logical_country in PUBLIC_SUBSCRIPTION_COUNTRY_CODES:
+        for logical_country in PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES:
             failover_chain = _failover_chain_for_country(logical_country)
             if not failover_chain:
                 return False
