@@ -50,7 +50,7 @@ PUBLIC_CLIENT_ALLOWED_HOSTS = frozenset(config.public_client_hosts)
 PUBLIC_CLIENT_HAPP_ADD_PATH = "/happ/add"
 PUBLIC_SUBSCRIPTION_BOT_URL = "https://t.me/amonora_v_2_0_bot"
 PUBLIC_SUBSCRIPTION_COUNTRY_CODES = ("de", "dk", "ee")
-PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES = ("de", "dk", "ee")
+PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES = ("de",)
 PUBLIC_SUBSCRIPTION_FAILOVER_ORDER: dict[str, tuple[str, ...]] = {
     "de": ("de", "dk", "fr", "ee"),
     "dk": ("dk", "de", "fr", "ee"),
@@ -58,12 +58,10 @@ PUBLIC_SUBSCRIPTION_FAILOVER_ORDER: dict[str, tuple[str, ...]] = {
     "ee": ("ee", "fr", "dk", "de"),
 }
 PUBLIC_SUBSCRIPTION_VISIBLE_FAILOVER_ORDER: dict[str, tuple[str, ...]] = {
-    "de": ("de", "dk", "ee"),
-    "dk": ("dk", "de", "ee"),
-    "ee": ("ee", "dk", "de"),
+    "de": ("de",),
 }
 PUBLIC_SUBSCRIPTION_MAX_SLOTS = 3
-PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS = 12
+PUBLIC_SUBSCRIPTION_UPDATE_INTERVAL_HOURS = 3
 PUBLIC_SUBSCRIPTION_PROFILE_TITLE = "Amonora"
 PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES = 0
 PUBLIC_SUBSCRIPTION_SERVER_DESCRIPTION = "VLESS | Amonora"
@@ -117,7 +115,10 @@ PUBLIC_SUBSCRIPTION_CLIENT_MARKERS = (
     "happ proxy",
     "happ-proxy-utility",
 )
-PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT = "Отличного настроения 💛"
+PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT = (
+    "📡 Проблемы с LTE? Операторы могут блокировать. Переключись между разными LTE-конфигами — один точно зайдёт. "
+    "💡 Если всё совсем не работает, нажми на 🔄 рядом с Amonora, но делай это только по Wi-Fi."
+)
 PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE = "bypass"
 PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST = (
     "ru.rostel,"
@@ -162,48 +163,327 @@ PUBLIC_SUBSCRIPTION_PER_APP_PROXY_LIST = (
 PUBLIC_SUBSCRIPTION_COMPLIMENTARY_DAYS = 3650
 PUBLIC_SUBSCRIPTION_EXTRA_SERVERS: tuple[dict[str, str], ...] = (
     {
-        "label": "🇺🇸 США",
+        "label": "🇳🇱 #1 Нидерланды",
         "uri": (
-            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@138.124.60.219:58293"
-            "?type=grpc&mode=gun&serviceName=shakyreply&security=reality&fp=chrome"
-            "&sni=github.com&pbk=OQ5T3F5zo8Ghy2coROi4XS2C4TqJXIwhlQP2v4E3LTE&sid=a210b2"
-            "#%F0%9F%87%BA%F0%9F%87%B8%20%D0%A1%D0%A8%D0%90%20%E2%9A%A1%EF%B8%8F"
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@novosrv.raw-srv.org:8444"
+            "?encryption=none&type=grpc&serviceName=grpc&mode=gun&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HtGrlWYA8aAU9d5ap1tbB8dOCMkpfsYgXvtwO6LYXks&sid=5a9ac84102706afb"
+            "#%F0%9F%87%B3%F0%9F%87%B1%20%D0%9D%D0%B8%D0%B4%D0%B5%D1%80%D0%BB%D0%B0%D0%BD%D0%B4%D1%8B"
         ),
     },
     {
-        "label": "🇹🇷 Турция",
+        "label": "🇳🇱 #2 Нидерланды",
         "uri": (
-            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@104.239.87.110:10210"
-            "?type=grpc&mode=gun&serviceName=incompetentwisdom&security=reality&fp=chrome"
-            "&sni=google.com&pbk=xjgZwsm5GvKgZd6hsciEjN2gE3G2rLGN0NdRtDA7KDE&sid=ee45"
-            "#%F0%9F%87%B9%F0%9F%87%B7%20%D0%A2%D1%83%D1%80%D1%86%D0%B8%D1%8F"
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@novosrv.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%B3%F0%9F%87%B1%20%D0%9D%D0%B8%D0%B4%D0%B5%D1%80%D0%BB%D0%B0%D0%BD%D0%B4%D1%8B"
         ),
     },
     {
-        "label": "📱 Мобильная сеть",
+        "label": "🇳🇱 #3 Нидерланды",
         "uri": (
-            "vless://07cd21cc-1836-4f35-9654-5afc70923d45@158.160.20.200:8443"
-            "?security=reality&type=xhttp&headerType=&path=%2F&host=&flow=&mode=auto"
-            "&sni=www.ads.x5.ru&fp=&pbk=MMnYv9Q-AwwYXOFbAZXpNLz0LUdYFSW3s4yqfX8Owxc&sid=76c6260a"
-            "#%F0%9F%93%B1%20%D0%9C%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F%20%D1%81%D0%B5%D1%82%D1%8C"
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@nl.srv.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%B3%F0%9F%87%B1%20%D0%9D%D0%B8%D0%B4%D0%B5%D1%80%D0%BB%D0%B0%D0%BD%D0%B4%D1%8B"
         ),
     },
     {
-        "label": "📱 Мобильная сеть 2",
+        "label": "🇳🇱 #4 Нидерланды",
         "uri": (
-            "vless://86cfd6dc-01be-3bf6-8355-0c76d13159a0@51.250.119.7:443"
-            "?flow=&type=tcp&headerType=none&security=reality&fp=random"
-            "&sni=www.google.com&pbk=Wlf_hcFJ8CsOrRbtxUiKsRbp5vbw4hsIlUAAtjh7aS4&sid=abaf64dbdf22e6"
-            "#%F0%9F%93%B1%20%D0%9C%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F%20%D1%81%D0%B5%D1%82%D1%8C%202"
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@152.53.104.18:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%B3%F0%9F%87%B1%20%D0%9D%D0%B8%D0%B4%D0%B5%D1%80%D0%BB%D0%B0%D0%BD%D0%B4%D1%8B"
         ),
     },
     {
-        "label": "📱 Мобильная сеть 3",
+        "label": "🇳🇱 #5 Нидерланды",
         "uri": (
-            "vless://b201044f-d594-3ed0-9850-28823dda8e8c@178.154.243.251:443"
-            "?flow=&type=tcp&headerType=none&security=reality&fp=random"
-            "&sni=www.google.com&pbk=JkiFzvTq6FFDb44V8ifby6-P7QZo7Z1B5VOrGTgAQEY&sid=a1e1a7"
-            "#%F0%9F%93%B1%20%D0%9C%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F%20%D1%81%D0%B5%D1%82%D1%8C%203"
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@152.53.105.248:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%B3%F0%9F%87%B1%20%D0%9D%D0%B8%D0%B4%D0%B5%D1%80%D0%BB%D0%B0%D0%BD%D0%B4%D1%8B"
+        ),
+    },
+    {
+        "label": "🇳🇱 #6 Нидерланды",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@152.53.105.236:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%B3%F0%9F%87%B1%20%D0%9D%D0%B8%D0%B4%D0%B5%D1%80%D0%BB%D0%B0%D0%BD%D0%B4%D1%8B"
+        ),
+    },
+    {
+        "label": "🇳🇱 #7 Нидерланды",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@152.53.106.12:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=edge&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%B3%F0%9F%87%B1%20%D0%9D%D0%B8%D0%B4%D0%B5%D1%80%D0%BB%D0%B0%D0%BD%D0%B4%D1%8B"
+        ),
+    },
+    {
+        "label": "🇩🇪 #1 Германия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@berlin.srv.raw-srv.org:8444"
+            "?encryption=none&type=grpc&serviceName=grpc&mode=gun&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HtGrlWYA8aAU9d5ap1tbB8dOCMkpfsYgXvtwO6LYXks&sid=e7aba176"
+            "#%F0%9F%87%A9%F0%9F%87%AA%20%D0%93%D0%B5%D1%80%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇩🇪 #2 Германия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@berlin.srv.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%A9%F0%9F%87%AA%20%D0%93%D0%B5%D1%80%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇩🇪 #3 Германия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@de.srv.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%A9%F0%9F%87%AA%20%D0%93%D0%B5%D1%80%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇩🇪 #4 Германия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@87.120.126.133:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=deepl.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%A9%F0%9F%87%AA%20%D0%93%D0%B5%D1%80%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇩🇪 #5 Германия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@159.195.67.157:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%A9%F0%9F%87%AA%20%D0%93%D0%B5%D1%80%D0%BC%D0%B0%D0%BD%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇫🇮 #1 Финляндия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@fi.srv.raw-srv.org:8444"
+            "?encryption=none&type=grpc&serviceName=grpc&mode=gun&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HtGrlWYA8aAU9d5ap1tbB8dOCMkpfsYgXvtwO6LYXks&sid=5a9ac84102706afb"
+            "#%F0%9F%87%AB%F0%9F%87%AE%20%D0%A4%D0%B8%D0%BD%D0%BB%D1%8F%D0%BD%D0%B4%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇫🇮 #2 Финляндия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@fi.srv.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%AB%F0%9F%87%AE%20%D0%A4%D0%B8%D0%BD%D0%BB%D1%8F%D0%BD%D0%B4%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇫🇮 #3 Финляндия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@fi-new.srv.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%AB%F0%9F%87%AE%20%D0%A4%D0%B8%D0%BD%D0%BB%D1%8F%D0%BD%D0%B4%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇫🇮 #4 Финляндия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@45.144.52.192:8444"
+            "?encryption=none&type=grpc&serviceName=grpc&mode=gun&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HtGrlWYA8aAU9d5ap1tbB8dOCMkpfsYgXvtwO6LYXks&sid=5a9ac84102706afb"
+            "#%F0%9F%87%AB%F0%9F%87%AE%20%D0%A4%D0%B8%D0%BD%D0%BB%D1%8F%D0%BD%D0%B4%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇦🇹 #1 Австрия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@at.srv.raw-srv.org:8444"
+            "?encryption=none&type=grpc&serviceName=grpc&mode=gun&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HtGrlWYA8aAU9d5ap1tbB8dOCMkpfsYgXvtwO6LYXks&sid=5a9ac84102706afb"
+            "#%F0%9F%87%A6%F0%9F%87%B9%20%D0%90%D0%B2%D1%81%D1%82%D1%80%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇦🇹 #2 Австрия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@at.srv.raw-srv.org:8443"
+            "?encryption=none&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=wjk3NHQYPrrkyteVd4blHcShzDO-WI_72geetswEi3g&sid=5ddd401ad1df4b38"
+            "#%F0%9F%87%A6%F0%9F%87%B9%20%D0%90%D0%B2%D1%81%D1%82%D1%80%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇵🇱 #1 Польша",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@pl.srv.raw-srv.org:8444"
+            "?encryption=none&type=grpc&serviceName=grpc&mode=gun&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HtGrlWYA8aAU9d5ap1tbB8dOCMkpfsYgXvtwO6LYXks&sid=5a9ac84102706afb"
+            "#%F0%9F%87%B5%F0%9F%87%B1%20%D0%9F%D0%BE%D0%BB%D1%8C%D1%88%D0%B0"
+        ),
+    },
+    {
+        "label": "🇵🇱 #2 Польша",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@pl.srv.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%B5%F0%9F%87%B1%20%D0%9F%D0%BE%D0%BB%D1%8C%D1%88%D0%B0"
+        ),
+    },
+    {
+        "label": "🇵🇱 #3 Польша",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@eu.bridge.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&headerType=none&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HsKBZVsE7puWHs8AzpHhf5eEwj0imv51at6GRRmLs0A&sid=54150a1d4a31894b"
+            "#%F0%9F%87%B5%F0%9F%87%B1%20%D0%9F%D0%BE%D0%BB%D1%8C%D1%88%D0%B0"
+        ),
+    },
+    {
+        "label": "🇨🇦 #1 Канада",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@ca.srv.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%A8%F0%9F%87%A6%20%D0%9A%D0%B0%D0%BD%D0%B0%D0%B4%D0%B0"
+        ),
+    },
+    {
+        "label": "🇷🇺 #1 Россия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@lte1.srv.raw-srv.org:8443"
+            "?encryption=none&type=tcp&security=reality&sni=lte1.srv.raw-srv.org"
+            "&fp=firefox&pbk=wjk3NHQYPrrkyteVd4blHcShzDO-WI_72geetswEi3g&sid=5ddd401ad1df4b38"
+            "#%F0%9F%87%B7%F0%9F%87%BA%20%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇷🇺 #2 Россия",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@lte2.srv.raw-srv.org:8443"
+            "?encryption=none&type=tcp&security=reality&sni=lte2.srv.raw-srv.org"
+            "&fp=firefox&pbk=wjk3NHQYPrrkyteVd4blHcShzDO-WI_72geetswEi3g&sid=5ddd401ad1df4b38"
+            "#%F0%9F%87%B7%F0%9F%87%BA%20%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇷🇺 #3 Россия",
+        "uri": (
+            "vless://9bac87fe-72b1-03e9-bc5d-4ff8de0626cb@eu.bridge.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&headerType=none&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HsKBZVsE7puWHs8AzpHhf5eEwj0imv51at6GRRmLs0A&sid=54150a1d4a31894b"
+            "#%F0%9F%87%B7%F0%9F%87%BA%20%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇫🇷 #1 Франция",
+        "uri": (
+            "vless://9bac87fe-72b1-03f1-bc5d-4ff8de0626cb@eu.bridge.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&headerType=none&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HsKBZVsE7puWHs8AzpHhf5eEwj0imv51at6GRRmLs0A&sid=54150a1d4a31894b"
+            "#%F0%9F%87%AB%F0%9F%87%B7%20%D0%A4%D1%80%D0%B0%D0%BD%D1%86%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇫🇷 #2 Франция",
+        "uri": (
+            "vless://9bac87fe-72b1-03f1-bc5d-4ff8de0626cb@eu.bridge.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&headerType=none&security=reality&sni=eu.bridge.raw-srv.org"
+            "&fp=firefox&pbk=HsKBZVsE7puWHs8AzpHhf5eEwj0imv51at6GRRmLs0A&sid=54150a1d4a31894b"
+            "#%F0%9F%87%AB%F0%9F%87%B7%20%D0%A4%D1%80%D0%B0%D0%BD%D1%86%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇦🇺 #1 Австралия",
+        "uri": (
+            "vless://9bac87fe-72b1-03f0-bc5d-4ff8de0626cb@eu.bridge.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&headerType=none&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HsKBZVsE7puWHs8AzpHhf5eEwj0imv51at6GRRmLs0A&sid=54150a1d4a31894b"
+            "#%F0%9F%87%A6%F0%9F%87%BA%20%D0%90%D0%B2%D1%81%D1%82%D1%80%D0%B0%D0%BB%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇹🇭 #1 Таиланд",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@th.bridge.raw-srv.org:8444"
+            "?encryption=none&type=grpc&serviceName=grpc&mode=gun&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HtGrlWYA8aAU9d5ap1tbB8dOCMkpfsYgXvtwO6LYXks&sid=5a9ac84102706afb"
+            "#%F0%9F%87%B9%F0%9F%87%AD%20%D0%A2%D0%B0%D0%B8%D0%BB%D0%B0%D0%BD%D0%B4"
+        ),
+    },
+    {
+        "label": "🇹🇭 #2 Таиланд",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@th.bridge.raw-srv.org:8446"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%B9%F0%9F%87%AD%20%D0%A2%D0%B0%D0%B8%D0%BB%D0%B0%D0%BD%D0%B4"
+        ),
+    },
+    {
+        "label": "🇯🇵 #1 Япония",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@jp.bridge.raw-srv.org:8445"
+            "?encryption=none&type=grpc&serviceName=grpc&mode=gun&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=HtGrlWYA8aAU9d5ap1tbB8dOCMkpfsYgXvtwO6LYXks&sid=5a9ac84102706afb"
+            "#%F0%9F%87%AF%F0%9F%87%B5%20%D0%AF%D0%BF%D0%BE%D0%BD%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🇯🇵 #2 Япония",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@jp.bridge.raw-srv.org:8447"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality&sni=dropbox.com"
+            "&fp=firefox&pbk=PZajgWT2dtEu0Avc2QWiZELK9wDQW9p9vvcckfQBfCE&sid=632cd48001bdb09a"
+            "#%F0%9F%87%AF%F0%9F%87%B5%20%D0%AF%D0%BF%D0%BE%D0%BD%D0%B8%D1%8F"
+        ),
+    },
+    {
+        "label": "🌍 #1 Автовыбор",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@eu.bridge.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&headerType=none&security=reality&sni=eu.bridge.raw-srv.org"
+            "&fp=firefox&pbk=HsKBZVsE7puWHs8AzpHhf5eEwj0imv51at6GRRmLs0A&sid=54150a1d4a31894b"
+            "#%F0%9F%8C%8D%20%D0%90%D0%B2%D1%82%D0%BE%D0%B2%D1%8B%D0%B1%D0%BE%D1%80"
+        ),
+    },
+    {
+        "label": "🌍 #2 Обход",
+        "uri": (
+            "vless://9bac87fe-72b1-03ea-bc5d-4ff8de0626cb@eu.bridge.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&headerType=none&security=reality&sni=eu.bridge.raw-srv.org"
+            "&fp=firefox&pbk=HsKBZVsE7puWHs8AzpHhf5eEwj0imv51at6GRRmLs0A&sid=54150a1d4a31894b"
+            "#%F0%9F%8C%8D%20%D0%9E%D0%B1%D1%85%D0%BE%D0%B4"
+        ),
+    },
+    {
+        "label": "🌍 #3 Обход",
+        "uri": (
+            "vless://9bac87fe-72b1-03ef-bc5d-4ff8de0626cb@eu.bridge.raw-srv.org:443"
+            "?encryption=none&flow=xtls-rprx-vision&type=tcp&headerType=none&security=reality&sni=eu.bridge.raw-srv.org"
+            "&fp=firefox&pbk=HsKBZVsE7puWHs8AzpHhf5eEwj0imv51at6GRRmLs0A&sid=54150a1d4a31894b"
+            "#%F0%9F%8C%8D%20%D0%9E%D0%B1%D1%85%D0%BE%D0%B4"
+        ),
+    },
+    {
+        "label": "🌍 #4 Обход",
+        "uri": (
+            "vless://9bac87fe-72b1-41ab-bc5d-4ff8de0626cb@lte1.srv.raw-srv.org:8443"
+            "?encryption=none&type=tcp&security=reality&sni=lte1.srv.raw-srv.org"
+            "&fp=firefox&pbk=wjk3NHQYPrrkyteVd4blHcShzDO-WI_72geetswEi3g&sid=5ddd401ad1df4b38"
+            "#%F0%9F%8C%8D%20%D0%9E%D0%B1%D1%85%D0%BE%D0%B4"
         ),
     },
 )
@@ -1126,8 +1406,10 @@ def _build_feed_headers(
             f"total={PUBLIC_SUBSCRIPTION_TRAFFIC_TOTAL_BYTES}; "
             f"expire={expire_ts}"
         ),
-        "announce": PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT,
+        "announce": _base64_prefixed_header_value(PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT),
         "notification-subs-expire": "1",
+        "sub-expire": "1",
+        "sub-expire-button-link": PUBLIC_SUBSCRIPTION_BOT_URL,
         "hide-settings": "true",
         "subscription-auto-update-enable": "1",
         "per-app-proxy-mode": PUBLIC_SUBSCRIPTION_PER_APP_PROXY_MODE,
@@ -1159,6 +1441,24 @@ def _slot_device_payload(request_context: Mapping[str, object]) -> dict[str, obj
         "feed_device_last_seen_at": current.isoformat(),
         "subscription_client": str(request_context.get("client_kind") or "happ"),
     }
+
+
+def _http_header_safe_value(value: str) -> str:
+    return " ".join(str(value).replace("\r", " ").replace("\n", " ").split())
+
+
+def _base64_prefixed_header_value(value: str) -> str:
+    normalized = _http_header_safe_value(value)
+    encoded = base64.b64encode(normalized.encode("utf-8")).decode("ascii")
+    return f"base64:{encoded}"
+
+
+def _build_feed_meta_lines() -> tuple[str, ...]:
+    return (
+        f"#announce: {_base64_prefixed_header_value(PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT)}",
+        "#sub-expire: 1",
+        f"#sub-expire-button-link: {PUBLIC_SUBSCRIPTION_BOT_URL}",
+    )
 
 
 def _trojan_metadata_from_existing(payload: Mapping[str, object] | None) -> dict[str, object]:
@@ -1534,6 +1834,15 @@ async def sync_public_subscription_access(
     for country_code in PUBLIC_SUBSCRIPTION_COUNTRY_CODES:
         for slot_index in range(1, desired_slot_count + 1):
             route = existing_by_key.get((country_code, slot_index))
+            route_metadata = _load_route_metadata(route) if route is not None else {}
+            route_is_uninitialized = route is not None and (
+                not str(getattr(route, "client_uuid", "") or "").strip()
+                or not str(getattr(route, "email", "") or "").strip()
+                or not route_metadata
+                or "vless_link" not in route_metadata
+            )
+            if route_is_uninitialized:
+                route = None
             if route is None:
                 if not create_missing or sync_expiry is None:
                     continue
@@ -1581,6 +1890,7 @@ async def sync_public_subscription_slot_access(
         normalize_country_code(getattr(route, "country_code", None)): route
         for route in routes
         if int(getattr(route, "slot_index", 0) or 0) == safe_slot_index
+        and normalize_country_code(getattr(route, "country_code", None)) in PUBLIC_SUBSCRIPTION_COUNTRY_CODES
     }
     sync_failed = False
 
@@ -2269,8 +2579,10 @@ async def get_public_subscription_feed_payload(
     page_url = build_public_subscription_page_url(token)
     upload_bytes, download_bytes = _traffic_totals_from_routes(routes)
 
+    meta_lines = _build_feed_meta_lines()
+    body_lines = [*meta_lines, *(line for line in uris if str(line or "").strip())]
     return (
-        "\n".join(line for line in uris if str(line or "").strip()).strip() + "\n",
+        "\n".join(body_lines).strip() + "\n",
         _build_feed_headers(
             page_url=page_url,
             display_name=_display_name_for_user(user),

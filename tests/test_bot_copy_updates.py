@@ -423,26 +423,25 @@ class BotCopyUpdateTests(unittest.TestCase):
         self.assertNotIn("подароч", trial_ends_today_reminder_text().lower())
         self.assertNotIn("подароч", trial_expired_reminder_text().lower())
 
-    def test_device_slot_copy_explains_long_subscription_period(self) -> None:
+    def test_device_slot_copy_explains_monthly_period(self) -> None:
         methods_text = device_slot_methods_text(
-            title="+1 устройство до конца текущей подписки",
+            title="+1 устройство на 1 месяц",
             amount_rub=49,
-            expires_at="2026-10-03 12:00:00",
+            expires_at="2026-05-03 12:00:00",
             current_limit=3,
             next_limit=4,
             max_limit=8,
         )
         success_text = device_slot_payment_success_text(
-            title="+1 устройство до конца текущей подписки",
-            expires_at="2026-10-03 12:00:00",
+            title="+1 устройство на 1 месяц",
+            expires_at="2026-05-03 12:00:00",
             device_limit=4,
         )
 
-        self.assertIn("до конца текущей оплаченной подписки", methods_text)
-        self.assertIn("Если у тебя подписка на 6 или 12 месяцев", methods_text)
-        self.assertIn("весь этот срок, а не 30 дней", methods_text)
-        self.assertIn("Если у тебя подписка на 6 или 12 месяцев", success_text)
-        self.assertIn("весь оплаченный период", success_text)
+        self.assertIn("действует ровно 1 месяц с момента оплаты", methods_text)
+        self.assertIn("не зависит от даты окончания основной подписки", methods_text)
+        self.assertIn("действует ровно 1 месяц с момента оплаты", success_text)
+        self.assertIn("не привязан к окончанию основной подписки", success_text)
 
     def test_tariffs_use_base_duration_days_after_promo_removal(self) -> None:
         self.assertEqual(get_tariff("1m").duration_days, 30)

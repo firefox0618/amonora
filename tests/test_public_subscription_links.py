@@ -155,12 +155,14 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
 
         entries = public_subscription_module._build_public_server_entries(routes)
 
-        self.assertEqual(entries[:3], [
-            {"label": "🇩🇪 #1 Германия", "uri": "vless://uuid-de@ffconnect.amonoraconnect.com:443?type=tcp&security=reality#de-old"},
-            {"label": "🇩🇰 #1 Дания", "uri": "vless://uuid-dk@dk.amonoraconnect.com:443?type=xhttp&security=reality#dk-old"},
-            {"label": "🇪🇪 #1 Эстония", "uri": "vless://uuid-ee@est.amonoraconnect.com:443?type=tcp&security=reality&flow=xtls-rprx-vision#ee-old"},
-        ])
-        self.assertEqual(entries[3:], list(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
+        self.assertEqual(
+            entries[:2],
+            [
+                {"label": "🇩🇪 #1 Германия", "uri": "vless://uuid-de@ffconnect.amonoraconnect.com:443?type=tcp&security=reality#de-old"},
+                {"label": "🇪🇪 #1 Эстония", "uri": "vless://uuid-ee@est.amonoraconnect.com:443?type=tcp&security=reality&flow=xtls-rprx-vision#ee-old"},
+            ],
+        )
+        self.assertEqual(entries[2:], list(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
 
     def test_public_server_entries_use_failover_and_keep_extra_server(self) -> None:
         routes = [
@@ -197,15 +199,13 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         entries = public_subscription_module._build_public_server_entries(routes)
 
         self.assertEqual(
-            [entry["label"] for entry in entries[:3]],
+            [entry["label"] for entry in entries[:2]],
             [
                 "🇩🇪 #1 Германия",
-                "🇩🇰 #1 Дания",
                 "🇪🇪 #1 Эстония",
             ],
         )
-        self.assertEqual(entries[3:], list(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
-        self.assertIn("#%F0%9F%87%AA%F0%9F%87%AA%20%231%20%D0%AD%D1%81%D1%82%D0%BE%D0%BD%D0%B8%D1%8F", entries[2]["uri"])
+        self.assertEqual(entries[2:], list(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
 
     async def test_bind_request_slot_recovers_missing_public_slot_before_returning_limit_error(self) -> None:
         link = SimpleNamespace(user_id=42)
@@ -501,15 +501,14 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["account_devices"], [])
         self.assertEqual(payload["account_devices_count"], 0)
         self.assertEqual(
-            payload["servers"][:3],
+            payload["servers"][:1],
             [
                 {"label": "🇩🇪 #1 Германия"},
-                {"label": "🇩🇰 #1 Дания"},
-                {"label": "🇪🇪 #1 Эстония"},
             ],
         )
+        self.assertEqual(payload["servers"][1:2], [{"label": "🇪🇪 #1 Эстония"}])
         self.assertEqual(
-            payload["servers"][3:],
+            payload["servers"][2:],
             [{"label": entry["label"]} for entry in public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS],
         )
         self.assertEqual(len(payload["install_links"]), 7)
@@ -786,24 +785,28 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         content, headers = payload
         lines = [line for line in content.splitlines() if line.strip()]
         self.assertEqual(
-            len(lines),
+            lines[0],
+            f"#announce: {public_subscription_module._base64_prefixed_header_value(public_subscription_module.PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT)}",
+        )
+        self.assertEqual(lines[1], "#sub-expire: 1")
+        self.assertEqual(lines[2], "#sub-expire-button-link: https://t.me/amonora_v_2_0_bot")
+        uri_lines = lines[3:]
+        self.assertEqual(
+            len(uri_lines),
             len(public_subscription_module.PUBLIC_SUBSCRIPTION_VISIBLE_COUNTRY_CODES)
             + len(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS),
         )
-        self.assertTrue(lines[0].startswith("vless://uuid-1@"))
-        self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 2))}", lines[0])
-        self.assertTrue(lines[1].startswith("vless://uuid-2@"))
-        self.assertIn(f"#{quote(public_subscription_module._user_server_label('dk', 2))}", lines[1])
-        self.assertTrue(lines[2].startswith("vless://uuid-2@"))
-        self.assertIn(f"#{quote(public_subscription_module._user_server_label('ee', 2))}", lines[2])
-        self.assertTrue(all(line.startswith("vless://") for line in lines))
+        self.assertTrue(uri_lines[0].startswith("vless://uuid-1@"))
+        self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 2))}", uri_lines[0])
+        self.assertTrue(uri_lines[0].startswith("vless://"))
+        self.assertTrue(uri_lines[1].startswith("vless://"))
         self.assertNotIn("profile-title", content)
         self.assertNotIn("hide-settings", content)
         self.assertNotIn("profile-update-interval", content)
         self.assertNotIn("<html", content.lower())
         self.assertNotIn("{", content)
         self.assertEqual(
-            lines[3:],
+            uri_lines[2:],
             [
                 public_subscription_module._rewrite_public_vless_uri(
                     str(entry["uri"]),
@@ -813,10 +816,19 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
             ],
         )
         self.assertEqual(headers["profile-web-page-url"], f"https://client.amonora.ru/{token}")
-        self.assertEqual(headers["profile-update-interval"], "12")
+        self.assertEqual(headers["profile-update-interval"], "3")
         self.assertEqual(headers["profile-title"], "Amonora")
         self.assertEqual(headers["support-url"], "https://t.me/amonora_v_2_0_bot")
-        self.assertEqual(headers["announce"], public_subscription_module.PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT)
+        self.assertEqual(
+            headers["announce"],
+            public_subscription_module._base64_prefixed_header_value(
+                public_subscription_module.PUBLIC_SUBSCRIPTION_ANNOUNCE_TEXT
+            ),
+        )
+        self.assertNotIn("sub-info-color", headers)
+        self.assertNotIn("sub-info-text", headers)
+        self.assertEqual(headers["sub-expire"], "1")
+        self.assertEqual(headers["sub-expire-button-link"], "https://t.me/amonora_v_2_0_bot")
         self.assertIn("expire=", headers["subscription-userinfo"])
         touch_mock.assert_awaited_once_with(token, feed_access=True)
 
@@ -934,16 +946,14 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         entries = public_subscription_module._build_public_server_entries(routes)
 
         self.assertEqual(
-            [entry["label"] for entry in entries[:3]],
+            [entry["label"] for entry in entries[:2]],
             [
                 "🇩🇪 #1 Германия",
-                "🇩🇰 #1 Дания",
                 "🇪🇪 #1 Эстония",
             ],
         )
-        self.assertEqual(entries[3:], list(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
+        self.assertEqual(entries[2:], list(public_subscription_module.PUBLIC_SUBSCRIPTION_EXTRA_SERVERS))
         self.assertTrue(entries[0]["uri"].startswith("vless://uuid-de@"))
-        self.assertTrue(entries[1]["uri"].startswith("vless://uuid-dk@"))
 
     def test_build_public_server_entries_falls_back_when_route_port_is_malformed(self) -> None:
         routes = [
@@ -1144,7 +1154,6 @@ class PublicSubscriptionLinkTests(unittest.IsolatedAsyncioTestCase):
         body, _ = payload
         self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 1))}", body)
         self.assertIn(f"#{quote(public_subscription_module._user_server_label('de', 2))}", body)
-        self.assertIn(f"#{quote(public_subscription_module._user_server_label('dk', 2))}", body)
 
     async def test_feed_payload_syncs_only_requested_slot_when_slot_routes_are_missing(self) -> None:
         token = "abcdefghijklmnop"

@@ -15,6 +15,7 @@ VIP_SUBSCRIPTION_SOURCES = {
 ADMIN_DEVICE_LIMIT = 30
 PERSONAL_DEVICE_LIMITS: dict[int, int] = {
     417561011: 20,  # @s_ufa
+    977619757: 4,  # manual override per admin request
 }
 TRIAL_ACTIVITY_LEVEL_LOW = "low"
 TRIAL_ACTIVITY_LEVEL_ACTIVE = "active"

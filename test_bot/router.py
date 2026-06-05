@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from math import ceil
 from pathlib import Path
 
@@ -90,8 +90,9 @@ from bot.utils.device_slots import (
     DEVICE_SLOT_PRODUCT_TYPE,
     DEVICE_SLOT_TARIFF_CODE,
     MAX_DEVICE_LIMIT,
+    DEVICE_SLOT_DURATION_DAYS,
+    add_device_slot_month,
     device_slot_display_title,
-    device_slot_duration_days,
     device_slot_unit_price_rub,
     remaining_device_slot_capacity,
 )
@@ -477,7 +478,7 @@ async def _device_slot_context_for_user(user) -> dict | None:
     active_slots = await _annotate_user_device_slots(user)
     current_limit = min(DEFAULT_DEVICE_LIMIT + active_slots, MAX_DEVICE_LIMIT)
     remaining_capacity = remaining_device_slot_capacity(user, base_limit=DEFAULT_DEVICE_LIMIT)
-    expires_at = getattr(user, "subscription_expires_at", None)
+    expires_at = add_device_slot_month(utcnow())
     expires_text = expires_at.strftime("%Y-%m-%d %H:%M:%S") if expires_at else "—"
     return {
         "active_slots": active_slots,
@@ -487,7 +488,7 @@ async def _device_slot_context_for_user(user) -> dict | None:
         "expires_at": expires_at,
         "expires_text": expires_text,
         "price_rub": device_slot_unit_price_rub(),
-        "duration_days": device_slot_duration_days(expires_at),
+        "duration_days": DEVICE_SLOT_DURATION_DAYS,
         "eligible": _device_slot_allowed_for_user(user),
     }
 
@@ -553,7 +554,13 @@ def _payment_result_text(payment_result: dict, *, fallback_title: str | None = N
 async def _device_slot_success_text_from_record(user, record) -> str:
     context = await _device_slot_context_for_user(user)
     metadata = _payment_metadata(record)
-    expires_at = getattr(user, "subscription_expires_at", None)
+    expires_at_raw = metadata.get("addon_expires_at")
+    expires_at = None
+    if expires_at_raw:
+        try:
+            expires_at = datetime.fromisoformat(str(expires_at_raw))
+        except (TypeError, ValueError):
+            expires_at = None
     expires_text = expires_at.strftime("%Y-%m-%d %H:%M:%S") if expires_at else "—"
     return device_slot_payment_success_text(
         title=str(metadata.get("product_title") or metadata.get("tariff_title") or _device_slot_title()),

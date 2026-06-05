@@ -344,8 +344,8 @@ class PaymentFinalizationContractTests(unittest.IsolatedAsyncioTestCase):
         mark_repair_mock.assert_not_awaited()
 
     async def test_finalize_payment_record_product_creates_device_slot_entitlement_without_subscription_activation(self) -> None:
-        expires_at = datetime(2026, 4, 24, 12, 0, 0)
-        starts_at = datetime(2026, 3, 24, 12, 0, 0)
+        expires_at = datetime(2026, 4, 24, 12, 30, 0)
+        starts_at = datetime(2026, 3, 24, 12, 30, 0)
         record = type(
             "PaymentRecord",
             (),
@@ -417,8 +417,8 @@ class PaymentFinalizationContractTests(unittest.IsolatedAsyncioTestCase):
         subscription_finalize_mock.assert_not_awaited()
 
     async def test_finalize_device_slot_payment_uses_subscription_end_for_long_plan(self) -> None:
-        expires_at = datetime(2026, 10, 3, 12, 0, 0)
-        starts_at = datetime(2026, 4, 3, 12, 0, 0)
+        starts_at = datetime(2026, 4, 3, 12, 10, 0)
+        expires_at = datetime(2026, 5, 3, 12, 10, 0)
         record = type(
             "PaymentRecord",
             (),
@@ -467,7 +467,7 @@ class PaymentFinalizationContractTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNotNone(result)
         self.assertEqual(result["expires_at"], expires_at)
-        self.assertEqual(result["expires_text"], "2026-10-03 12:00:00")
+        self.assertEqual(result["expires_text"], "2026-05-03 12:10:00")
         claim_mock.assert_awaited_once_with(92, effect_kind="device_slot_activation")
         release_mock.assert_not_awaited()
         entitlement_mock.assert_awaited_once_with(
@@ -482,8 +482,8 @@ class PaymentFinalizationContractTests(unittest.IsolatedAsyncioTestCase):
         applied_mock.assert_awaited_once_with(92, effect_kind="device_slot_activation")
 
     async def test_finalize_device_slot_payment_does_not_release_claim_after_entitlement_if_marking_fails(self) -> None:
-        expires_at = datetime(2026, 10, 3, 12, 0, 0)
         starts_at = datetime(2026, 4, 3, 12, 0, 0)
+        expires_at = datetime(2026, 5, 3, 12, 0, 0)
         record = type(
             "PaymentRecord",
             (),

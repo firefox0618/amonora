@@ -63,9 +63,12 @@ from bot.public_subscription import (
     build_public_subscription_page_url,
     get_or_create_public_subscription_page_url_for_user,
     is_placeholder_public_subscription_binding,
+    sync_public_subscription_access,
 )
 from bot.db import (
     BALANCE_HOLD_PAYMENT_STATUSES,
+    PAYMENT_ACCESS_SYNCED_AT_KEY,
+    PAYMENT_ACCESS_SYNC_STATE_KEY,
     _release_reserved_balance_for_record,
     _load_payment_metadata,
     activate_trial,
@@ -74,6 +77,7 @@ from bot.db import (
     create_vpn_client,
     create_manual_payment_record,
     count_region_vpn_clients,
+    count_user_account_devices,
     delete_vpn_client_and_return,
     get_active_public_subscription_link_for_user,
     get_active_device_slot_counts_for_users,
@@ -89,6 +93,8 @@ from bot.db import (
     mark_vpn_repair_needed,
     list_payment_records as list_payment_records_db,
     mark_manual_payment_record_submitted,
+    refresh_payment_record_reconcile_state,
+    update_payment_record_metadata,
     update_vpn_client_metadata,
 )
 from bot.manual_payments import (
@@ -5042,6 +5048,9 @@ async def repair_user_vpn_access(user_id: int, admin: DashboardAdmin, ip_address
 
     access_expires_at = await get_access_expires_at(user_id)
     devices = await get_user_vpn_clients(user_id)
+    public_routes = await get_public_subscription_routes_for_user(user_id)
+    public_link = await get_active_public_subscription_link_for_user(user_id)
+    account_devices_count = await count_user_account_devices(user_id)
 
     if access_expires_at is None:
         reason = MANUAL_REPAIR_NO_ACCESS
@@ -5059,6 +5068,7 @@ async def repair_user_vpn_access(user_id: int, admin: DashboardAdmin, ip_address
                     "reason": reason,
                     "checked_access": False,
                     "checked_devices": 0,
+                    "checked_public_routes": len(public_routes),
                 },
                 ensure_ascii=False,
             ),
@@ -5066,7 +5076,44 @@ async def repair_user_vpn_access(user_id: int, admin: DashboardAdmin, ip_address
         )
         return {"sync_failed": True, "repair_needed": True, "reason": reason}
 
-    if not devices:
+    if not devices and (public_routes or public_link is not None):
+        public_sync_failed = await sync_public_subscription_access(user_id, create_missing=True)
+        if public_sync_failed:
+            reason = MANUAL_REPAIR_SYNC_FAILED
+            updated_user = await mark_vpn_repair_needed(user_id, reason)
+            await create_vpn_repair_event(user_id, "failed", reason)
+        else:
+            reason = None
+            updated_user = await clear_vpn_repair_needed(user_id)
+            await create_vpn_repair_event(user_id, "success", MANUAL_REPAIR)
+
+        await create_audit_log(
+            admin.id,
+            "repair_vpn_access",
+            "user",
+            str(user_id),
+            json.dumps(
+                {
+                    "before": before_snapshot,
+                    "after": _user_audit_snapshot(_user_audit_subject(updated_user, user)),
+                    "reason": reason,
+                    "sync_failed": bool(public_sync_failed),
+                    "checked_access": True,
+                    "checked_devices": account_devices_count,
+                    "checked_public_routes": len(public_routes),
+                    "used_public_subscription_sync": True,
+                },
+                ensure_ascii=False,
+            ),
+            ip_address,
+        )
+        return {
+            "sync_failed": bool(public_sync_failed),
+            "repair_needed": bool(public_sync_failed),
+            "reason": reason,
+        }
+
+    if not devices and account_devices_count <= 0:
         reason = MANUAL_REPAIR_NO_DEVICES
         updated_user = await mark_vpn_repair_needed(user_id, reason)
         await create_vpn_repair_event(user_id, "skipped", reason)
@@ -5081,7 +5128,8 @@ async def repair_user_vpn_access(user_id: int, admin: DashboardAdmin, ip_address
                     "after": _user_audit_snapshot(_user_audit_subject(updated_user, user)),
                     "reason": reason,
                     "checked_access": True,
-                    "checked_devices": 0,
+                    "checked_devices": account_devices_count,
+                    "checked_public_routes": len(public_routes),
                 },
                 ensure_ascii=False,
             ),
@@ -5112,7 +5160,7 @@ async def repair_user_vpn_access(user_id: int, admin: DashboardAdmin, ip_address
                 "reason": reason,
                 "sync_failed": bool(sync_failed),
                 "checked_access": True,
-                "checked_devices": len(devices),
+                "checked_devices": account_devices_count,
             },
             ensure_ascii=False,
         ),
@@ -5426,11 +5474,13 @@ async def _run_user_repair_operation(
     if user is None:
         raise ValueError("Пользователь не найден")
     before_snapshot = _user_audit_snapshot(user)
-    before_snapshot = _user_audit_snapshot(user)
 
     access_expires_at = await get_access_expires_at(user_id)
     payments = await get_payment_records(user_id=user_id)
     devices = await get_user_vpn_clients(user_id)
+    public_routes = await get_public_subscription_routes_for_user(user_id)
+    public_link = await get_active_public_subscription_link_for_user(user_id)
+    account_devices_count = await count_user_account_devices(user_id)
 
     if access_expires_at is None:
         reason = MANUAL_REPAIR_NO_ACCESS
@@ -5453,7 +5503,8 @@ async def _run_user_repair_operation(
                     "after": _user_audit_snapshot(_user_audit_subject(updated_user, user)),
                     "reason": reason,
                     "checked_access": False,
-                    "checked_devices": 0,
+                    "checked_devices": account_devices_count,
+                    "checked_public_routes": len(public_routes),
                     "operation_state": "skipped",
                 },
                 ensure_ascii=False,
@@ -5467,13 +5518,87 @@ async def _run_user_repair_operation(
             "operation": operation,
             "checked_access": False,
             "checked_tariff": any(row.payment_status == "confirmed" for row in payments),
-            "checked_devices": 0,
+            "checked_devices": account_devices_count,
             "reissued_devices": 0,
             "node_rebound": False,
             "failed_devices": 0,
         }
 
-    if not devices:
+    if not devices and (public_routes or public_link is not None):
+        public_sync_failed = await sync_public_subscription_access(user_id, create_missing=True)
+        if public_sync_failed:
+            reason = None
+            updated_user = await clear_vpn_repair_needed(user_id)
+            await create_vpn_repair_event(user_id, "success", MANUAL_REPAIR)
+        else:
+            reason = None
+            updated_user = await clear_vpn_repair_needed(user_id)
+            await create_vpn_repair_event(user_id, "success", MANUAL_REPAIR)
+            await create_control_event(
+                category="access",
+                severity="INFO",
+                event_type="user_access_repair_completed",
+                title="Состояние пользователя восстановлено",
+                message=(
+                    f"{_control_user_identity(user)}\n"
+                    f"Операция: <b>{escape(operation)}</b>\n"
+                    f"Маршрутов единой ссылки синхронизировано: <b>{len(public_routes)}</b>\n"
+                    f"Администратор: <b>{escape(admin.display_name)}</b>"
+                ),
+                entity_type="user",
+                entity_id=str(user.id),
+                payload={
+                    "user_id": user.id,
+                    "telegram_id": user.telegram_id,
+                    "operation": operation,
+                    "reissued_devices": 0,
+                    "public_routes": len(public_routes),
+                    "node_rebound": False,
+                    "admin_id": admin.id,
+                    "admin_name": admin.display_name,
+                },
+                resolve_dedupe_key=f"dashboard-user:{user.id}:repair-needed",
+                dedupe_key=f"dashboard-user:{user.id}:{operation}:success",
+                cooldown_seconds=0,
+            )
+
+        await create_audit_log(
+            admin.id,
+            operation,
+            "user",
+            str(user_id),
+            json.dumps(
+                {
+                    "before": before_snapshot,
+                    "after": _user_audit_snapshot(_user_audit_subject(updated_user, user)),
+                    "devices": account_devices_count,
+                    "public_routes": len(public_routes),
+                    "reissued_devices": 0,
+                    "failed_devices": int(bool(public_sync_failed)),
+                    "node_rebound": False,
+                    "reason": reason,
+                    "used_public_subscription_sync": True,
+                    "operation_state": "degraded" if public_sync_failed else "success",
+                },
+                ensure_ascii=False,
+            ),
+            ip_address,
+        )
+        invalidate_runtime_cache("overview_metrics", "server_snapshots", "xui_summary")
+        return {
+            "sync_failed": bool(public_sync_failed),
+            "repair_needed": False,
+            "reason": reason,
+            "operation": operation,
+            "checked_access": True,
+            "checked_tariff": any(row.payment_status == "confirmed" for row in payments),
+            "checked_devices": account_devices_count,
+            "reissued_devices": 0,
+            "node_rebound": False,
+            "failed_devices": int(bool(public_sync_failed)),
+        }
+
+    if not devices and account_devices_count <= 0:
         reason = MANUAL_REPAIR_NO_DEVICES
         updated_user = await mark_vpn_repair_needed(user_id, reason)
         await create_vpn_repair_event(user_id, "skipped", reason)
@@ -5494,7 +5619,8 @@ async def _run_user_repair_operation(
                     "after": _user_audit_snapshot(_user_audit_subject(updated_user, user)),
                     "reason": reason,
                     "checked_access": True,
-                    "checked_devices": 0,
+                    "checked_devices": account_devices_count,
+                    "checked_public_routes": len(public_routes),
                     "operation_state": "skipped",
                 },
                 ensure_ascii=False,
@@ -5508,7 +5634,7 @@ async def _run_user_repair_operation(
             "operation": operation,
             "checked_access": True,
             "checked_tariff": any(row.payment_status == "confirmed" for row in payments),
-            "checked_devices": 0,
+            "checked_devices": account_devices_count,
             "reissued_devices": 0,
             "node_rebound": False,
             "failed_devices": 0,
@@ -5567,7 +5693,7 @@ async def _run_user_repair_operation(
             {
                 "before": before_snapshot,
                 "after": _user_audit_snapshot(_user_audit_subject(updated_user, user)),
-                "devices": len(devices),
+                "devices": account_devices_count,
                 "reissued_devices": len(results),
                 "failed_devices": len(failures),
                 "node_rebound": any(item["node_rebound"] for item in results),
@@ -5586,7 +5712,7 @@ async def _run_user_repair_operation(
         "operation": operation,
         "checked_access": True,
         "checked_tariff": any(row.payment_status == "confirmed" for row in payments),
-        "checked_devices": len(devices),
+        "checked_devices": account_devices_count,
         "reissued_devices": len(results),
         "node_rebound": any(item["node_rebound"] for item in results),
         "failed_devices": len(failures),
@@ -5606,6 +5732,7 @@ async def _run_soft_user_sync_operation(
     access_expires_at = await get_access_expires_at(user_id)
     payments = await get_payment_records(user_id=user_id)
     devices = await get_user_vpn_clients(user_id)
+    account_devices_count = await count_user_account_devices(user_id)
 
     if access_expires_at is None:
         reason = MANUAL_REPAIR_NO_ACCESS
@@ -5653,7 +5780,7 @@ async def _run_soft_user_sync_operation(
             "auto_retry_succeeded": False,
         }
 
-    if not devices:
+    if not devices and account_devices_count <= 0:
         reason = MANUAL_REPAIR_NO_DEVICES
         updated_user = await mark_vpn_repair_needed(user_id, reason)
         await create_vpn_repair_event(user_id, "skipped", reason)
@@ -5674,7 +5801,7 @@ async def _run_soft_user_sync_operation(
                     "after": _user_audit_snapshot(_user_audit_subject(updated_user, user)),
                     "reason": reason,
                     "checked_access": True,
-                    "checked_devices": 0,
+                    "checked_devices": account_devices_count,
                     "operation_state": "skipped",
                 },
                 ensure_ascii=False,
@@ -5688,7 +5815,7 @@ async def _run_soft_user_sync_operation(
             "operation": "sync_user_access",
             "checked_access": True,
             "checked_tariff": any(row.payment_status == "confirmed" for row in payments),
-            "checked_devices": 0,
+            "checked_devices": account_devices_count,
             "processed_devices": 0,
             "successful_devices": 0,
             "failed_devices": 0,
@@ -5789,7 +5916,7 @@ async def _run_soft_user_sync_operation(
                 "before": before_snapshot,
                 "after": _user_audit_snapshot(_user_audit_subject(updated_user, user)),
                 "mode": "soft_sync",
-                "devices": len(devices),
+                "devices": account_devices_count,
                 "processed_devices": sync_result.get("processed_devices", 0),
                 "successful_devices": sync_result.get("successful_devices", 0),
                 "failed_devices": sync_result.get("failed_devices", 0),
@@ -5811,12 +5938,34 @@ async def _run_soft_user_sync_operation(
         "operation": "sync_user_access",
         "checked_access": True,
         "checked_tariff": any(row.payment_status == "confirmed" for row in payments),
-        "checked_devices": len(devices),
+        "checked_devices": account_devices_count,
         "reissued_devices": 0,
         "node_rebound": False,
         "auto_retry_attempted": auto_retry_attempted,
         "auto_retry_succeeded": auto_retry_succeeded,
     }
+
+
+async def _mark_latest_confirmed_subscription_payment_access_synced(user_id: int) -> None:
+    payments = await list_payment_records_db(user_id=user_id, statuses={"confirmed"})
+    subscription_record = next(
+        (
+            row
+            for row in payments
+            if str(getattr(row, "tariff_code", "") or "").strip().lower() in {"1m", "3m", "6m", "12m"}
+        ),
+        None,
+    )
+    if subscription_record is None:
+        return
+    await update_payment_record_metadata(
+        int(subscription_record.id),
+        merge={
+            PAYMENT_ACCESS_SYNCED_AT_KEY: datetime.now(timezone.utc).isoformat(),
+            PAYMENT_ACCESS_SYNC_STATE_KEY: "success",
+        },
+    )
+    await refresh_payment_record_reconcile_state(int(subscription_record.id))
 
 
 async def sync_user_access_state(user_id: int, admin: DashboardAdmin, ip_address: str | None) -> dict:
@@ -5840,6 +5989,7 @@ async def deep_repair_user_access(user_id: int, admin: DashboardAdmin, ip_addres
             await create_vpn_repair_event(user_id, "failed", MANUAL_REPAIR_SYNC_FAILED)
         else:
             result = {**result, "post_sync_result": post_sync_result}
+            await _mark_latest_confirmed_subscription_payment_access_synced(user_id)
     return result
 
 
@@ -6061,7 +6211,20 @@ async def delete_device_for_user(device_id: int, admin: DashboardAdmin, ip_addre
     metadata = _device_metadata(device)
     before_snapshot = _vpn_client_audit_snapshot(device, metadata_override=metadata)
     access_expires_at = await get_access_expires_at(device.user_id)
-    await _delete_device_remote_state(device, metadata)
+    remote_delete_failed = False
+    remote_delete_error: str | None = None
+
+    try:
+        await _delete_device_remote_state(device, metadata)
+    except Exception as exc:
+        remote_delete_failed = True
+        remote_delete_error = str(exc)
+        await enqueue_restore_deleted_device_job(
+            device=device,
+            metadata=metadata,
+            access_expires_at=access_expires_at,
+            request_id=get_current_audit_request_id(),
+        )
 
     try:
         async with async_session() as session:
@@ -6071,6 +6234,11 @@ async def delete_device_for_user(device_id: int, admin: DashboardAdmin, ip_addre
                 await session.delete(db_device)
                 await session.commit()
     except Exception as exc:
+        if remote_delete_failed:
+            raise ValueError(
+                "Локальная запись устройства не удалена, а remote cleanup поставлен в очередь: "
+                f"{exc}; remote_error={remote_delete_error}"
+            ) from exc
         restored = await _restore_device_remote_state(device, metadata, access_expires_at)
         if not restored:
             await enqueue_restore_deleted_device_job(
@@ -6087,13 +6255,21 @@ async def delete_device_for_user(device_id: int, admin: DashboardAdmin, ip_addre
         "delete_device",
         "vpn_client",
         str(device_id),
-        json.dumps({"before": before_snapshot, "after": None}, ensure_ascii=False),
+        json.dumps(
+            {
+                "before": before_snapshot,
+                "after": None,
+                "remote_cleanup_deferred": remote_delete_failed,
+                "remote_cleanup_error": remote_delete_error,
+            },
+            ensure_ascii=False,
+        ),
         ip_address,
     )
     user = await get_user_by_id(device.user_id)
     await create_control_event(
         category="access",
-        severity="INFO",
+        severity="WARNING" if remote_delete_failed else "INFO",
         event_type="device_deleted",
         title="Устройство удалено через панель",
         message=(
@@ -6101,7 +6277,12 @@ async def delete_device_for_user(device_id: int, admin: DashboardAdmin, ip_addre
             f"Протокол: <b>{escape(device.protocol)}</b>\n"
             f"Email: <code>{escape(device.email or '—')}</code>\n"
             f"Нода: <b>{escape(get_country_name(metadata.get('country_code')))}</b>\n"
-            f"Администратор: <b>{escape(admin.display_name)}</b>"
+            + (
+                f"Remote cleanup: <b>отложен</b> ({escape(remote_delete_error or 'unknown error')})\n"
+                if remote_delete_failed
+                else ""
+            )
+            + f"Администратор: <b>{escape(admin.display_name)}</b>"
         ),
         entity_type="vpn_client",
         entity_id=str(device_id),
@@ -6113,6 +6294,8 @@ async def delete_device_for_user(device_id: int, admin: DashboardAdmin, ip_addre
             "country_code": metadata.get("country_code"),
             "admin_id": admin.id,
             "admin_name": admin.display_name,
+            "remote_cleanup_deferred": remote_delete_failed,
+            "remote_cleanup_error": remote_delete_error,
         },
         dedupe_key=f"dashboard-device:{device_id}:deleted",
         cooldown_seconds=0,

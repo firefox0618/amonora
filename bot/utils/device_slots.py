@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 from datetime import datetime
 
 from bot.config import config
@@ -9,6 +10,7 @@ DEVICE_SLOT_PRODUCT_TYPE = "device_slot_addon"
 DEVICE_SLOT_TARIFF_CODE = "device_slot_addon"
 DEFAULT_DEVICE_LIMIT = 3
 MAX_DEVICE_LIMIT = 8
+DEVICE_SLOT_DURATION_DAYS = 30
 
 
 def device_slot_unit_price_rub() -> int:
@@ -43,7 +45,7 @@ def device_slot_title(slots_count: int = 1) -> str:
 
 
 def device_slot_display_title(slots_count: int = 1) -> str:
-    return f"{device_slot_title(slots_count)} до конца текущей подписки"
+    return f"{device_slot_title(slots_count)} на 1 месяц"
 
 
 def is_device_slot_product(*, product_type: str | None = None, tariff_code: str | None = None) -> bool:
@@ -67,3 +69,14 @@ def device_slot_duration_days(expires_at: datetime | None, *, now: datetime | No
     if expires_at <= current:
         return 0
     return max((expires_at - current).days, 0)
+
+
+def add_device_slot_month(start_at: datetime) -> datetime:
+    safe_start = start_at or datetime.utcnow()
+    year = safe_start.year
+    month = safe_start.month + 1
+    if month > 12:
+        month = 1
+        year += 1
+    day = min(safe_start.day, calendar.monthrange(year, month)[1])
+    return safe_start.replace(year=year, month=month, day=day)

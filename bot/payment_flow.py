@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Awaitable, Callable
+from datetime import datetime
 
 import httpx
 from aiogram import Bot
@@ -54,6 +55,8 @@ from bot.user_notifications import send_user_message, send_user_message_and_refr
 from bot.utils.access import get_device_limit_for_user, has_active_subscription_from_user
 from bot.utils.device_slots import (
     DEVICE_SLOT_PRODUCT_TYPE,
+    DEVICE_SLOT_DURATION_DAYS,
+    add_device_slot_month,
     clamp_device_slot_count,
     device_slot_display_title,
     device_slot_unit_price_rub,
@@ -308,12 +311,19 @@ async def _build_device_slot_payment_result_snapshot(
     if record is None or user is None:
         return None
 
-    expires_at = getattr(user, "subscription_expires_at", None)
-    if expires_at is None:
-        return None
-
     metadata = _record_metadata(record)
     slots_count = clamp_device_slot_count(int(metadata.get("slots_count") or 1))
+    expires_at_raw = metadata.get("addon_expires_at")
+    try:
+        expires_at = datetime.fromisoformat(str(expires_at_raw)) if expires_at_raw else None
+    except (TypeError, ValueError):
+        expires_at = None
+    if expires_at is None:
+        starts_at = getattr(record, "confirmed_at", None) or getattr(record, "created_at", None)
+        if starts_at is not None:
+            expires_at = add_device_slot_month(starts_at)
+    if expires_at is None:
+        return None
     extra_counts = await get_active_device_slot_counts_for_users([user.id])
     setattr(user, "active_device_slot_addons", int(extra_counts.get(user.id, 0)))
     device_limit = get_device_limit_for_user(user)
@@ -718,10 +728,6 @@ async def finalize_device_slot_payment(
     if user is None or getattr(user, "is_blocked", False):
         return None
 
-    expires_at = getattr(user, "subscription_expires_at", None)
-    if expires_at is None:
-        return None
-
     metadata = _record_metadata(record)
     slots_count = clamp_device_slot_count(int(metadata.get("slots_count") or 1))
     if slots_count <= 0:
@@ -745,7 +751,8 @@ async def finalize_device_slot_payment(
         return None
     record = claimed_record or record
 
-    starts_at = user.subscription_started_at or record.confirmed_at or record.created_at
+    starts_at = record.confirmed_at or record.created_at or utcnow()
+    expires_at = add_device_slot_month(starts_at)
     effect_performed = False
     effect_marked = False
     try:

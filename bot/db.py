@@ -597,14 +597,10 @@ async def get_active_device_slot_counts_for_users(
                         DeviceSlotEntitlement.user_id,
                         func.coalesce(func.sum(DeviceSlotEntitlement.slots_count), 0),
                     )
-                    .join(User, User.id == DeviceSlotEntitlement.user_id)
                     .where(
                         DeviceSlotEntitlement.user_id.in_(normalized_ids),
                         DeviceSlotEntitlement.status == DEVICE_SLOT_STATUS_ACTIVE,
                         DeviceSlotEntitlement.expires_at > current,
-                        User.subscription_status == "active",
-                        User.subscription_expires_at.is_not(None),
-                        User.subscription_expires_at > current,
                     )
                     .group_by(DeviceSlotEntitlement.user_id)
                 )
@@ -632,14 +628,10 @@ async def get_active_device_slot_entitlements_for_user(
             (
                 await session.execute(
                     select(DeviceSlotEntitlement)
-                    .join(User, User.id == DeviceSlotEntitlement.user_id)
                     .where(
                         DeviceSlotEntitlement.user_id == user_id,
                         DeviceSlotEntitlement.status == DEVICE_SLOT_STATUS_ACTIVE,
                         DeviceSlotEntitlement.expires_at > current,
-                        User.subscription_status == "active",
-                        User.subscription_expires_at.is_not(None),
-                        User.subscription_expires_at > current,
                     )
                     .order_by(DeviceSlotEntitlement.expires_at.asc(), DeviceSlotEntitlement.id.asc())
                 )
@@ -657,15 +649,9 @@ async def expire_device_slot_entitlements(*, now_utc: datetime | None = None) ->
             (
                 await session.execute(
                     select(DeviceSlotEntitlement)
-                    .join(User, User.id == DeviceSlotEntitlement.user_id)
                     .where(
                         DeviceSlotEntitlement.status == DEVICE_SLOT_STATUS_ACTIVE,
-                        (
-                            (DeviceSlotEntitlement.expires_at <= current)
-                            | (User.subscription_expires_at.is_(None))
-                            | (User.subscription_expires_at <= current)
-                            | (User.subscription_status != "active")
-                        ),
+                        DeviceSlotEntitlement.expires_at <= current,
                     )
                 )
             ).scalars().all()
@@ -699,14 +685,10 @@ async def _active_device_slot_count_for_user(session: AsyncSession, user_id: int
     value = (
         await session.execute(
             select(func.coalesce(func.sum(DeviceSlotEntitlement.slots_count), 0))
-            .join(User, User.id == DeviceSlotEntitlement.user_id)
             .where(
                 DeviceSlotEntitlement.user_id == int(user_id),
                 DeviceSlotEntitlement.status == DEVICE_SLOT_STATUS_ACTIVE,
                 DeviceSlotEntitlement.expires_at > current,
-                User.subscription_status == "active",
-                User.subscription_expires_at.is_not(None),
-                User.subscription_expires_at > current,
             )
         )
     ).scalar_one()
